@@ -1,0 +1,43 @@
+import { NextResponse } from 'next/server';
+import dbConnect from '@/lib/mongodb';
+import Partner from '@/models/Partners';
+
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  try {
+    await dbConnect();
+
+    const { id } = params;
+    const body = await request.json();
+    const { status, deactivationReason } = body;
+
+    if (!['active', 'pending', 'suspended', 'inactive'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
+    }
+
+    // Map 'inactive' to 'suspended' in DB since model uses 'suspended'
+    const dbStatus = status === 'inactive' ? 'suspended' : status;
+
+    const updateData: any = { status: dbStatus };
+    if (deactivationReason) {
+      updateData.deactivationReason = deactivationReason;
+    } else if (dbStatus !== 'suspended') {
+      // Clear deactivationReason if status is not suspended
+      updateData.deactivationReason = '';
+    }
+
+    const updatedPartner = await Partner.findOneAndUpdate(
+      { applicationId: id },
+      updateData,
+      { new: true }
+    ).lean();
+
+    if (!updatedPartner) {
+      return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: 'Status updated successfully' });
+  } catch (error) {
+    console.error('Error updating merchant status:', error);
+    return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
+  }
+}
