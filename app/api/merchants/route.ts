@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Partner from '@/models/Partners';
 
-function mapStatus(status: string) {
-  if (status === 'suspended') return 'inactive';
-  return status;
-}
+
 
 function calculateMonthsSince(date: Date) {
   const now = new Date();
@@ -27,7 +24,7 @@ export async function GET() {
         email: partner.email,
         phone: partner.phone,
         category: partner.category,
-        status: mapStatus(partner.status),
+        status: partner.status,
         registrationDate: partner.joinedSince.toISOString().split('T')[0], // YYYY-MM-DD
         address: partner.address,
         totalTransactions: partner.ratings ? partner.ratings.length : 0,
@@ -41,13 +38,13 @@ export async function GET() {
     const totalMerchants = partners.length;
     const activeMerchants = partners.filter(p => p.status === 'active').length;
     const pendingApprovals = partners.filter(p => p.status === 'pending').length;
-    const inactiveMerchants = partners.filter(p => p.status === 'suspended').length;
+    const suspendedMerchants = partners.filter(p => p.status === 'suspended').length;
 
     const stats = {
       totalMerchants,
       activeMerchants,
       pendingApprovals,
-      inactiveMerchants,
+      suspendedMerchants,
     };
 
     return NextResponse.json({ merchants, stats });

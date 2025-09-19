@@ -10,12 +10,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const body = await request.json();
     const { status, deactivationReason } = body;
 
-    if (!['active', 'pending', 'suspended', 'inactive'].includes(status)) {
+    if (!['active', 'pending', 'suspended'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
 
-    // Map 'inactive' to 'suspended' in DB since model uses 'suspended'
-    const dbStatus = status === 'inactive' ? 'suspended' : status;
+    const dbStatus = status;
 
     const updateData: any = { status: dbStatus };
     if (deactivationReason) {

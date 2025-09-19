@@ -75,7 +75,7 @@ interface Stats {
   totalMerchants: number;
   activeMerchants: number;
   pendingApprovals: number;
-  inactiveMerchants: number;
+  suspendedMerchants: number;
 }
 
 export default function MerchantsPage() {
@@ -88,7 +88,7 @@ export default function MerchantsPage() {
     totalMerchants: 0,
     activeMerchants: 0,
     pendingApprovals: 0,
-    inactiveMerchants: 0,
+    suspendedMerchants: 0,
   });
   const [dataLoading, setDataLoading] = useState(true);
 
@@ -193,14 +193,14 @@ export default function MerchantsPage() {
     const pendingApprovals = merchantsList.filter(
       (m) => m.status === "pending"
     ).length;
-    const inactiveMerchants = merchantsList.filter(
-      (m) => m.status === "inactive"
+    const suspendedMerchants = merchantsList.filter(
+      (m) => m.status === "suspended"
     ).length;
     return {
       totalMerchants,
       activeMerchants,
       pendingApprovals,
-      inactiveMerchants,
+      suspendedMerchants,
     };
   };
 
@@ -213,6 +213,14 @@ export default function MerchantsPage() {
       statusFilter === "all" || merchant.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Fix for statusFilter options to include suspended instead of inactive
+  const statusOptions = [
+    { value: "all", label: "All Status" },
+    { value: "active", label: "Active" },
+    { value: "pending", label: "Pending" },
+    { value: "suspended", label: "Suspended" },
+  ];
 
   const approveMerchant = async (
     merchantId: string,
@@ -247,12 +255,12 @@ export default function MerchantsPage() {
       const response = await fetch(`/api/merchants/${merchantId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "inactive" }),
+        body: JSON.stringify({ status: "suspended" }),
       });
       if (response.ok) {
         setMerchants((prev) => {
           const updated = prev.map((m) =>
-            m.id === merchantId ? { ...m, status: "inactive" } : m
+            m.id === merchantId ? { ...m, status: "suspended" } : m
           );
           setStats(calculateStats(updated));
           return updated;
@@ -271,7 +279,7 @@ export default function MerchantsPage() {
     const merchant = merchants.find((m) => m.id === merchantId);
     if (!merchant) return;
 
-    const newStatus = merchant.status === "active" ? "inactive" : "active";
+    const newStatus = merchant.status === "active" ? "suspended" : "active";
     try {
       const response = await fetch(`/api/merchants/${merchantId}/status`, {
         method: "PATCH",
@@ -308,14 +316,14 @@ export default function MerchantsPage() {
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "inactive", deactivationReason }),
+          body: JSON.stringify({ status: "suspended", deactivationReason }),
         }
       );
       if (response.ok) {
         setMerchants((prev) => {
           const updated = prev.map((m) =>
             m.id === selectedMerchant.id
-              ? { ...m, status: "inactive", deactivationReason }
+              ? { ...m, status: "suspended", deactivationReason }
               : m
           );
           setStats(calculateStats(updated));
@@ -340,8 +348,8 @@ export default function MerchantsPage() {
         return <Badge className="bg-green-100 text-green-800">Active</Badge>;
       case "pending":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case "inactive":
-        return <Badge className="bg-red-100 text-red-800">Inactive</Badge>;
+      case "suspended":
+        return <Badge className="bg-red-100 text-red-800">Suspended</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -435,15 +443,15 @@ export default function MerchantsPage() {
           <Card>
             <CardHeader className="flex justify-between pb-2">
               <CardTitle className="text-sm font-medium">
-                Inactive Merchants
+                Suspended Merchants
               </CardTitle>
               <Store className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {stats.inactiveMerchants.toLocaleString()}
+                {stats.suspendedMerchants.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground">Deactivated</p>
+              <p className="text-xs text-muted-foreground">Suspended</p>
             </CardContent>
           </Card>
         </div>
@@ -475,7 +483,7 @@ export default function MerchantsPage() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -629,7 +637,7 @@ export default function MerchantsPage() {
                 className="bg-red-600 hover:bg-red-700"
                 disabled={!deactivationReason.trim()}
               >
-                Deactivate Merchant
+                Suspend Merchant
               </Button>
             </DialogFooter>
           </DialogContent>
