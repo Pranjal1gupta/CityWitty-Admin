@@ -218,7 +218,7 @@ export default function CardsPage() {
       setSelectedCardForToggle(null);
       setStatusReason("");
       // Dispatch event to update notification badge in DashboardLayout
-      window.dispatchEvent(new CustomEvent('cardStatsUpdated'));
+      window.dispatchEvent(new CustomEvent("cardStatsUpdated"));
     } catch (error) {
       toast.error("Error updating card status");
     }
@@ -253,37 +253,39 @@ export default function CardsPage() {
 
   const handleExportCards = () => {
     const headers = [
-      'Card ID',
-      'User Name',
-      'Email',
-      'Status',
-      'Issue Date',
-      'Expiry Date',
-      'Last Used',
-      'Transactions',
-      'Total Savings'
+      "Card ID",
+      "User Name",
+      "Email",
+      "Status",
+      "Issue Date",
+      "Expiry Date",
+      "Last Used",
+      "Transactions",
+      "Total Savings",
     ];
 
-    const csvData = filteredCards.map(card => [
-      card.id || '',
+    const csvData = filteredCards.map((card) => [
+      card.id || "",
       card.userName,
       card.email,
       card.status,
-      card.issueDate || '',
-      card.expiryDate || '',
-      card.lastUsed || '',
+      card.issueDate || "",
+      card.expiryDate || "",
+      card.lastUsed || "",
       card.transactions || 0,
-      card.savings || 0
+      card.savings || 0,
     ]);
 
     const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
+      .map((row) =>
+        row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(",")
+      )
+      .join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = 'cards.csv';
+    link.download = "cards.csv";
     link.click();
   };
 
@@ -322,25 +324,25 @@ export default function CardsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
-  {/* Left Section */}
-  <div>
-    <h1 className="text-2xl font-bold text-gray-900">
-      Card Management
-    </h1>
-    <p className="text-gray-600">
-      Manage user discount cards and monitor usage
-    </p>
-  </div>
+          {/* Left Section */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Card Management
+            </h1>
+            <p className="text-gray-600">
+              Manage user discount cards and monitor usage
+            </p>
+          </div>
 
-  {/* Right Section */}
-  <Button
-    className="bg-gradient-to-l from-[#4AA8FF] to-[#FF7A00] w-full sm:w-auto"
-    onClick={handleExportCards}
-  >
-    <Download className="mr-2 h-4 w-4" />
-    Export Cards
-  </Button>
-</div>
+          {/* Right Section */}
+          <Button
+            className="bg-gradient-to-l from-[#4AA8FF] to-[#FF7A00] w-full sm:w-auto"
+            onClick={handleExportCards}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Cards
+          </Button>
+        </div>
 
         {/* Stats Cards */}
         <div className="space-y-6">
@@ -606,7 +608,7 @@ export default function CardsPage() {
                 <strong>Email:</strong> {selectedCard.email}
               </p>
               <p>
-                <strong >Status:</strong>{" "}
+                <strong>Status:</strong>{" "}
                 <span
                   className={
                     selectedCard.status === "active"

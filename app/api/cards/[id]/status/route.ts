@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/Users';
 
@@ -23,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     const updatedUser = await User.findOneAndUpdate(
-      { _id: id },
+      { _id: new mongoose.Types.ObjectId(id) },
       updateData,
       { new: true }
     ).lean();
