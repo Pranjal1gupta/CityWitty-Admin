@@ -170,11 +170,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button variant="ghost" className="ml-3 flex items-center">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] text-white uppercase">
-                        {user?.name?.split(' ').map(n => n[0]).join('') || 'A'}
+                        {user?.username?.split(' ').map(n => n[0]).join('') || 'A'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="ml-3 hidden md:block">
-                      <p className="text-sm font-medium text-gray-700 capitalize">{user?.name}</p>
+                      <p className="text-sm font-medium text-gray-700 capitalize">{user?.username}</p>
                       <p className="text-xs text-gray-500 uppercase">{user?.role}</p>
                     </div>
                     <ChevronDown className="ml-2 h-4 w-4" />
