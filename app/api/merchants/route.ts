@@ -3,7 +3,6 @@ import dbConnect from '@/lib/mongodb';
 import Partner from '@/models/Partners';
 
 
-
 function calculateMonthsSince(date: Date) {
   const now = new Date();
   const diff = now.getTime() - date.getTime();

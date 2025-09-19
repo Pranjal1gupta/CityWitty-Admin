@@ -164,7 +164,7 @@ export default function MerchantsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/merchants");
+        const response = await fetch("/api/merchants", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
           setMerchants(data.merchants);
@@ -232,16 +232,17 @@ export default function MerchantsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+
       if (response.ok) {
+        const updatedMerchant = await response.json();
         setMerchants((prev) => {
           const updated = prev.map((m) =>
-            m.id === merchantId ? { ...m, status } : m
+            m.id === merchantId ? { ...m, ...updatedMerchant } : m
           );
           setStats(calculateStats(updated));
           return updated;
         });
         toast.success("Merchant approved successfully");
-        window.dispatchEvent(new CustomEvent("merchantStatsUpdated"));
       } else {
         toast.error("Failed to approve merchant");
       }
@@ -257,16 +258,17 @@ export default function MerchantsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "suspended" }),
       });
+
       if (response.ok) {
+        const updatedMerchant = await response.json();
         setMerchants((prev) => {
           const updated = prev.map((m) =>
-            m.id === merchantId ? { ...m, status: "suspended" } : m
+            m.id === merchantId ? { ...m, ...updatedMerchant } : m
           );
           setStats(calculateStats(updated));
           return updated;
         });
         toast.success("Merchant application rejected");
-        window.dispatchEvent(new CustomEvent("merchantStatsUpdated"));
       } else {
         toast.error("Failed to reject merchant");
       }
@@ -280,22 +282,24 @@ export default function MerchantsPage() {
     if (!merchant) return;
 
     const newStatus = merchant.status === "active" ? "suspended" : "active";
+
     try {
       const response = await fetch(`/api/merchants/${merchantId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
+
       if (response.ok) {
+        const updatedMerchant = await response.json();
         setMerchants((prev) => {
           const updated = prev.map((m) =>
-            m.id === merchantId ? { ...m, status: newStatus } : m
+            m.id === merchantId ? { ...m, ...updatedMerchant } : m
           );
           setStats(calculateStats(updated));
           return updated;
         });
         toast.success("Merchant status updated successfully");
-        window.dispatchEvent(new CustomEvent("merchantStatsUpdated"));
       } else {
         toast.error("Failed to update merchant status");
       }
@@ -319,12 +323,12 @@ export default function MerchantsPage() {
           body: JSON.stringify({ status: "suspended", deactivationReason }),
         }
       );
+
       if (response.ok) {
+        const updatedMerchant = await response.json();
         setMerchants((prev) => {
           const updated = prev.map((m) =>
-            m.id === selectedMerchant.id
-              ? { ...m, status: "suspended", deactivationReason }
-              : m
+            m.id === selectedMerchant.id ? { ...m, ...updatedMerchant } : m
           );
           setStats(calculateStats(updated));
           return updated;
@@ -333,7 +337,6 @@ export default function MerchantsPage() {
         setDeactivationReason("");
         setSelectedMerchant(null);
         toast.success("Merchant deactivated successfully");
-        window.dispatchEvent(new CustomEvent("merchantStatsUpdated"));
       } else {
         toast.error("Failed to deactivate merchant");
       }
