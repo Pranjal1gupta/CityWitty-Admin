@@ -130,7 +130,7 @@ export default function CardsPage() {
 
     async function fetchCards() {
       try {
-        const res = await fetch("/api/cards");
+        const res = await fetch("/api/cards", { cache: 'no-store' });
         if (!res.ok) {
           throw new Error("Failed to fetch cards data");
         }
