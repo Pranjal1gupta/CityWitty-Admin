@@ -38,9 +38,9 @@ const AdminSchema: Schema<IAdmin> = new Schema(
   { timestamps: true, strict: false }
 );
 
-// 👇 Remove casting to avoid potential runtime issues
+// 👇 Cast mongoose.models.Admin to match the type
 const Admin =
-  mongoose.models.Admin ||
+  (mongoose.models.Admin as Model<IAdmin>) ||
   mongoose.model<IAdmin>("Admin", AdminSchema);
 
 export default Admin;
