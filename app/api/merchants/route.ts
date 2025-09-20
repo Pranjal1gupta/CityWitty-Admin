@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Partner from '@/models/Partners';
+import { Types } from 'mongoose';
 
 export async function GET() {
   try {
@@ -11,7 +12,7 @@ export async function GET() {
     // Map partners to merchant data format
     const merchants = partners.map((partner) => {
       return {
-        _id: partner._id.toString(), // Use MongoDB _id
+        _id: (partner._id as Types.ObjectId).toString(), // Use MongoDB _id
         applicationId: partner.applicationId,
         businessName: partner.businessName,
         ownerName: partner.ownerName,
