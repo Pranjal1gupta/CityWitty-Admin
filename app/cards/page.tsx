@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -119,6 +120,8 @@ export default function CardsPage() {
   const [selectedCardForEmail, setSelectedCardForEmail] =
     useState<CardData | null>(null);
 
+  const pathname = usePathname();
+
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login");
@@ -151,7 +154,7 @@ export default function CardsPage() {
     intervalId = setInterval(fetchCards, 5000);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [pathname]);
 
   const filteredCards = cards.filter((card: CardData) => {
     const matchesSearch =
@@ -699,68 +702,67 @@ export default function CardsPage() {
                   <p>No orders found.</p>
                 ) : (
                   <Accordion type="single" collapsible className="w-full">
-                    {selectedCard.orderHistory.map(
-                      (order: any) => (
-                        <AccordionItem key={order.orderId} value={`order-${order.orderId}`}>
-                          <AccordionTrigger>
-                            Order ID: {order.orderId} -{" "}
-                            {order.date
-                              ? new Date(order.date).toLocaleDateString()
-                              : "-"}{" "}
-                            - Rs. {order.amount}
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="space-y-2">
-                              <p>
-                                <strong>Status:</strong> {order.status}
-                              </p>
-                              <p>
-                                <strong>Discount Applied:</strong> Rs.{" "}
-                                {order.discountApplied}
-                              </p>
-                              <p>
-                                <strong>Savings:</strong> Rs. {order.savings}
-                              </p>
-                              <p>
-                                <strong>Final Amount:</strong> Rs.{" "}
-                                {order.finalAmount}
-                              </p>
-                              <p>
-                                <strong>Merchant:</strong> {order.merchant}
-                              </p>
-                              <p>
-                                <strong>Items:</strong>
-                              </p>
-                              <ul className="list-disc list-inside ml-4">
-                                {order.items.map((item: any, idx: number) => (
-                                  <li key={`${item.productName}-${idx}`}>
-                                    {item.productName} x {item.quantity} @ Rs.{" "}
-                                    {item.price} each (Discount: Rs.{" "}
-                                    {item.discount}, Final: Rs.{" "}
-                                    {item.finalPrice})
-                                  </li>
-                                ))}
-                              </ul>
-                              {order.review && (
-                                <div>
+                    {selectedCard.orderHistory.map((order: any) => (
+                      <AccordionItem
+                        key={order.orderId}
+                        value={`order-${order.orderId}`}
+                      >
+                        <AccordionTrigger>
+                          Order ID: {order.orderId} -{" "}
+                          {order.date
+                            ? new Date(order.date).toLocaleDateString()
+                            : "-"}{" "}
+                          - Rs. {order.amount}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2">
+                            <p>
+                              <strong>Status:</strong> {order.status}
+                            </p>
+                            <p>
+                              <strong>Discount Applied:</strong> Rs.{" "}
+                              {order.discountApplied}
+                            </p>
+                            <p>
+                              <strong>Savings:</strong> Rs. {order.savings}
+                            </p>
+                            <p>
+                              <strong>Final Amount:</strong> Rs.{" "}
+                              {order.finalAmount}
+                            </p>
+                            <p>
+                              <strong>Merchant:</strong> {order.merchant}
+                            </p>
+                            <p>
+                              <strong>Items:</strong>
+                            </p>
+                            <ul className="list-disc list-inside ml-4">
+                              {order.items.map((item: any, idx: number) => (
+                                <li key={`${item.productName}-${idx}`}>
+                                  {item.productName} x {item.quantity} @ Rs.{" "}
+                                  {item.price} each (Discount: Rs.{" "}
+                                  {item.discount}, Final: Rs. {item.finalPrice})
+                                </li>
+                              ))}
+                            </ul>
+                            {order.review && (
+                              <div>
+                                <p>
+                                  <strong>Review:</strong>
+                                </p>
+                                <p>Rating: {order.review.rating}/5</p>
+                                <p>Comment: {order.review.comment}</p>
+                                {order.review.merchantReply && (
                                   <p>
-                                    <strong>Review:</strong>
+                                    Merchant Reply: {order.review.merchantReply}
                                   </p>
-                                  <p>Rating: {order.review.rating}/5</p>
-                                  <p>Comment: {order.review.comment}</p>
-                                  {order.review.merchantReply && (
-                                    <p>
-                                      Merchant Reply:{" "}
-                                      {order.review.merchantReply}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      )
-                    )}
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
                   </Accordion>
                 )}
               </div>
