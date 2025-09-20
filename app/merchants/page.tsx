@@ -168,6 +168,7 @@ export default function MerchantsPage() {
         if (response.ok) {
           const data = await response.json();
           setMerchants(data.merchants);
+          console.log("from fetch api"+data.merchants);
           setStats(data.stats);
         } else {
           toast.error("Failed to fetch merchants data");
@@ -206,9 +207,9 @@ export default function MerchantsPage() {
 
   const filteredMerchants = merchants.filter((merchant) => {
     const matchesSearch =
-      merchant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      merchant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      merchant.category.toLowerCase().includes(searchTerm.toLowerCase());
+      (merchant.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (merchant.email ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (merchant.category ?? "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || merchant.status === statusFilter;
     return matchesSearch && matchesStatus;

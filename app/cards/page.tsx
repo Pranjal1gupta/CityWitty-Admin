@@ -130,7 +130,7 @@ export default function CardsPage() {
 
     async function fetchCards() {
       try {
-        const res = await fetch("/api/cards", { cache: 'no-store' });
+        const res = await fetch("/api/cards", { cache: "no-store" });
         if (!res.ok) {
           throw new Error("Failed to fetch cards data");
         }
@@ -155,13 +155,12 @@ export default function CardsPage() {
 
   const filteredCards = cards.filter((card: CardData) => {
     const matchesSearch =
-      card.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (card.userName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (card.email ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (card.id ?? "").toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" || card.status === statusFilter;
-    console.log(card);
 
     return matchesSearch && matchesStatus;
   });
@@ -262,18 +261,30 @@ export default function CardsPage() {
       "Last Used",
       "Transactions",
       "Total Savings",
+      "Card Variant",
+      "Mobile Number",
+      "WhatsApp Number",
+      "Address",
+      "Date of Birth",
     ];
 
     const csvData = filteredCards.map((card) => [
       card.id || "",
-      card.userName,
-      card.email,
-      card.status,
+      card.userName || "",
+      card.email || "",
+      card.status || "",
       card.issueDate || "",
       card.expiryDate || "",
       card.lastUsed || "",
       card.transactions || 0,
       card.savings || 0,
+      card.cardVariantName || "",
+      card.mobileNumber || "",
+      card.whatsappNumber || "",
+      `${card.address || ""}, ${card.city || ""}, ${card.state || ""} - ${
+        card.pincode || ""
+      }, ${card.country || ""}`,
+      card.dateOfBirth || "",
     ]);
 
     const csvContent = [headers, ...csvData]
@@ -689,8 +700,8 @@ export default function CardsPage() {
                 ) : (
                   <Accordion type="single" collapsible className="w-full">
                     {selectedCard.orderHistory.map(
-                      (order: any, index: number) => (
-                        <AccordionItem key={index} value={`order-${index}`}>
+                      (order: any) => (
+                        <AccordionItem key={order.orderId} value={`order-${order.orderId}`}>
                           <AccordionTrigger>
                             Order ID: {order.orderId} -{" "}
                             {order.date
@@ -722,7 +733,7 @@ export default function CardsPage() {
                               </p>
                               <ul className="list-disc list-inside ml-4">
                                 {order.items.map((item: any, idx: number) => (
-                                  <li key={idx}>
+                                  <li key={`${item.productName}-${idx}`}>
                                     {item.productName} x {item.quantity} @ Rs.{" "}
                                     {item.price} each (Discount: Rs.{" "}
                                     {item.discount}, Final: Rs.{" "}
