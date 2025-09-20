@@ -2,13 +2,6 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Partner from '@/models/Partners';
 
-
-function calculateMonthsSince(date: Date) {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  return Math.max(Math.floor(diff / (1000 * 60 * 60 * 24 * 30)), 1);
-}
-
 export async function GET() {
   try {
     await dbConnect();
@@ -18,18 +11,48 @@ export async function GET() {
     // Map partners to merchant data format
     const merchants = partners.map((partner) => {
       return {
-        id: partner.applicationId,
-        name: partner.businessName,
+        _id: partner._id.toString(), // Use MongoDB _id
+        applicationId: partner.applicationId,
+        businessName: partner.businessName,
+        ownerName: partner.ownerName,
         email: partner.email,
+        emailVerified: partner.emailVerified,
         phone: partner.phone,
+        phoneVerified: partner.phoneVerified,
+        password: partner.password,
         category: partner.category,
-        status: partner.status,
-        registrationDate: partner.joinedSince.toISOString().split('T')[0], // YYYY-MM-DD
+        city: partner.city,
         address: partner.address,
-        totalTransactions: partner.ratings ? partner.ratings.length : 0,
-        totalRevenue: partner.averageMonthlyRevenue, // Display as range from database
-        discountsOffered: partner.discountOffered,
-        deactivationReason: partner.deactivationReason || '',
+        whatsapp: partner.whatsapp,
+        isWhatsappSame: partner.isWhatsappSame,
+        gstNumber: partner.gstNumber,
+        panNumber: partner.panNumber,
+        businessType: partner.businessType,
+        yearsInBusiness: partner.yearsInBusiness,
+        averageMonthlyRevenue: partner.averageMonthlyRevenue,
+        discountOffered: partner.discountOffered,
+        description: partner.description,
+        website: partner.website,
+        socialLinks: partner.socialLinks,
+        agreeToTerms: partner.agreeToTerms,
+        products: partner.products,
+        logo: partner.logo,
+        storeImages: partner.storeImages,
+        customOffer: partner.customOffer,
+        ribbonTag: partner.ribbonTag,
+        mapLocation: partner.mapLocation,
+        visibility: partner.visibility,
+        joinedSince: partner.joinedSince.toISOString(),
+        citywittyAssured: partner.citywittyAssured,
+        ratings: partner.ratings,
+        averageRating: partner.averageRating,
+        tags: partner.tags,
+        status: partner.status,
+        deactivationReason: partner.deactivationReason,
+        otpCode: partner.otpCode,
+        otpExpiry: partner.otpExpiry?.toISOString(),
+        createdAt: partner.createdAt.toISOString(),
+        updatedAt: partner.updatedAt.toISOString(),
       };
     });
 

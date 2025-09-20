@@ -37,12 +37,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Store,
@@ -56,20 +50,93 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface Merchant {
-  id: string;
+// interface Merchant {
+//   id: string;
+//   name: string;
+//   email: string;
+//   phone: string;
+//   category: string;
+//   status: string;
+//   registrationDate: string;
+//   address: string;
+//   totalTransactions: number;
+//   totalRevenue: number;
+//   discountsOffered: string;
+//   deactivationReason?: string;
+// }
+
+export interface Product {
   name: string;
-  email: string;
-  phone: string;
-  category: string;
-  status: string;
-  registrationDate: string;
-  address: string;
-  totalTransactions: number;
-  totalRevenue: number;
-  discountsOffered: string;
-  deactivationReason?: string;
+  price: number;
+  description?: string;
+  image?: string;
 }
+
+export interface Rating {
+  user: string;
+  rating: number;
+  review?: string;
+  reply?: string;
+  createdAt?: string; // Date as string in API
+}
+
+export interface Merchant {
+  _id: string;
+  applicationId: string;
+  businessName: string;
+  ownerName: string;
+  email: string;
+  emailVerified?: boolean;
+  phone: string;
+  phoneVerified?: boolean;
+  password: string;
+  category: string;
+  city: string;
+  address: string;
+  whatsapp: string;
+  isWhatsappSame: boolean;
+  gstNumber: string;
+  panNumber: string;
+  businessType: string;
+  yearsInBusiness: string;
+  averageMonthlyRevenue: string;
+  discountOffered: string;
+  description: string;
+  website?: string;
+  socialLinks?: {
+    linkedin?: string;
+    twitter?: string;
+    youtube?: string;
+    instagram?: string;
+    facebook?: string;
+  };
+  agreeToTerms: boolean;
+
+  // 🔥 New Features
+  products: Product[];
+  logo?: string;
+  storeImages?: string[];
+  customOffer?: string;
+  ribbonTag?: string;
+  mapLocation?: string;
+  visibility: boolean;
+  joinedSince: string; // Dates returned as string from API
+  citywittyAssured: boolean;
+  ratings: Rating[];
+  averageRating?: number;
+  tags?: string[];
+  status: "pending" | "active" | "suspended";
+  deactivationReason?: string;
+
+  // 🔐 Password Reset
+  otpCode?: string;
+  otpExpiry?: string;
+
+  // ✅ Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 interface Stats {
   totalMerchants: number;
@@ -77,6 +144,8 @@ interface Stats {
   pendingApprovals: number;
   suspendedMerchants: number;
 }
+
+type ModalType = "view" | "approve" | "activate" | "deactivate" | null;
 
 export default function MerchantsPage() {
   const { user, isLoading } = useAuth();
@@ -91,260 +160,61 @@ export default function MerchantsPage() {
     suspendedMerchants: 0,
   });
   const [dataLoading, setDataLoading] = useState(true);
-
-  // Export merchants to CSV
-  const handleExportMerchants = () => {
-    const headers = [
-      "ID",
-      "Name",
-      "Email",
-      "Phone",
-      "Category",
-      "Status",
-      "Registration Date",
-      "Address",
-      "Total Transactions",
-      "Total Revenue",
-      "Discounts Offered",
-      "Deactivation Reason",
-    ];
-
-    const csvData = filteredMerchants.map((merchant) => [
-      merchant.id,
-      merchant.name,
-      merchant.email,
-      merchant.phone,
-      merchant.category,
-      merchant.status,
-      merchant.registrationDate,
-      merchant.address,
-      merchant.totalTransactions,
-      merchant.totalRevenue,
-      merchant.discountsOffered,
-      merchant.deactivationReason || "",
-    ]);
-
-    const csvContent = [headers, ...csvData]
-      .map((row) =>
-        row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(",")
-      )
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "merchants.csv";
-    link.click();
-  };
-
-  // Deactivation modal
-  const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(
-    null
-  );
   const [deactivationReason, setDeactivationReason] = useState("");
-  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
-  // Approval confirmation modal
-  const [selectedMerchantForApproval, setSelectedMerchantForApproval] =
-    useState<Merchant | null>(null);
-  const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
-  // Activation confirmation modal
-  const [selectedMerchantForActivation, setSelectedMerchantForActivation] =
-    useState<Merchant | null>(null);
-  const [isActivateDialogOpen, setIsActivateDialogOpen] = useState(false);
-  // View Merchant Details modal
-  const [viewMerchant, setViewMerchant] = useState<Merchant | null>(null);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
+  // Unified modal state
+  const [modal, setModal] = useState<{
+    type: ModalType;
+    merchant: Merchant | null;
+  }>({
+    type: null,
+    merchant: null,
+  });
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    }
+    if (!isLoading && !user) router.push("/login");
   }, [user, isLoading, router]);
 
   useEffect(() => {
+    if (!user) return;
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/merchants", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          setMerchants(data.merchants);
-          console.log("from fetch api"+data.merchants);
-          setStats(data.stats);
-        } else {
-          toast.error("Failed to fetch merchants data");
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
+        const res = await fetch("/api/merchants", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to fetch merchants");
+        const data = await res.json();
+        setMerchants(data.merchants);
+        console.log(data.merchants);
+        setStats(data.stats);
+      } catch (err) {
+        console.error(err);
         toast.error("Error loading merchants data");
       } finally {
         setDataLoading(false);
       }
     };
-
-    if (user) {
-      fetchData();
-    }
+    fetchData();
   }, [user]);
 
-  const calculateStats = (merchantsList: Merchant[]): Stats => {
-    const totalMerchants = merchantsList.length;
-    const activeMerchants = merchantsList.filter(
-      (m) => m.status === "active"
-    ).length;
-    const pendingApprovals = merchantsList.filter(
-      (m) => m.status === "pending"
-    ).length;
-    const suspendedMerchants = merchantsList.filter(
-      (m) => m.status === "suspended"
-    ).length;
-    return {
-      totalMerchants,
-      activeMerchants,
-      pendingApprovals,
-      suspendedMerchants,
-    };
-  };
+  const calculateStats = (merchantsList: Merchant[]): Stats => ({
+    totalMerchants: merchantsList.length,
+    activeMerchants: merchantsList.filter((m) => m.status === "active").length,
+    pendingApprovals: merchantsList.filter((m) => m.status === "pending")
+      .length,
+    suspendedMerchants: merchantsList.filter((m) => m.status === "suspended")
+      .length,
+  });
 
   const filteredMerchants = merchants.filter((merchant) => {
     const matchesSearch =
-      (merchant.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (merchant.businessName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (merchant.email ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (merchant.category ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+      (merchant.category ?? "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || merchant.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
-  // Fix for statusFilter options to include suspended instead of inactive
-  const statusOptions = [
-    { value: "all", label: "All Status" },
-    { value: "active", label: "Active" },
-    { value: "pending", label: "Pending" },
-    { value: "suspended", label: "Suspended" },
-  ];
-
-  const approveMerchant = async (
-    merchantId: string,
-    status: string = "active"
-  ) => {
-    try {
-      const response = await fetch(`/api/merchants/${merchantId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-
-      if (response.ok) {
-        const updatedMerchant = await response.json();
-        setMerchants((prev) => {
-          const updated = prev.map((m) =>
-            m.id === merchantId ? { ...m, ...updatedMerchant } : m
-          );
-          setStats(calculateStats(updated));
-          return updated;
-        });
-        toast.success("Merchant approved successfully");
-      } else {
-        toast.error("Failed to approve merchant");
-      }
-    } catch (error) {
-      toast.error("Error approving merchant");
-    }
-  };
-
-  const rejectMerchant = async (merchantId: string) => {
-    try {
-      const response = await fetch(`/api/merchants/${merchantId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "suspended" }),
-      });
-
-      if (response.ok) {
-        const updatedMerchant = await response.json();
-        setMerchants((prev) => {
-          const updated = prev.map((m) =>
-            m.id === merchantId ? { ...m, ...updatedMerchant } : m
-          );
-          setStats(calculateStats(updated));
-          return updated;
-        });
-        toast.success("Merchant application rejected");
-      } else {
-        toast.error("Failed to reject merchant");
-      }
-    } catch (error) {
-      toast.error("Error rejecting merchant");
-    }
-  };
-
-  const toggleMerchantStatus = async (merchantId: string) => {
-    const merchant = merchants.find((m) => m.id === merchantId);
-    if (!merchant) return;
-
-    const newStatus = merchant.status === "active" ? "suspended" : "active";
-
-    try {
-      const response = await fetch(`/api/merchants/${merchantId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (response.ok) {
-        const updatedMerchant = await response.json();
-        setMerchants((prev) => {
-          const updated = prev.map((m) =>
-            m.id === merchantId ? { ...m, ...updatedMerchant } : m
-          );
-          setStats(calculateStats(updated));
-          return updated;
-        });
-        toast.success("Merchant status updated successfully");
-      } else {
-        toast.error("Failed to update merchant status");
-      }
-    } catch (error) {
-      toast.error("Error updating merchant status");
-    }
-  };
-
-  const deactivateMerchant = async () => {
-    if (!selectedMerchant || !deactivationReason.trim()) {
-      toast.error("Please provide a reason for deactivation");
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `/api/merchants/${selectedMerchant.id}/status`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "suspended", deactivationReason }),
-        }
-      );
-
-      if (response.ok) {
-        const updatedMerchant = await response.json();
-        setMerchants((prev) => {
-          const updated = prev.map((m) =>
-            m.id === selectedMerchant.id ? { ...m, ...updatedMerchant } : m
-          );
-          setStats(calculateStats(updated));
-          return updated;
-        });
-        setIsDeactivateDialogOpen(false);
-        setDeactivationReason("");
-        setSelectedMerchant(null);
-        toast.success("Merchant deactivated successfully");
-      } else {
-        toast.error("Failed to deactivate merchant");
-      }
-    } catch (error) {
-      toast.error("Error deactivating merchant");
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -359,6 +229,170 @@ export default function MerchantsPage() {
     }
   };
 
+  // Unified merchant status update helper
+  const updateMerchantStatus = async (
+    merchantId: string,
+    status: string,
+    reason?: string
+  ) => {
+    try {
+      const res = await fetch(`/api/merchants/${merchantId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, deactivationReason: reason }),
+      });
+      if (!res.ok) throw new Error("Failed to update merchant status");
+      const updatedMerchant = await res.json();
+      setMerchants((prev) => {
+        const updated = prev.map((m) =>
+          m._id === merchantId ? { ...m, ...updatedMerchant } : m
+        );
+        setStats(calculateStats(updated));
+        return updated;
+      });
+      toast.success("Merchant status updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Error updating merchant");
+    }
+  };
+
+  // const handleExportMerchants = () => {
+  //   const headers = [
+  //     "ID",
+  //     "Name",
+  //     "Email",
+  //     "Phone",
+  //     "Category",
+  //     "Status",
+  //     "Registration Date",
+  //     "Address",
+  //     "Total Transactions",
+  //     "Total Revenue",
+  //     "Discounts Offered",
+  //     "Deactivation Reason",
+  //   ];
+  //   const csvData = filteredMerchants.map((m) => [
+  //     m.id,
+  //     m.name,
+  //     m.email,
+  //     m.phone,
+  //     m.category,
+  //     m.status,
+  //     m.registrationDate,
+  //     m.address,
+  //     m.totalTransactions,
+  //     m.totalRevenue,
+  //     m.discountsOffered,
+  //     m.deactivationReason || "",
+  //   ]);
+  //   const csvContent = [headers, ...csvData]
+  //     .map((row) =>
+  //       row.map((f) => `"${String(f).replace(/"/g, '""')}"`).join(",")
+  //     )
+  //     .join("\n");
+  //   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  //   const link = document.createElement("a");
+  //   link.href = URL.createObjectURL(blob);
+  //   link.download = "merchants.csv";
+  //   link.click();
+  // };
+
+  const handleExportMerchants = () => {
+  const headers = [
+    "ID",
+    "Application ID",
+    "Business Name",
+    "Owner Name",
+    "Email",
+    "Email Verified",
+    "Phone",
+    "Phone Verified",
+    "WhatsApp",
+    "Is WhatsApp Same",
+    "Category",
+    "City",
+    "Address",
+    "GST Number",
+    "PAN Number",
+    "Business Type",
+    "Years In Business",
+    "Average Monthly Revenue",
+    "Discount Offered",
+    "Description",
+    "Website",
+    "Social Links",
+    "Status",
+    "Deactivation Reason",
+    "Custom Offer",
+    "Ribbon Tag",
+    "Visibility",
+    "Citywitty Assured",
+    "Average Rating",
+    "Tags",
+    "Joined Since",
+    "Created At",
+    "Updated At",
+    "OTP Code",
+    "OTP Expiry"
+  ];
+
+  const csvData = filteredMerchants.map((m) => [
+    m._id,
+    m.applicationId,
+    m.businessName,
+    m.ownerName,
+    m.email,
+    m.emailVerified ? "Yes" : "No",
+    m.phone,
+    m.phoneVerified ? "Yes" : "No",
+    m.whatsapp,
+    m.isWhatsappSame ? "Yes" : "No",
+    m.category,
+    m.city,
+    m.address,
+    m.gstNumber,
+    m.panNumber,
+    m.businessType,
+    m.yearsInBusiness,
+    m.averageMonthlyRevenue,
+    m.discountOffered,
+    m.description,
+    m.website || "",
+    m.socialLinks
+      ? Object.entries(m.socialLinks)
+          .map(([key, val]) => `${key}: ${val}`)
+          .join(" | ")
+      : "",
+    m.status,
+    m.deactivationReason || "",
+    m.customOffer || "",
+    m.ribbonTag || "",
+    m.visibility ? "Yes" : "No",
+    m.citywittyAssured ? "Yes" : "No",
+    m.averageRating ?? 0,
+    m.tags?.join(", ") || "",
+    m.joinedSince ? new Date(m.joinedSince).toLocaleDateString() : "",
+    m.createdAt ? new Date(m.createdAt).toLocaleString() : "",
+    m.updatedAt ? new Date(m.updatedAt).toLocaleString() : "",
+    m.otpCode || "",
+    m.otpExpiry ? new Date(m.otpExpiry).toLocaleString() : ""
+  ]);
+
+  const csvContent =
+    [headers, ...csvData]
+      .map((row) =>
+        row.map((f) => `"${String(f ?? "").replace(/"/g, '""')}"`).join(",")
+      )
+      .join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "merchants.csv";
+  link.click();
+};
+
+
   if (isLoading)
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -372,7 +406,6 @@ export default function MerchantsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
-          {/* Left Section */}
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Merchant Management
@@ -381,8 +414,6 @@ export default function MerchantsPage() {
               Manage merchant registrations and profiles
             </p>
           </div>
-
-          {/* Right Section */}
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <Badge className="bg-[#FF7A00] text-white animate-pulse w-fit">
               {stats.pendingApprovals} Pending Approvals
@@ -413,7 +444,6 @@ export default function MerchantsPage() {
               <p className="text-xs text-muted-foreground">All registered</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex justify-between pb-2">
               <CardTitle className="text-sm font-medium">
@@ -428,7 +458,6 @@ export default function MerchantsPage() {
               <p className="text-xs text-muted-foreground">Currently active</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex justify-between pb-2">
               <CardTitle className="text-sm font-medium">
@@ -443,7 +472,6 @@ export default function MerchantsPage() {
               <p className="text-xs text-muted-foreground">Awaiting approval</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex justify-between pb-2">
               <CardTitle className="text-sm font-medium">
@@ -505,18 +533,18 @@ export default function MerchantsPage() {
                       <TableHead>Merchant</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Registration Date</TableHead>
-                      <TableHead>Transactions</TableHead>
-                      <TableHead>Revenue</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>Joined Since</TableHead>
+                      <TableHead>Rating</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredMerchants.map((merchant) => (
-                      <TableRow key={merchant.id} className="hover:bg-gray-50">
+                      <TableRow key={merchant._id} className="hover:bg-gray-50">
                         <TableCell>
                           <div>
-                            <div className="font-medium">{merchant.name}</div>
+                            <div className="font-medium">{merchant.businessName}</div>
                             <div className="text-sm text-gray-500">
                               {merchant.email}
                             </div>
@@ -524,33 +552,29 @@ export default function MerchantsPage() {
                         </TableCell>
                         <TableCell>{merchant.category}</TableCell>
                         <TableCell>{getStatusBadge(merchant.status)}</TableCell>
-                        <TableCell>{merchant.registrationDate}</TableCell>
-                        <TableCell>{merchant.totalTransactions}</TableCell>
-                        <TableCell>Rs. {merchant.totalRevenue}</TableCell>
+                        <TableCell>{merchant.city}</TableCell>
+                        <TableCell>{new Date(merchant.joinedSince).toLocaleDateString()}</TableCell>
+                        <TableCell>{merchant.averageRating ?? 'N/A'}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            {/* View Details */}
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setViewMerchant(merchant);
-                                setIsViewDialogOpen(true);
-                              }}
+                              onClick={() =>
+                                setModal({ type: "view", merchant })
+                              }
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
 
-                            {/* Approve/Reject */}
                             {merchant.status === "pending" && (
                               <>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    setSelectedMerchantForApproval(merchant);
-                                    setIsApproveDialogOpen(true);
-                                  }}
+                                  onClick={() =>
+                                    setModal({ type: "approve", merchant })
+                                  }
                                   className="text-green-600 hover:text-green-700"
                                 >
                                   <CheckCircle className="h-4 w-4" />
@@ -558,7 +582,12 @@ export default function MerchantsPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => rejectMerchant(merchant.id)}
+                                  onClick={() =>
+                                    updateMerchantStatus(
+                                      merchant._id,
+                                      "suspended"
+                                    )
+                                  }
                                   className="text-red-600 hover:text-red-700"
                                 >
                                   <XCircle className="h-4 w-4" />
@@ -566,20 +595,19 @@ export default function MerchantsPage() {
                               </>
                             )}
 
-                            {/* Toggle/Deactivate */}
                             {merchant.status !== "pending" && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  if (merchant.status === "active") {
-                                    setSelectedMerchant(merchant);
-                                    setIsDeactivateDialogOpen(true);
-                                  } else {
-                                    setSelectedMerchantForActivation(merchant);
-                                    setIsActivateDialogOpen(true);
-                                  }
-                                }}
+                                onClick={() =>
+                                  setModal({
+                                    type:
+                                      merchant.status === "active"
+                                        ? "deactivate"
+                                        : "activate",
+                                    merchant,
+                                  })
+                                }
                               >
                                 {merchant.status === "active" ? (
                                   <ToggleRight className="h-4 w-4 text-green-600" />
@@ -607,201 +635,276 @@ export default function MerchantsPage() {
           </CardContent>
         </Card>
 
-        {/* Deactivation Dialog */}
-        <Dialog
-          open={isDeactivateDialogOpen}
-          onOpenChange={setIsDeactivateDialogOpen}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Deactivate Merchant</DialogTitle>
-              <DialogDescription>
-                Please provide a reason for deactivating{" "}
-                {selectedMerchant?.name}. This action will disable their ability
-                to process transactions.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
+        {/* Modals */}
+        {modal.type === "deactivate" && modal.merchant && (
+          <Dialog
+            open
+            onOpenChange={() => setModal({ type: null, merchant: null })}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Deactivate Merchant</DialogTitle>
+                <DialogDescription>
+                  Provide a reason for deactivating {modal.merchant.businessName}. This
+                  will suspend their account.
+                </DialogDescription>
+              </DialogHeader>
               <Textarea
-                placeholder="Enter reason for deactivation..."
+                placeholder="Enter reason..."
+                rows={4}
                 value={deactivationReason}
                 onChange={(e) => setDeactivationReason(e.target.value)}
-                rows={4}
               />
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsDeactivateDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={deactivateMerchant}
-                className="bg-red-600 hover:bg-red-700"
-                disabled={!deactivationReason.trim()}
-              >
-                Suspend Merchant
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Approval Confirmation Dialog */}
-        <Dialog
-          open={isApproveDialogOpen}
-          onOpenChange={setIsApproveDialogOpen}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Approve Merchant</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to approve{" "}
-                {selectedMerchantForApproval?.name}? This will activate their
-                account and allow them to process transactions.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsApproveDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  if (selectedMerchantForApproval) {
-                    // Pass status as 'active' explicitly for activation from suspended state
-                    approveMerchant(selectedMerchantForApproval.id, "active");
-                    setIsApproveDialogOpen(false);
-                    setSelectedMerchantForApproval(null);
-                  }
-                }}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Yes, Approve
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Activation Confirmation Dialog */}
-        <Dialog
-          open={isActivateDialogOpen}
-          onOpenChange={setIsActivateDialogOpen}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Activate Merchant</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to activate{" "}
-                {selectedMerchantForActivation?.name}? This will allow them to
-                process transactions.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsActivateDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  if (selectedMerchantForActivation) {
-                    toggleMerchantStatus(selectedMerchantForActivation.id);
-                    setIsActivateDialogOpen(false);
-                    setSelectedMerchantForActivation(null);
-                  }
-                }}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Yes, Activate
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* View Merchant Details Dialog */}
-        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Merchant Details</DialogTitle>
-              <DialogDescription>
-                Detailed information for{" "}
-                <span className="font-semibold text-blue-600">
-                  {viewMerchant?.name}
-                </span>
-              </DialogDescription>
-            </DialogHeader>
-            {/* Content with scrolling */}
-            <div className="space-y-3 text-sm">
-              <p>
-                <strong className="text-blue-600">ID:</strong>{" "}
-                {viewMerchant?.id}
-              </p>
-              <p>
-                <strong>Name:</strong> {viewMerchant?.name}
-              </p>
-              <p>
-                <strong>Email:</strong> {viewMerchant?.email}
-              </p>
-              <p>
-                <strong>Phone:</strong> {viewMerchant?.phone}
-              </p>
-              <p>
-                <strong className="text-green-600">Status:</strong>{" "}
-                <span
-                  className={
-                    viewMerchant?.status === "active"
-                      ? "text-green-600 font-semibold"
-                      : "text-red-600 font-semibold"
-                  }
+              <DialogFooter className="space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setModal({ type: null, merchant: null })}
                 >
-                  {viewMerchant?.status}
-                </span>
-              </p>
-              <p>
-                <strong>Category:</strong> {viewMerchant?.category}
-              </p>
-              <p>
-                <strong>Address:</strong> {viewMerchant?.address}
-              </p>
-              <p>
-                <strong>Registration Date:</strong>{" "}
-                {viewMerchant?.registrationDate}
-              </p>
-              <p>
-                <strong>Total Transactions:</strong>{" "}
-                {viewMerchant?.totalTransactions}
-              </p>
-              <p>
-                <strong className="text-indigo-600">Total Revenue:</strong>{" "}
-                <span className="font-semibold text-indigo-600">
-                  Rs. {viewMerchant?.totalRevenue}
-                </span>
-              </p>
-              <p>
-                <strong>Discounts Offered:</strong>{" "}
-                {viewMerchant?.discountsOffered}
-              </p>
-              {viewMerchant?.deactivationReason && (
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700"
+                  disabled={!deactivationReason.trim()}
+                  onClick={() => {
+                    updateMerchantStatus(
+                      modal.merchant!._id,
+                      "suspended",
+                      deactivationReason
+                    );
+                    setDeactivationReason("");
+                    setModal({ type: null, merchant: null });
+                  }}
+                >
+                  Suspend Merchant
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {modal.type === "approve" && modal.merchant && (
+          <Dialog
+            open
+            onOpenChange={() => setModal({ type: null, merchant: null })}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Approve Merchant</DialogTitle>
+                <DialogDescription>
+                  Approve {modal.merchant.businessName} to activate their account?
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setModal({ type: null, merchant: null })}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => {
+                    updateMerchantStatus(modal.merchant!._id, "active");
+                    setModal({ type: null, merchant: null });
+                  }}
+                >
+                  Yes, Approve
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {modal.type === "activate" && modal.merchant && (
+          <Dialog
+            open
+            onOpenChange={() => setModal({ type: null, merchant: null })}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Activate Merchant</DialogTitle>
+                <DialogDescription>
+                  Activate {modal.merchant.businessName} to allow transactions?
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setModal({ type: null, merchant: null })}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => {
+                    updateMerchantStatus(modal.merchant!._id, "active");
+                    setModal({ type: null, merchant: null });
+                  }}
+                >
+                  Yes, Activate
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {modal.type === "view" && modal.merchant && (
+          <Dialog
+            open
+            onOpenChange={() => setModal({ type: null, merchant: null })}
+          >
+            <DialogContent className="max-h-[80vh] overflow-y-auto w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Merchant Details</DialogTitle>
+                <DialogDescription>
+                  Complete information for{" "}
+                  <strong className="text-black uppercase">
+                    {modal.merchant.businessName}
+                  </strong>
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-2 text-sm">
                 <p>
-                  <strong>Deactivation Reason:</strong>{" "}
-                  {viewMerchant.deactivationReason}
+                  <strong>ID:</strong>{" "}
+                  {modal.merchant._id}
                 </p>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsViewDialogOpen(false)}
-              >
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                <p>
+                  <strong>Application ID:</strong>{" "}
+                  {modal.merchant.applicationId}
+                </p>
+                <p>
+                  <strong>Business Name:</strong> {modal.merchant.businessName}
+                </p>
+                <p>
+                  <strong>Owner Name:</strong> {modal.merchant.ownerName}
+                </p>
+                <p>
+                  <strong>Email:</strong> {modal.merchant.email} (
+                  {modal.merchant.emailVerified ? "Verified" : "Not Verified"})
+                </p>
+                <p>
+                  <strong>Phone:</strong> {modal.merchant.phone} (
+                  {modal.merchant.phoneVerified ? "Verified" : "Not Verified"})
+                </p>
+                <p>
+                  <strong>Category:</strong> {modal.merchant.category}
+                </p>
+                <p>
+                  <strong>City:</strong> {modal.merchant.city}
+                </p>
+                <p>
+                  <strong>Address:</strong> {modal.merchant.address}
+                </p>
+                <p>
+                  <strong>WhatsApp:</strong> {modal.merchant.whatsapp}{" "}
+                  {modal.merchant.isWhatsappSame ? "(Same as phone)" : ""}
+                </p>
+                <p>
+                  <strong>GST Number:</strong> {modal.merchant.gstNumber}
+                </p>
+                <p>
+                  <strong>PAN Number:</strong> {modal.merchant.panNumber}
+                </p>
+                <p>
+                  <strong>Business Type:</strong> {modal.merchant.businessType}
+                </p>
+                <p>
+                  <strong>Years in Business:</strong>{" "}
+                  {modal.merchant.yearsInBusiness}
+                </p>
+                <p>
+                  <strong>Average Monthly Revenue:</strong>{" "}
+                  {modal.merchant.averageMonthlyRevenue}
+                </p>
+                <p>
+                  <strong>Discount Offered:</strong>{" "}
+                  {modal.merchant.discountOffered}
+                </p>
+                <p>
+                  <strong>Description:</strong> {modal.merchant.description}
+                </p>
+                <p>
+                  <strong>Website:</strong> {modal.merchant.website}
+                </p>
+                <p>
+                  <strong>Social Links:</strong>{" "}
+                  {JSON.stringify(modal.merchant.socialLinks)}
+                </p>
+                <p>
+                  <strong>Custom Offer:</strong> {modal.merchant.customOffer}
+                </p>
+                <p>
+                  <strong>Ribbon Tag:</strong> {modal.merchant.ribbonTag}
+                </p>
+                <p>
+                  <strong>Map Location:</strong> {modal.merchant.mapLocation}
+                </p>
+                <p>
+                  <strong>Visibility:</strong>{" "}
+                  {modal.merchant.visibility ? "Visible" : "Hidden"}
+                </p>
+                <p>
+                  <strong>Citywitty Assured:</strong>{" "}
+                  {modal.merchant.citywittyAssured ? "Yes" : "No"}
+                </p>
+                <p>
+                  <strong>Average Rating:</strong>{" "}
+                  {modal.merchant.averageRating}
+                </p>
+                <p>
+                  <strong>Tags:</strong> {modal.merchant.tags?.join(", ")}
+                </p>
+                <p>
+                  <strong>Status:</strong> {modal.merchant.status}
+                </p>
+                <p>
+                  <strong>Products:</strong>{" "}
+                  {JSON.stringify(modal.merchant.products)}
+                </p>
+                {/* <p>
+                  <strong>Logo:</strong> {modal.merchant.logo || "N/A"}
+                </p> */}
+                <p>
+                  <strong>Joined Since:</strong>{" "}
+                  {new Date(modal.merchant.joinedSince).toLocaleDateString()}
+                </p>
+                {/* <p>
+                  <strong>Created At:</strong>{" "}
+                  {new Date(modal.merchant.createdAt).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Updated At:</strong>{" "}
+                  {new Date(modal.merchant.updatedAt).toLocaleString()}
+                </p> */}
+                {modal.merchant.deactivationReason && (
+                  <p>
+                    <strong>Deactivation Reason:</strong>{" "}
+                    {modal.merchant.deactivationReason}
+                  </p>
+                )}
+                {/* <p>
+                  <strong>OTP Code:</strong> {modal.merchant.otpCode || "N/A"}
+                </p>
+                <p>
+                  <strong>OTP Expiry:</strong>{" "}
+                  {modal.merchant.otpExpiry
+                    ? new Date(modal.merchant.otpExpiry).toLocaleString()
+                    : "N/A"}
+                </p> */}
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setModal({ type: null, merchant: null })}
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </DashboardLayout>
   );
