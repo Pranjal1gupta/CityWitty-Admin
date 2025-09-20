@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -49,21 +50,6 @@ import {
   ToggleRight,
 } from "lucide-react";
 import { toast } from "sonner";
-
-// interface Merchant {
-//   id: string;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   category: string;
-//   status: string;
-//   registrationDate: string;
-//   address: string;
-//   totalTransactions: number;
-//   totalRevenue: number;
-//   discountsOffered: string;
-//   deactivationReason?: string;
-// }
 
 export interface Product {
   name: string;
@@ -137,7 +123,6 @@ export interface Merchant {
   updatedAt: string;
 }
 
-
 interface Stats {
   totalMerchants: number;
   activeMerchants: number;
@@ -162,6 +147,8 @@ export default function MerchantsPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [deactivationReason, setDeactivationReason] = useState("");
 
+  const pathname = usePathname();
+
   // Unified modal state
   const [modal, setModal] = useState<{
     type: ModalType;
@@ -183,7 +170,6 @@ export default function MerchantsPage() {
         if (!res.ok) throw new Error("Failed to fetch merchants");
         const data = await res.json();
         setMerchants(data.merchants);
-        console.log(data.merchants);
         setStats(data.stats);
       } catch (err) {
         console.error(err);
@@ -193,7 +179,7 @@ export default function MerchantsPage() {
       }
     };
     fetchData();
-  }, [user]);
+  }, [user, pathname]); // refetch when route changes
 
   const calculateStats = (merchantsList: Merchant[]): Stats => ({
     totalMerchants: merchantsList.length,
@@ -206,7 +192,9 @@ export default function MerchantsPage() {
 
   const filteredMerchants = merchants.filter((merchant) => {
     const matchesSearch =
-      (merchant.businessName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (merchant.businessName ?? "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       (merchant.email ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (merchant.category ?? "")
         .toLowerCase()
@@ -255,8 +243,6 @@ export default function MerchantsPage() {
       toast.error(err.message || "Error updating merchant");
     }
   };
-
-  // const handleExportMerchants = () => {
   //   const headers = [
   //     "ID",
   //     "Name",
@@ -298,100 +284,98 @@ export default function MerchantsPage() {
   // };
 
   const handleExportMerchants = () => {
-  const headers = [
-    "ID",
-    "Application ID",
-    "Business Name",
-    "Owner Name",
-    "Email",
-    "Email Verified",
-    "Phone",
-    "Phone Verified",
-    "WhatsApp",
-    "Is WhatsApp Same",
-    "Category",
-    "City",
-    "Address",
-    "GST Number",
-    "PAN Number",
-    "Business Type",
-    "Years In Business",
-    "Average Monthly Revenue",
-    "Discount Offered",
-    "Description",
-    "Website",
-    "Social Links",
-    "Status",
-    "Deactivation Reason",
-    "Custom Offer",
-    "Ribbon Tag",
-    "Visibility",
-    "Citywitty Assured",
-    "Average Rating",
-    "Tags",
-    "Joined Since",
-    "Created At",
-    "Updated At",
-    "OTP Code",
-    "OTP Expiry"
-  ];
+    const headers = [
+      "ID",
+      "Application ID",
+      "Business Name",
+      "Owner Name",
+      "Email",
+      "Email Verified",
+      "Phone",
+      "Phone Verified",
+      "WhatsApp",
+      "Is WhatsApp Same",
+      "Category",
+      "City",
+      "Address",
+      "GST Number",
+      "PAN Number",
+      "Business Type",
+      "Years In Business",
+      "Average Monthly Revenue",
+      "Discount Offered",
+      "Description",
+      "Website",
+      "Social Links",
+      "Status",
+      "Deactivation Reason",
+      "Custom Offer",
+      "Ribbon Tag",
+      "Visibility",
+      "Citywitty Assured",
+      "Average Rating",
+      "Tags",
+      "Joined Since",
+      "Created At",
+      "Updated At",
+      "OTP Code",
+      "OTP Expiry",
+    ];
 
-  const csvData = filteredMerchants.map((m) => [
-    m._id,
-    m.applicationId,
-    m.businessName,
-    m.ownerName,
-    m.email,
-    m.emailVerified ? "Yes" : "No",
-    m.phone,
-    m.phoneVerified ? "Yes" : "No",
-    m.whatsapp,
-    m.isWhatsappSame ? "Yes" : "No",
-    m.category,
-    m.city,
-    m.address,
-    m.gstNumber,
-    m.panNumber,
-    m.businessType,
-    m.yearsInBusiness,
-    m.averageMonthlyRevenue,
-    m.discountOffered,
-    m.description,
-    m.website || "",
-    m.socialLinks
-      ? Object.entries(m.socialLinks)
-          .map(([key, val]) => `${key}: ${val}`)
-          .join(" | ")
-      : "",
-    m.status,
-    m.deactivationReason || "",
-    m.customOffer || "",
-    m.ribbonTag || "",
-    m.visibility ? "Yes" : "No",
-    m.citywittyAssured ? "Yes" : "No",
-    m.averageRating ?? 0,
-    m.tags?.join(", ") || "",
-    m.joinedSince ? new Date(m.joinedSince).toLocaleDateString() : "",
-    m.createdAt ? new Date(m.createdAt).toLocaleString() : "",
-    m.updatedAt ? new Date(m.updatedAt).toLocaleString() : "",
-    m.otpCode || "",
-    m.otpExpiry ? new Date(m.otpExpiry).toLocaleString() : ""
-  ]);
+    const csvData = filteredMerchants.map((m) => [
+      m._id,
+      m.applicationId,
+      m.businessName,
+      m.ownerName,
+      m.email,
+      m.emailVerified ? "Yes" : "No",
+      m.phone,
+      m.phoneVerified ? "Yes" : "No",
+      m.whatsapp,
+      m.isWhatsappSame ? "Yes" : "No",
+      m.category,
+      m.city,
+      m.address,
+      m.gstNumber,
+      m.panNumber,
+      m.businessType,
+      m.yearsInBusiness,
+      m.averageMonthlyRevenue,
+      m.discountOffered,
+      m.description,
+      m.website || "",
+      m.socialLinks
+        ? Object.entries(m.socialLinks)
+            .map(([key, val]) => `${key}: ${val}`)
+            .join(" | ")
+        : "",
+      m.status,
+      m.deactivationReason || "",
+      m.customOffer || "",
+      m.ribbonTag || "",
+      m.visibility ? "Yes" : "No",
+      m.citywittyAssured ? "Yes" : "No",
+      m.averageRating ?? 0,
+      m.tags?.join(", ") || "",
+      m.joinedSince ? new Date(m.joinedSince).toLocaleDateString() : "",
+      m.createdAt ? new Date(m.createdAt).toLocaleString() : "",
+      m.updatedAt ? new Date(m.updatedAt).toLocaleString() : "",
+      m.otpCode || "",
+      m.otpExpiry ? new Date(m.otpExpiry).toLocaleString() : "",
+    ]);
 
-  const csvContent =
-    [headers, ...csvData]
+    const csvContent = [headers, ...csvData]
       .map((row) =>
         row.map((f) => `"${String(f ?? "").replace(/"/g, '""')}"`).join(",")
       )
       .join("\n");
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "merchants.csv";
-  link.click();
-};
-
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "merchants.csv";
+    link.click();
+  };
 
   if (isLoading)
     return (
@@ -544,7 +528,9 @@ export default function MerchantsPage() {
                       <TableRow key={merchant._id} className="hover:bg-gray-50">
                         <TableCell>
                           <div>
-                            <div className="font-medium">{merchant.businessName}</div>
+                            <div className="font-medium">
+                              {merchant.businessName}
+                            </div>
                             <div className="text-sm text-gray-500">
                               {merchant.email}
                             </div>
@@ -553,8 +539,10 @@ export default function MerchantsPage() {
                         <TableCell>{merchant.category}</TableCell>
                         <TableCell>{getStatusBadge(merchant.status)}</TableCell>
                         <TableCell>{merchant.city}</TableCell>
-                        <TableCell>{new Date(merchant.joinedSince).toLocaleDateString()}</TableCell>
-                        <TableCell>{merchant.averageRating ?? 'N/A'}</TableCell>
+                        <TableCell>
+                          {new Date(merchant.joinedSince).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{merchant.averageRating ?? "N/A"}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <Button
@@ -645,8 +633,9 @@ export default function MerchantsPage() {
               <DialogHeader>
                 <DialogTitle>Deactivate Merchant</DialogTitle>
                 <DialogDescription>
-                  Provide a reason for deactivating {modal.merchant.businessName}. This
-                  will suspend their account.
+                  Provide a reason for deactivating{" "}
+                  {modal.merchant.businessName}. This will suspend their
+                  account.
                 </DialogDescription>
               </DialogHeader>
               <Textarea
@@ -691,7 +680,8 @@ export default function MerchantsPage() {
               <DialogHeader>
                 <DialogTitle>Approve Merchant</DialogTitle>
                 <DialogDescription>
-                  Approve {modal.merchant.businessName} to activate their account?
+                  Approve {modal.merchant.businessName} to activate their
+                  account?
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="space-x-2">
@@ -765,13 +755,16 @@ export default function MerchantsPage() {
               </DialogHeader>
 
               <div className="space-y-2 text-sm">
-                <p>
+                {/* <p>
                   <strong>ID:</strong>{" "}
                   {modal.merchant._id}
-                </p>
+                </p> */}
                 <p>
                   <strong>Application ID:</strong>{" "}
                   {modal.merchant.applicationId}
+                </p>
+                <p>
+                  <strong>Status:</strong> {modal.merchant.status}
                 </p>
                 <p>
                   <strong>Business Name:</strong> {modal.merchant.businessName}
@@ -825,7 +818,7 @@ export default function MerchantsPage() {
                   <strong>Description:</strong> {modal.merchant.description}
                 </p>
                 <p>
-                  <strong>Website:</strong> {modal.merchant.website}
+                  <strong>Website:</strong> {modal.merchant.website || "N/A"}
                 </p>
                 <p>
                   <strong>Social Links:</strong>{" "}
@@ -834,9 +827,9 @@ export default function MerchantsPage() {
                 <p>
                   <strong>Custom Offer:</strong> {modal.merchant.customOffer}
                 </p>
-                <p>
+                {/* <p>
                   <strong>Ribbon Tag:</strong> {modal.merchant.ribbonTag}
-                </p>
+                </p> */}
                 <p>
                   <strong>Map Location:</strong> {modal.merchant.mapLocation}
                 </p>
@@ -855,9 +848,7 @@ export default function MerchantsPage() {
                 <p>
                   <strong>Tags:</strong> {modal.merchant.tags?.join(", ")}
                 </p>
-                <p>
-                  <strong>Status:</strong> {modal.merchant.status}
-                </p>
+
                 <p>
                   <strong>Products:</strong>{" "}
                   {JSON.stringify(modal.merchant.products)}
