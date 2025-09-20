@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       }
 
       return {
-        id: user.cardNumber || (user._id as Types.ObjectId).toString(),
+        id: user.cardNumber,
         userId: (user._id as any).toString(),
         userName: user.name,
         email: user.email,
