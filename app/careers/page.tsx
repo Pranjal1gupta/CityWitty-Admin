@@ -51,8 +51,11 @@ import {
   Calendar,
   MapPin,
   DollarSign,
+  Edit,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LocationMultiSelect } from "@/components/ui/location-multi-select";
 
 interface ICareerApplication {
   _id: string;
@@ -87,6 +90,7 @@ interface Stats {
 }
 
 interface JobPost {
+  _id: string;
   postName: string;
   description: string;
   minQualification: string;
@@ -95,6 +99,8 @@ interface JobPost {
   locations: string[];
   applicationDeadline?: string;
   workType?: "Remote" | "On-site" | "Hybrid";
+  createdAt: string;
+  updatedAt: string;
 }
 
 type ModalType = "view" | "delete" | "statusConfirm" | null;
@@ -131,7 +137,7 @@ export default function CareersPage() {
 
   // Job post modal state
   const [jobPostModalOpen, setJobPostModalOpen] = useState(false);
-  const [jobPostData, setJobPostData] = useState<JobPost>({
+  const [jobPostData, setJobPostData] = useState<Partial<JobPost>>({
     postName: "",
     description: "",
     minQualification: "",
@@ -141,6 +147,19 @@ export default function CareersPage() {
     applicationDeadline: "",
     workType: undefined,
   });
+
+  // Job posts state
+  const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
+  const [jobPostsLoading, setJobPostsLoading] = useState(true);
+
+  // Job post modals state
+  const [viewJobPostModal, setViewJobPostModal] = useState<JobPost | null>(
+    null
+  );
+  const [editJobPostModal, setEditJobPostModal] = useState<JobPost | null>(
+    null
+  );
+  const [editJobPostData, setEditJobPostData] = useState<Partial<JobPost>>({});
 
   // small UI loaders
   const [exporting, setExporting] = useState(false);
@@ -190,6 +209,12 @@ export default function CareersPage() {
     // re-run on pathname change so hot-reloads or other pages update
   }, [user, pathname]);
 
+  // Fetch job posts on component mount
+  useEffect(() => {
+    if (!user) return;
+    fetchJobPosts();
+  }, [user]);
+
   const calculateStats = (applicationsList: ICareerApplication[]): Stats => ({
     total: applicationsList.length,
     pending: applicationsList.filter((app) => app.status === "Pending").length,
@@ -227,11 +252,7 @@ export default function CareersPage() {
       case "Pending":
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case "Called for Interview":
-        return (
-          <Badge className="bg-blue-100 text-blue-800">
-            Interview
-          </Badge>
-        );
+        return <Badge className="bg-blue-100 text-blue-800">Interview</Badge>;
       case "Rejected":
         return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
       default:
@@ -382,9 +403,9 @@ ${
   const handleCreateJobPost = async () => {
     // basic validation
     if (
-      !jobPostData.postName.trim() ||
-      !jobPostData.description.trim() ||
-      !jobPostData.minQualification.trim()
+      !jobPostData.postName?.trim() ||
+      !jobPostData.description?.trim() ||
+      !jobPostData.minQualification?.trim()
     ) {
       toast.error("Please fill required fields");
       return;
@@ -409,9 +430,109 @@ ${
         applicationDeadline: "",
         workType: undefined,
       });
+      // Refresh job posts list
+      fetchJobPosts();
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to create job post");
+    }
+  };
+
+  // Fetch job posts
+  const fetchJobPosts = async () => {
+    try {
+      setJobPostsLoading(true);
+      const res = await fetch("/api/job-posts", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch job posts");
+      const data = await res.json();
+      setJobPosts(data.jobPosts || []);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Error loading job posts");
+    } finally {
+      setJobPostsLoading(false);
+    }
+  };
+
+  // Copy job post data
+  const handleCopyJobPost = async (jobPost: JobPost) => {
+    const copyText = `Job Post: ${jobPost.postName}
+Description: ${jobPost.description}
+Minimum Qualification: ${jobPost.minQualification}
+${jobPost.salary ? `Salary: ${jobPost.salary}\n` : ""}${
+      jobPost.openings ? `Openings: ${jobPost.openings}\n` : ""
+    }Locations: ${jobPost.locations.join(", ")}
+${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
+      jobPost.applicationDeadline
+        ? `Application Deadline: ${jobPost.applicationDeadline}\n`
+        : ""
+    }Created: ${new Date(jobPost.createdAt).toLocaleDateString()}`;
+
+    try {
+      await navigator.clipboard.writeText(copyText);
+      toast.success("Job post copied to clipboard");
+    } catch {
+      toast.error("Failed to copy");
+    }
+  };
+
+  // View job post
+  const handleViewJobPost = (jobPost: JobPost) => {
+    setViewJobPostModal(jobPost);
+  };
+
+  // Edit job post
+  const handleEditJobPost = (jobPost: JobPost) => {
+    setEditJobPostModal(jobPost);
+    setEditJobPostData({
+      postName: jobPost.postName,
+      description: jobPost.description,
+      minQualification: jobPost.minQualification,
+      salary: jobPost.salary,
+      openings: jobPost.openings,
+      locations: jobPost.locations,
+      applicationDeadline: jobPost.applicationDeadline
+        ? new Date(jobPost.applicationDeadline).toISOString().split("T")[0]
+        : "",
+      workType: jobPost.workType,
+    });
+  };
+
+  // Update job post
+  const handleUpdateJobPost = async () => {
+    if (!editJobPostModal) return;
+
+    try {
+      const res = await fetch(`/api/job-posts/${editJobPostModal._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editJobPostData),
+      });
+      if (!res.ok) throw new Error("Failed to update job post");
+      await res.json();
+      toast.success("Job post updated");
+      setEditJobPostModal(null);
+      setEditJobPostData({});
+      fetchJobPosts();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update job post");
+    }
+  };
+
+  // Delete job post
+  const handleDeleteJobPost = async (jobPostId: string) => {
+    try {
+      const res = await fetch(`/api/job-posts/${jobPostId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete job post");
+      await res.json();
+      toast.success("Job post deleted");
+      fetchJobPosts();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to delete job post");
     }
   };
 
@@ -531,6 +652,138 @@ ${
           </Card>
         </div>
 
+        {/* Job Posts Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Job Posts</CardTitle>
+            <CardDescription>Manage job openings and postings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Job Posts Table */}
+            {jobPostsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4AA8FF] mx-auto" />
+                <p className="text-gray-500 mt-2">Loading job posts...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Post Name</TableHead>
+                      <TableHead>Locations</TableHead>
+                      <TableHead>Work Type</TableHead>
+                      <TableHead>Salary</TableHead>
+                      <TableHead>Openings</TableHead>
+                      <TableHead>Deadline</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {jobPosts.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8">
+                          No job posts found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    {jobPosts.map((jobPost) => (
+                      <TableRow key={jobPost._id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">
+                          {jobPost.postName}
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {jobPost.locations
+                              .slice(0, 2)
+                              .map((location, idx) => (
+                                <p className="capitalize">{location}</p>
+                              ))}
+                            {jobPost.locations.length > 2 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{jobPost.locations.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge
+                            variant={
+                              jobPost.workType === "Remote"
+                                ? "default"
+                                : jobPost.workType === "On-site"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {jobPost.workType || "N/A"}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>{jobPost.salary || "N/A"}</TableCell>
+
+                        <TableCell>
+                          {jobPost.openings ? jobPost.openings : "N/A"}
+                        </TableCell>
+
+                        <TableCell>
+                          {jobPost.applicationDeadline
+                            ? new Date(
+                                jobPost.applicationDeadline
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </TableCell>
+
+                        <TableCell>
+                          {new Date(jobPost.createdAt).toLocaleDateString()}
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCopyJobPost(jobPost)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewJobPost(jobPost)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditJobPost(jobPost)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteJobPost(jobPost._id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Controls */}
         <Card>
           <CardHeader>
@@ -602,107 +855,121 @@ ${
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-  {filteredApplications.length === 0 && (
-    <TableRow>
-      <TableCell colSpan={7} className="text-center py-8">
-        No applications found.
-      </TableCell>
-    </TableRow>
-  )}
+                    {filteredApplications.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          No applications found.
+                        </TableCell>
+                      </TableRow>
+                    )}
 
-  {filteredApplications.map((app) => (
-    <TableRow key={app._id} className="hover:bg-gray-50">
-      <TableCell className="font-medium">{app.applicationId}</TableCell>
+                    {filteredApplications.map((app) => (
+                      <TableRow key={app._id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">
+                          {app.applicationId}
+                        </TableCell>
 
-      <TableCell>
-        <div>
-          <div className="font-medium">{app.fullName}</div>
-          <div className="text-sm text-gray-500">
-            {app.email} • {app.phone}
-          </div>
-        </div>
-      </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{app.fullName}</div>
+                            <div className="text-sm text-gray-500">
+                              {app.email} • {app.phone}
+                            </div>
+                          </div>
+                        </TableCell>
 
-      <TableCell>{app.position}</TableCell>
+                        <TableCell>{app.position}</TableCell>
 
-      <TableCell>
-        <div className="text-sm">
-          {app.qualificationDegree} • {app.qualificationPercent}%
-        </div>
-        <div className="text-xs text-gray-500">
-          {app.experience ? `${app.experience} yrs` : "Fresh"}
-        </div>
-      </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {app.qualificationDegree} •{" "}
+                            {app.qualificationPercent}%
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {app.experience ? `${app.experience} yrs` : "Fresh"}
+                          </div>
+                        </TableCell>
 
-      <TableCell>
-        {new Date(app.createdAt).toLocaleDateString()}
-      </TableCell>
+                        <TableCell>
+                          {new Date(app.createdAt).toLocaleDateString()}
+                        </TableCell>
 
-      <TableCell>
-        <div className="flex items-center gap-2">
-          {getStatusBadge(app.status)}
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(app.status)}
 
-          <select
-            aria-label={`Change status for ${app.fullName}`}
-            className="border rounded px-2 py-1 text-sm w-max"
-            value={
-              app.status === "Called for Interview" ? "Interview" : app.status
-            }
-            onChange={(e) => {
-              const newStatus = e.target.value;
-              setModal({
-                type: "statusConfirm",
-                application: app,
-                pendingStatus:
-                  newStatus === "Interview"
-                    ? "Called for Interview"
-                    : newStatus,
-              });
-            }}
-            disabled={actionLoadingId === app._id}
-          >
-            {statuses.map((s) => (
-              <option
-                key={s}
-                value={s === "Called for Interview" ? "Interview" : s}
-              >
-                {s === "Called for Interview" ? "Interview" : s}
-              </option>
-            ))}
-          </select>
-        </div>
-      </TableCell>
+                            <select
+                              aria-label={`Change status for ${app.fullName}`}
+                              className="border rounded px-2 py-1 text-sm w-max"
+                              value={
+                                app.status === "Called for Interview"
+                                  ? "Interview"
+                                  : app.status
+                              }
+                              onChange={(e) => {
+                                const newStatus = e.target.value;
+                                setModal({
+                                  type: "statusConfirm",
+                                  application: app,
+                                  pendingStatus:
+                                    newStatus === "Interview"
+                                      ? "Called for Interview"
+                                      : newStatus,
+                                });
+                              }}
+                              disabled={actionLoadingId === app._id}
+                            >
+                              {statuses.map((s) => (
+                                <option
+                                  key={s}
+                                  value={
+                                    s === "Called for Interview"
+                                      ? "Interview"
+                                      : s
+                                  }
+                                >
+                                  {s === "Called for Interview"
+                                    ? "Interview"
+                                    : s}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </TableCell>
 
-      <TableCell>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleCopyApplication(app)}
-          >
-            <Clipboard className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setModal({ type: "view", application: app })}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setModal({ type: "delete", application: app })}
-            className="text-red-600"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
-  ))}
-</TableBody>
-
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCopyApplication(app)}
+                            >
+                              <Clipboard className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setModal({ type: "view", application: app })
+                              }
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setModal({ type: "delete", application: app })
+                              }
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
                 </Table>
               </div>
             )}
@@ -947,7 +1214,7 @@ ${
                   }
                 />
                 <Input
-                  placeholder="Application deadline (YYYY-MM-DD)"
+                  type="date"
                   value={jobPostData.applicationDeadline ?? ""}
                   onChange={(e) =>
                     setJobPostData((p) => ({
@@ -958,20 +1225,17 @@ ${
                 />
               </div>
 
-              {/* simple multi-city input (comma separated) */}
-              <Input
-                placeholder="Locations (comma separated cities) - e.g. Lucknow, Delhi"
-                value={jobPostData.locations.join(", ")}
-                onChange={(e) =>
-                  setJobPostData((p) => ({
-                    ...p,
-                    locations: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  }))
-                }
-              />
+              {/* Location Multi-Select */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Locations</label>
+                <LocationMultiSelect
+                  value={jobPostData.locations || []}
+                  onChange={(locations) =>
+                    setJobPostData((p) => ({ ...p, locations }))
+                  }
+                  placeholder="Select locations for this job post..."
+                />
+              </div>
 
               <Select
                 value={jobPostData.workType ?? ""}
@@ -1002,6 +1266,203 @@ ${
                 onClick={handleCreateJobPost}
               >
                 Create Post
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Job Post Modal */}
+        <Dialog
+          open={!!viewJobPostModal}
+          onOpenChange={() => setViewJobPostModal(null)}
+        >
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Job Post Details</DialogTitle>
+              <DialogDescription>
+                Complete details for the job posting
+              </DialogDescription>
+            </DialogHeader>
+
+            {viewJobPostModal && (
+              <div className="space-y-3 text-sm">
+                <p>
+                  <strong>Post Name:</strong> {viewJobPostModal.postName}
+                </p>
+                <p>
+                  <strong>Description:</strong> {viewJobPostModal.description}
+                </p>
+                <p>
+                  <strong>Minimum Qualification:</strong>{" "}
+                  {viewJobPostModal.minQualification}
+                </p>
+                <p>
+                  <strong>Salary:</strong> {viewJobPostModal.salary || "N/A"}
+                </p>
+                <p>
+                  <strong>Openings:</strong>{" "}
+                  {viewJobPostModal.openings || "N/A"}
+                </p>
+                <p>
+                  <strong>Locations:</strong>{" "}
+                  {viewJobPostModal.locations.join(", ")}
+                </p>
+                <p>
+                  <strong>Work Type:</strong>{" "}
+                  {viewJobPostModal.workType || "N/A"}
+                </p>
+                <p>
+                  <strong>Application Deadline:</strong>{" "}
+                  {viewJobPostModal.applicationDeadline
+                    ? new Date(
+                        viewJobPostModal.applicationDeadline
+                      ).toLocaleDateString()
+                    : "N/A"}
+                </p>
+                <p>
+                  <strong>Created:</strong>{" "}
+                  {new Date(viewJobPostModal.createdAt).toLocaleDateString()}
+                </p>
+                <p>
+                  <strong>Last Updated:</strong>{" "}
+                  {new Date(viewJobPostModal.updatedAt).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setViewJobPostModal(null)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Job Post Modal */}
+        <Dialog
+          open={!!editJobPostModal}
+          onOpenChange={() => setEditJobPostModal(null)}
+        >
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Job Post</DialogTitle>
+              <DialogDescription>
+                Update the job posting details
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <Input
+                placeholder="Post Name"
+                value={editJobPostData.postName || ""}
+                onChange={(e) =>
+                  setEditJobPostData((p) => ({
+                    ...p,
+                    postName: e.target.value,
+                  }))
+                }
+              />
+              <Textarea
+                placeholder="Complete description"
+                value={editJobPostData.description || ""}
+                onChange={(e) =>
+                  setEditJobPostData((p) => ({
+                    ...p,
+                    description: e.target.value,
+                  }))
+                }
+                rows={6}
+              />
+              <Input
+                placeholder="Minimum qualification"
+                value={editJobPostData.minQualification || ""}
+                onChange={(e) =>
+                  setEditJobPostData((p) => ({
+                    ...p,
+                    minQualification: e.target.value,
+                  }))
+                }
+              />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <Input
+                  placeholder="Salary (e.g. 25000-35000)"
+                  value={editJobPostData.salary || ""}
+                  onChange={(e) =>
+                    setEditJobPostData((p) => ({
+                      ...p,
+                      salary: e.target.value,
+                    }))
+                  }
+                />
+                <Input
+                  placeholder="Openings"
+                  type="number"
+                  value={editJobPostData.openings ?? ""}
+                  onChange={(e) =>
+                    setEditJobPostData((p) => ({
+                      ...p,
+                      openings: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                />
+                <Input
+                  type="date"
+                  value={editJobPostData.applicationDeadline ?? ""}
+                  onChange={(e) =>
+                    setEditJobPostData((p) => ({
+                      ...p,
+                      applicationDeadline: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {/* Location Multi-Select */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Locations</label>
+                <LocationMultiSelect
+                  value={editJobPostData.locations || []}
+                  onChange={(locations) =>
+                    setEditJobPostData((p) => ({ ...p, locations }))
+                  }
+                  placeholder="Select locations for this job post..."
+                />
+              </div>
+
+              <Select
+                value={editJobPostData.workType ?? ""}
+                onValueChange={(v) =>
+                  setEditJobPostData((p) => ({ ...p, workType: v as any }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Work Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Remote">Remote</SelectItem>
+                  <SelectItem value="On-site">On-site</SelectItem>
+                  <SelectItem value="Hybrid">Hybrid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DialogFooter className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditJobPostModal(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleUpdateJobPost}
+              >
+                Update Post
               </Button>
             </DialogFooter>
           </DialogContent>
