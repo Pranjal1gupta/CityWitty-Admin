@@ -415,7 +415,7 @@ export default function MerchantsPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
-            <CardHeader className="flex justify-between pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Merchants
               </CardTitle>
@@ -429,7 +429,7 @@ export default function MerchantsPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex justify-between pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Active Merchants
               </CardTitle>
@@ -443,7 +443,7 @@ export default function MerchantsPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex justify-between pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Pending Approvals
               </CardTitle>
@@ -457,7 +457,7 @@ export default function MerchantsPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex justify-between pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Suspended Merchants
               </CardTitle>
