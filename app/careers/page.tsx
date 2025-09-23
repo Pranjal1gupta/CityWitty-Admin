@@ -151,6 +151,7 @@ export default function CareersPage() {
   // Job posts state
   const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
   const [jobPostsLoading, setJobPostsLoading] = useState(true);
+  const [jobPostSearchTerm, setJobPostSearchTerm] = useState("");
 
   // Job post modals state
   const [viewJobPostModal, setViewJobPostModal] = useState<JobPost | null>(
@@ -243,6 +244,18 @@ export default function CareersPage() {
     const matchesPosition =
       positionFilter === "all" || application.position === positionFilter;
     return matchesSearch && matchesStatus && matchesPosition;
+  });
+
+  // Job posts filter
+  const filteredJobPosts = jobPosts.filter((jobPost) => {
+    const q = jobPostSearchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      jobPost.postName.toLowerCase().includes(q) ||
+      jobPost.locations.some(location => location.toLowerCase().includes(q)) ||
+      (jobPost.workType && jobPost.workType.toLowerCase().includes(q));
+
+    return matchesSearch;
   });
 
   const getStatusBadge = (status: string) => {
@@ -659,6 +672,19 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
             <CardDescription>Manage job openings and postings</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Job Posts Search */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search job posts by name, location, or work type..."
+                  value={jobPostSearchTerm}
+                  onChange={(e) => setJobPostSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
             {/* Job Posts Table */}
             {jobPostsLoading ? (
               <div className="text-center py-8">
@@ -669,27 +695,27 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
               <div className="overflow-x-auto rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Post Name</TableHead>
+                    <TableRow >
+                      <TableHead >Post Name</TableHead>
                       <TableHead>Locations</TableHead>
                       <TableHead>Work Type</TableHead>
                       <TableHead>Salary</TableHead>
                       <TableHead>Openings</TableHead>
                       <TableHead>Deadline</TableHead>
                       <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {jobPosts.length === 0 && (
+                    {filteredJobPosts.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8">
-                          No job posts found.
+                          {jobPosts.length === 0 ? "No job posts found." : "No job posts match your search."}
                         </TableCell>
                       </TableRow>
                     )}
 
-                    {jobPosts.map((jobPost) => (
+                    {filteredJobPosts.map((jobPost) => (
                       <TableRow key={jobPost._id} className="hover:bg-gray-50">
                         <TableCell className="font-medium">
                           {jobPost.postName}
@@ -851,7 +877,7 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                       <TableHead>Qualification / Exp</TableHead>
                       <TableHead>Applied On</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -894,10 +920,10 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                           {new Date(app.createdAt).toLocaleDateString()}
                         </TableCell>
 
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(app.status)}
+                        <TableCell>{getStatusBadge(app.status)}</TableCell>
 
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
                             <select
                               aria-label={`Change status for ${app.fullName}`}
                               className="border rounded px-2 py-1 text-sm w-max"
@@ -934,17 +960,12 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                                 </option>
                               ))}
                             </select>
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleCopyApplication(app)}
                             >
-                              <Clipboard className="h-4 w-4" />
+                              <Copy className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="outline"
