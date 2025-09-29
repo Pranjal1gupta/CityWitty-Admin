@@ -55,6 +55,8 @@ export async function GET() {
       averageRating: partner.averageRating,
       tags: partner.tags,
       status: partner.status,
+      suspensionReason: partner.suspensionReason,
+
       purchasedPackage: partner.purchasedPackage,
       renewal: partner.renewal,
       onboardingAgent: partner.onboardingAgent,
@@ -70,6 +72,9 @@ export async function GET() {
       totalReels: partner.totalReels,
       isWebsite: partner.isWebsite,
       totalEarnings: partner.totalEarnings,
+      minimumOrderValue: partner.minimumOrderValue,
+      offlineDiscount: partner.offlineDiscount,
+      branchLocations: partner.branchLocations,
       ds_graphics: partner.ds_graphics,
       ds_reel: partner.ds_reel,
       ds_weblog: partner.ds_weblog,

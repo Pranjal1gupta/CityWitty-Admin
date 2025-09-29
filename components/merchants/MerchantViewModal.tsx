@@ -95,6 +95,15 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                     <Badge className="bg-gray-100 text-gray-800">No</Badge>
                   )}
                 </div>
+                <div>
+                  <strong>Tags:</strong> {merchant.tags?.join(", ") || "N/A"}
+                </div>
+                <div>
+                  <strong>Suspension Reason:</strong> {merchant.suspensionReason || "N/A"}
+                </div>
+                <div>
+                  <strong>Onboarding Agent:</strong> {merchant.onboardingAgent ? `${merchant.onboardingAgent.agentName} (${merchant.onboardingAgent.agentId})` : "N/A"}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -151,6 +160,39 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                           </div>
                         ) : "N/A"}
                       </div>
+                      <div>
+                        <strong>Logo:</strong> {merchant.logo ? <img src={merchant.logo} alt="Logo" className="w-20 h-20 object-cover" /> : "N/A"}
+                      </div>
+                      <div className="md:col-span-2">
+                        <strong>Store Images:</strong>
+                        {merchant.storeImages && merchant.storeImages.length > 0 ? (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {merchant.storeImages.map((img, index) => (
+                              <img key={index} src={img} alt={`Store ${index + 1}`} className="w-20 h-20 object-cover" />
+                            ))}
+                          </div>
+                        ) : "N/A"}
+                      </div>
+                      <div>
+                        <strong>Minimum Order Value:</strong> ₹{merchant.minimumOrderValue ?? "N/A"}
+                      </div>
+                      <div className="md:col-span-2">
+                        <strong>Offline Discounts:</strong>
+                        {merchant.offlineDiscount && merchant.offlineDiscount.length > 0 ? (
+                          <div className="space-y-2 mt-1">
+                            {merchant.offlineDiscount.map((discount, index) => (
+                              <div key={index} className="border p-2 rounded">
+                                <div><strong>Category:</strong> {discount.category}</div>
+                                <div><strong>Title:</strong> {discount.offerTitle}</div>
+                                <div><strong>Description:</strong> {discount.offerDescription}</div>
+                                <div><strong>Discount:</strong> {discount.discountPercent}% up to ₹{discount.discountValue}</div>
+                                <div><strong>Status:</strong> {discount.status}</div>
+                                <div><strong>Valid Upto:</strong> {new Date(discount.validUpto).toLocaleDateString()}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : "N/A"}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -178,6 +220,20 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                       </div>
                       <div>
                         <strong>Map Location:</strong> {merchant.mapLocation || "N/A"}
+                      </div>
+                      <div className="md:col-span-2">
+                        <strong>Branch Locations:</strong>
+                        {merchant.branchLocations && merchant.branchLocations.length > 0 ? (
+                          <div className="space-y-2 mt-1">
+                            {merchant.branchLocations.map((branch, index) => (
+                              <div key={index} className="border p-2 rounded">
+                                <div><strong>Branch Name:</strong> {branch.branchName}</div>
+                                <div><strong>Address:</strong> {branch.streetAddress}, {branch.locality}, {branch.city}, {branch.state} {branch.pincode}, {branch.country}</div>
+                                <div><strong>Map Location:</strong> {branch.mapLocation || "N/A"}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : "N/A"}
                       </div>
                     </div>
                   </CardContent>
@@ -469,6 +525,30 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                         <p className="text-xs mt-2">No website logs.</p>
                       )}
                     </div>
+                  </CardContent>
+                </Card>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Reviews */}
+            <AccordionItem value="reviews">
+              <AccordionTrigger>Reviews</AccordionTrigger>
+              <AccordionContent>
+                <Card>
+                  <CardContent className="pt-4">
+                    {merchant.ratings && merchant.ratings.length > 0 ? (
+                      <div className="space-y-4">
+                        {merchant.ratings.map((rating, index) => (
+                          <div key={index} className="border p-4 rounded-md">
+                            <div><strong>User:</strong> {rating.user}</div>
+                            <div><strong>Rating:</strong> {rating.rating}/5</div>
+                            <div><strong>Review:</strong> {rating.review || "N/A"}</div>
+                            <div><strong>Reply:</strong> {rating.reply || "N/A"}</div>
+                            <div><strong>Date:</strong> {new Date(rating.createdAt || "").toLocaleDateString()}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="text-sm">No reviews.</p>}
                   </CardContent>
                 </Card>
               </AccordionContent>

@@ -142,6 +142,28 @@ export interface Merchant {
   totalReels?: number;
   isWebsite?: boolean;
   totalEarnings?: number;
+  minimumOrderValue?: number;
+  offlineDiscount?: {
+    category: string;
+    offerTitle: string;
+    offerDescription: string;
+    discountValue: number;
+    discountPercent: number;
+    status: "Active" | "Inactive";
+    validUpto: string;
+  }[];
+  branchLocations?: {
+    branchName: string;
+    city: string;
+    streetAddress: string;
+    pincode?: string;
+    locality?: string;
+    state?: string;
+    country?: string;
+    mapLocation?: string;
+    latitude?: number;
+    longitude?: number;
+  }[];
   ds_graphics?: {
     graphicId: string;
     requestDate: string;
@@ -185,4 +207,4 @@ export interface Stats {
   suspendedMerchants: number;
 }
 
-export type ModalType = "view" | "approve" | "activate" | "deactivate" | "toggleVisibility" | null;
+export type ModalType = "view" | "approve" | "activate" | "deactivate" | "toggleVisibility" | "adjustLimits" | null;

@@ -119,6 +119,32 @@ export default function MerchantsPage() {
     }
   };
 
+  // Unified merchant limits update helper
+  const updateMerchantLimits = async (
+    merchantId: string,
+    limits: { ListingLimit?: number; totalGraphics?: number; totalReels?: number; isWebsite?: boolean; totalPodcast?: number },
+    secretCode: string
+  ) => {
+    try {
+      const res = await fetch(`/api/merchants/${merchantId}/limits`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...limits, secretCode }),
+      });
+      if (!res.ok) throw new Error("Failed to update merchant limits");
+      const updatedMerchant = await res.json();
+      setMerchants((prev) => {
+        const updated = prev.map((m) =>
+          m._id === merchantId ? { ...m, ...updatedMerchant } : m
+        );
+        return updated;
+      });
+      toast.success("Merchant limits updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Error updating merchant limits");
+    }
+  };
+
 
 
   if (isLoading)
@@ -171,6 +197,7 @@ export default function MerchantsPage() {
             onClose={() => setModal({ type: null, merchant: null })}
             onUpdateMerchantStatus={updateMerchantStatus}
             onUpdateMerchantVisibility={updateMerchantVisibility}
+            onUpdateMerchantLimits={updateMerchantLimits}
           />
         </div>
       </DashboardLayout>

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch all users
     const users = await User.find({}).lean();
-
+    
     // Calculate stats
     const totalUsers = users.length;
     const totalCards = users.filter(user => user.isCardExist).length;

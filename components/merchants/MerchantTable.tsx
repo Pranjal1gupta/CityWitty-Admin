@@ -31,6 +31,7 @@ import {
   ToggleRight,
   CheckCircle,
   XCircle,
+  Settings,
 } from "lucide-react";
 import { Merchant, ModalType } from "@/app/types/Merchant";
 
@@ -300,6 +301,26 @@ export default function MerchantTable({
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Toggle Visibility</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  onSetModal({
+                                    type: "adjustLimits",
+                                    merchant,
+                                  })
+                                }
+                              >
+                                <Settings className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Adjust Limits</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
