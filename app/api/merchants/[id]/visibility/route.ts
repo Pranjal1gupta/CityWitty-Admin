@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Partner from '@/models/Partner';
+import Partner from '@/models/partner/partner.schema';
 
 export async function PATCH(
   request: Request,
