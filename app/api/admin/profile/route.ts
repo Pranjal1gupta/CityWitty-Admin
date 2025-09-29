@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import Admin from "@/models/Admin";
-import User from "@/models/Users";
-import Partner from "@/models/Partners";
+import User from "@/models/User";
+import Partner from "@/models/Partner";
 
 const connectDB = async () => {
   try {

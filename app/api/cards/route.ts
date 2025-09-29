@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Types } from 'mongoose';
-import User from '@/models/Users';
+import User from '@/models/User';
 
 // Disable ISR / caching
 export const revalidate = 0;

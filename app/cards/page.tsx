@@ -104,6 +104,8 @@ export default function CardsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [cards, setCards] = useState<CardData[]>([]);
   const [stats, setStats] = useState(initialStats);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Modal state
   const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
@@ -121,6 +123,24 @@ export default function CardsPage() {
     useState<CardData | null>(null);
 
   const pathname = usePathname();
+
+  const filteredCards = cards.filter((card: CardData) => {
+    const matchesSearch =
+      (card.userName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (card.email ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (card.id ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" || card.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalPages = Math.ceil(filteredCards.length / rowsPerPage);
+  const paginatedCards = filteredCards.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -156,17 +176,17 @@ export default function CardsPage() {
     return () => clearInterval(intervalId);
   }, [pathname]);
 
-  const filteredCards = cards.filter((card: CardData) => {
-    const matchesSearch =
-      (card.userName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (card.email ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (card.id ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
-    const matchesStatus =
-      statusFilter === "all" || card.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
+  // Adjust current page if it exceeds total pages
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleToggleClick = (card: CardData) => {
     setSelectedCardForToggle(card);
@@ -519,7 +539,7 @@ export default function CardsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCards.map((card) => (
+                  {paginatedCards.map((card) => (
                     <TableRow key={card.id} className="hover:bg-gray-50">
                       <TableCell className="font-medium">
                         {card.id || "-"}
@@ -581,11 +601,62 @@ export default function CardsPage() {
               </Table>
             </div>
 
-            {filteredCards.length === 0 && (
+            {paginatedCards.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-gray-500">
                   No cards found matching your criteria.
                 </p>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {filteredCards.length > 0 && (
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-700">Rows per page:</span>
+                  <Select
+                    value={rowsPerPage.toString()}
+                    onValueChange={(value) => {
+                      setRowsPerPage(Number(value));
+                      setCurrentPage(1); // Reset to first page
+                    }}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="15">15</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-700">
+                    Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
+                    {Math.min(currentPage * rowsPerPage, filteredCards.length)} of{" "}
+                    {filteredCards.length} entries
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

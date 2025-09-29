@@ -11,23 +11,15 @@ export async function PATCH(
 
     const { id } = params;
     const body = await request.json();
-    const { status, suspensionReason } = body;
+    const { visibility } = body;
 
-    if (!['active', 'pending', 'suspended'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
-    }
-
-    const updateData: any = { status };
-
-    if (suspensionReason) {
-      updateData.suspensionReason = suspensionReason;
-    } else if (status !== 'suspended') {
-      updateData.suspensionReason = '';
+    if (typeof visibility !== 'boolean') {
+      return NextResponse.json({ error: 'Invalid visibility value' }, { status: 400 });
     }
 
     const updatedPartner = await Partner.findOneAndUpdate(
-      { $or: [{ _id: id }, { applicationId: id }] },
-      updateData,
+      { $or: [{ _id: id }, { merchantId: id }] },
+      { visibility },
       { new: true }
     ).lean();
 
@@ -37,7 +29,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedPartner, { status: 200 });
   } catch (error) {
-    console.error('Error updating merchant status:', error);
-    return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
+    console.error('Error updating merchant visibility:', error);
+    return NextResponse.json({ error: 'Failed to update visibility' }, { status: 500 });
   }
 }

@@ -567,12 +567,12 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             <div className="flex gap-2">
               <Button
-                className="bg-gradient-to-l from-[#4AA8FF] to-[#FF7A00]"
+                className="bg-gradient-to-l from-[#4AA8FF] to-[#FF7A00] capitalize"
                 onClick={handleExportData}
                 disabled={exporting}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Export Data
+                Export applicant Data
               </Button>
               <Button
                 onClick={() => setJobPostModalOpen(true)}
@@ -586,7 +586,20 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm">Total Posts</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {jobPosts.length.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">Job openings</p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm">Total Applicants</CardTitle>
