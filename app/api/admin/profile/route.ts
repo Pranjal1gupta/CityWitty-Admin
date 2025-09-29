@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import Admin from "@/models/Admin";
 import User from "@/models/User";
-import Partner from "@/models/Partner";
+import Partner from "@/models/partner/partner.schema";
 
 const connectDB = async () => {
   try {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
-import User from '@/models/Users';
+import User from '@/models/partner/partner.schema';
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
