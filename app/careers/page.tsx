@@ -739,7 +739,7 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                             {jobPost.locations
                               .slice(0, 2)
                               .map((location, idx) => (
-                                <p className="capitalize">{location}</p>
+                                <p key={idx} className="capitalize">{location}</p>
                               ))}
                             {jobPost.locations.length > 2 && (
                               <Badge variant="secondary" className="text-xs">

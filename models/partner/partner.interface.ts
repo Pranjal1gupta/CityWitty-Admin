@@ -1,10 +1,13 @@
 import { Document } from "mongoose";
-import { IProduct } from "@/models/partner/product/product.interface";
+import { IProduct } from "./product/product.interface";
+import { IPartnerRating } from "./partnerRating.interface";
 
 export interface IPartner extends Document {
     merchantId: string;
+    username?: string;
     legalName: string;
     displayName: string;
+    merchantSlug?: string;
     email: string;
     emailVerified?: boolean;
     phone: string;
@@ -29,7 +32,7 @@ export interface IPartner extends Document {
     website?: string;
     socialLinks?: {
         linkedin?: string;
-        twitter?: string;
+        x?: string;
         youtube?: string;
         instagram?: string;
         facebook?: string;
@@ -45,19 +48,16 @@ export interface IPartner extends Document {
     visibility: boolean;
     joinedSince: Date;
     citywittyAssured: boolean;
-    ratings?: {
-        userId: string;
-        user: string;
-        rating: number;
-        review?: string;
-        reply?: string;
-        createdAt?: Date;
-    }[];
+    isVerified?: boolean;
+    isCWassured?: boolean;
+    isPremiumSeller?: boolean;
+    isTopMerchant?: boolean;
+    ratings?: IPartnerRating[];
     averageRating?: number;
     tags?: string[];
     status: "pending" | "active" | "suspended" | "inactive";
-    suspensionReason?: string; // <-- new field added
 
+    suspensionReason?: string; // <-- new field added
     purchasedPackage?: {
         variantName: string;
         purchaseDate: Date;
@@ -75,10 +75,8 @@ export interface IPartner extends Document {
         agentId: string;
         agentName: string;
     };
-
     otpCode?: string;
     otpExpiry?: Date;
-
     paymentMethodAccepted?: string[];
     qrcodeLink?: string;
     businessHours?: {

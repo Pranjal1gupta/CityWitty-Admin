@@ -3,10 +3,11 @@ import mongoose, { Schema, Document, model, models } from "mongoose";
 // ---------------- Variant Schema ----------------
 const AdminVariantSchema = new Schema(
   {
-    variantId: { type: String, required: true },
-    name: { type: String, required: true },
-    price: { type: Number, required: true },
-    stock: { type: Number, required: true },
+    variantId: { type: String },
+    name: { type: String },
+    price: { type: Number },
+    stock: { type: Number },
+    isAvailableStock: { type: Boolean, default: true },
   },
   { _id: false }
 );
@@ -14,9 +15,9 @@ const AdminVariantSchema = new Schema(
 // ---------------- Rating Schema ----------------
 const AdminProductRatingSchema = new Schema(
   {
-    userId: { type: String, required: true, unique: true },
-    userName: { type: String, required: true },
-    rating: { type: Number, required: true, min: 1, max: 5 },
+    userId: { type: String },
+    userName: { type: String },
+    rating: { type: Number, min: 1, max: 5 },
     review: { type: String },
     adminReply: { type: String },
     isLike: { type: Boolean, default: false },
@@ -28,10 +29,10 @@ const AdminProductRatingSchema = new Schema(
 // ---------------- FAQ Schema ----------------
 const AdminFAQSchema = new Schema(
   {
-    question: { type: String, required: true },
-    answer: { type: String, required: true },
-    certifiedBuyer: { type: Boolean, required: true },
-    isLike: { type: Boolean, default: false },
+    question: { type: String },
+    answer: { type: String },
+    certifiedBuyer: { type: Boolean },
+    isLike: { type: Boolean },
   },
   { _id: false }
 );
@@ -103,8 +104,8 @@ const AdminProductSchema = new Schema<IAdminProduct>(
       type: [String],
       validate: [
         {
-          validator: (arr: string[]) => arr.length >= 1 && arr.length <= 5,
-          message: "Product must have between 1 and 5 images",
+          validator: (arr: string[]) => arr.length <= 5,
+          message: "Product can have at most 5 images",
         },
       ],
     },
@@ -113,25 +114,25 @@ const AdminProductSchema = new Schema<IAdminProduct>(
     brand: { type: String },
 
     productHighlights: [{ type: String }],
-    productVariants: { type: [AdminVariantSchema], required: true },
+    productVariants: { type: [AdminVariantSchema] },
 
     originalPrice: { type: Number, required: true },
     discountedPrice: { type: Number },
 
-    offerApplicable: { type: String, required: true },
+    offerApplicable: { type: String },
 
-    deliveryFee: { type: Number, default: 0 },
-    orderHandlingFee: { type: Number, default: 0 }, // ⭐ NEW FIELD
+    deliveryFee: { type: Number, default: 10 },
+    orderHandlingFee: { type: Number, default: 10 }, // ⭐ NEW FIELD
     discountOfferedOnProduct: { type: Number, default: 0 },
-    productHeight: { type: Number },
-    productWidth: { type: Number },
-    productWeight: { type: Number },
-    productPackageWeight: { type: Number },
-    productPackageHeight: { type: Number },
-    productPackageWidth: { type: Number },
+    productHeight: { type: Number, required: true },
+    productWidth: { type: Number, required: true },
+    productWeight: { type: Number, required: true },
+    productPackageWeight: { type: Number, required: true },
+    productPackageHeight: { type: Number, required: true },
+    productPackageWidth: { type: Number, required: true },
 
-    whatsInsideTheBox: { type: [String], required: true },
-    isWarranty: { type: Boolean, required: true },
+    whatsInsideTheBox: { type: [String] },
+    isWarranty: { type: Boolean, default: false },
     warrantyDescription: { type: String },
 
     rating: [AdminProductRatingSchema],

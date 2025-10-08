@@ -1,3 +1,3 @@
-import Partner from "@/models/partner/partner.schema";
+import Partner from "./partner.schema";
 
 export default Partner;

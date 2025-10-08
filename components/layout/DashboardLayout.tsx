@@ -544,7 +544,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="ml-4 flex items-center md:ml-6">
               <button className="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4AA8FF] relative">
                 <Bell className="h-6 w-6" />
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center bg-[#0099ff] text-white text-xs">
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center bg-red-500 text-white text-xs">
                   {Object.values(notificationCounts).reduce((a, b) => a + b, 0)}
                 </Badge>
               </button>
@@ -634,7 +634,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   {item.name}
                   {notificationCount > 0 && (
                     <>
-                      <Badge className="ml-auto h-5 w-5 flex items-center justify-center bg-[#0099ff] text-white text-xs animate-pulse">
+                      <Badge className="ml-auto h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs animate-pulse">
                         {notificationCount}
                       </Badge>
                       <div className="absolute right-2 w-2 h-2 bg-[#0099ff] rounded-full animate-ping"></div>
