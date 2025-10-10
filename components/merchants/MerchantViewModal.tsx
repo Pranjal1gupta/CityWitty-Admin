@@ -9,7 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Merchant } from "@/app/types/Merchant";
 
 interface MerchantViewModalProps {
@@ -18,7 +23,11 @@ interface MerchantViewModalProps {
   onClose: () => void;
 }
 
-export default function MerchantViewModal({ merchant, isOpen, onClose }: MerchantViewModalProps) {
+export default function MerchantViewModal({
+  merchant,
+  isOpen,
+  onClose,
+}: MerchantViewModalProps) {
   if (!merchant) return null;
 
   const getStatusBadge = (status: string) => {
@@ -59,6 +68,24 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                   <strong>Merchant ID:</strong> {merchant.merchantId}
                 </div>
                 <div>
+                  <strong>Username:</strong> {merchant.username || "N/A"}
+                </div>
+                <div>
+                  <strong>Merchant Slug:</strong>{" "}
+                  {merchant.merchantSlug ? (
+                    <a
+                      href={`https://www.citywitty.com/merchants/${merchant.merchantSlug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      {merchant.merchantSlug}
+                    </a>
+                  ) : (
+                    "N/A"
+                  )}
+                </div>
+                <div>
                   <strong>Status:</strong> {getStatusBadge(merchant.status)}
                 </div>
                 <div>
@@ -74,15 +101,19 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                   <strong>City:</strong> {merchant.city}
                 </div>
                 <div>
-                  <strong>Joined Since:</strong> {new Date(merchant.joinedSince).toLocaleDateString()}
+                  <strong>Joined Since:</strong>{" "}
+                  {new Date(merchant.joinedSince).toLocaleDateString()}
                 </div>
                 <div>
-                  <strong>Average Rating:</strong> {merchant.averageRating ?? "N/A"}
+                  <strong>Average Rating:</strong>{" "}
+                  {merchant.averageRating ?? "N/A"}
                 </div>
                 <div>
                   <strong>Visibility:</strong>{" "}
                   {merchant.visibility ? (
-                    <Badge className="bg-green-100 text-green-800">Visible</Badge>
+                    <Badge className="bg-green-100 text-green-800">
+                      Visible
+                    </Badge>
                   ) : (
                     <Badge className="bg-red-100 text-red-800">Hidden</Badge>
                   )}
@@ -90,19 +121,51 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                 <div>
                   <strong>Citywitty Assured:</strong>{" "}
                   {merchant.citywittyAssured ? (
-                    <Badge className="bg-blue-100 text-blue-800">Yes</Badge>
+                    <Badge className="bg-green-100 text-green-800">Yes</Badge>
                   ) : (
-                    <Badge className="bg-gray-100 text-gray-800">No</Badge>
+                    <Badge className="bg-red-100 text-red-800">No</Badge>
+                  )}
+                </div>
+                <div>
+                  <strong>Verified:</strong>{" "}
+                  {merchant.isVerified ? (
+                    <Badge className="bg-green-100 text-green-800">
+                      Verified
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-red-100 text-red-800">
+                      Not Verified
+                    </Badge>
+                  )}
+                </div>
+                <div>
+                  <strong>Premium Seller:</strong>{" "}
+                  {merchant.isPremiumSeller ? (
+                    <Badge className="bg-green-100 text-green-800">Yes</Badge>
+                  ) : (
+                    <Badge className="bg-red-100 text-red-800">No</Badge>
+                  )}
+                </div>
+                <div>
+                  <strong>Top Merchant:</strong>{" "}
+                  {merchant.isTopMerchant ? (
+                    <Badge className="bg-green-100 text-green-800">Yes</Badge>
+                  ) : (
+                    <Badge className="bg-red-100 text-red-800">No</Badge>
                   )}
                 </div>
                 <div>
                   <strong>Tags:</strong> {merchant.tags?.join(", ") || "N/A"}
                 </div>
                 <div>
-                  <strong>Suspension Reason:</strong> {merchant.suspensionReason || "N/A"}
+                  <strong>Suspension Reason:</strong>{" "}
+                  {merchant.suspensionReason || "N/A"}
                 </div>
                 <div>
-                  <strong>Onboarding Agent:</strong> {merchant.onboardingAgent ? `${merchant.onboardingAgent.agentName} (${merchant.onboardingAgent.agentId})` : "N/A"}
+                  <strong>Onboarding Agent:</strong>{" "}
+                  {merchant.onboardingAgent
+                    ? `${merchant.onboardingAgent.agentName} (${merchant.onboardingAgent.agentId})`
+                    : "N/A"}
                 </div>
               </div>
             </CardContent>
@@ -121,77 +184,139 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                         <strong>Business Type:</strong> {merchant.businessType}
                       </div>
                       <div>
-                        <strong>Years in Business:</strong> {merchant.yearsInBusiness}
+                        <strong>Years in Business:</strong>{" "}
+                        {merchant.yearsInBusiness}
                       </div>
                       <div>
-                        <strong>Average Monthly Revenue:</strong> {merchant.averageMonthlyRevenue}
+                        <strong>Average Monthly Revenue:</strong>{" "}
+                        {merchant.averageMonthlyRevenue}
                       </div>
                       <div>
-                        <strong>Discount Offered:</strong> {merchant.discountOffered}
+                        <strong>Discount Offered:</strong>{" "}
+                        {merchant.discountOffered}
                       </div>
                       <div className="md:col-span-2">
                         <strong>Description:</strong> {merchant.description}
                       </div>
                       <div>
-                        <strong>Custom Offer:</strong> {merchant.customOffer || "N/A"}
+                        <strong>Custom Offer:</strong>{" "}
+                        {merchant.customOffer || "N/A"}
                       </div>
                       <div>
-                        <strong>Ribbon Tag:</strong> {merchant.ribbonTag || "N/A"}
+                        <strong>Ribbon Tag:</strong>{" "}
+                        {merchant.ribbonTag || "N/A"}
                       </div>
                       <div>
                         <strong>Website:</strong>{" "}
                         {merchant.website ? (
-                          <a href={merchant.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <a
+                            href={merchant.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 underline"
+                          >
                             {merchant.website}
                           </a>
-                        ) : "N/A"}
+                        ) : (
+                          "N/A"
+                        )}
                       </div>
                       <div className="md:col-span-2">
                         <strong>Social Links:</strong>
                         {merchant.socialLinks ? (
                           <div className="flex flex-wrap gap-2 mt-1">
-                            {Object.entries(merchant.socialLinks).map(([key, val]) => (
-                              val && (
-                                <Badge key={key} variant="outline">
-                                  {key}: <a href={val} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{val}</a>
-                                </Badge>
-                              )
-                            ))}
+                            {Object.entries(merchant.socialLinks).map(
+                              ([key, val]) =>
+                                val && (
+                                  <Badge key={key} variant="outline">
+                                    {key}:{" "}
+                                    <a
+                                      href={val}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 underline"
+                                    >
+                                      {val}
+                                    </a>
+                                  </Badge>
+                                )
+                            )}
                           </div>
-                        ) : "N/A"}
+                        ) : (
+                          "N/A"
+                        )}
                       </div>
                       <div>
-                        <strong>Logo:</strong> {merchant.logo ? <img src={merchant.logo} alt="Logo" className="w-20 h-20 object-cover" /> : "N/A"}
+                        <strong>Logo:</strong>{" "}
+                        {merchant.logo ? (
+                          <img
+                            src={merchant.logo}
+                            alt="Logo"
+                            className="w-20 h-20 object-cover"
+                          />
+                        ) : (
+                          "N/A"
+                        )}
                       </div>
                       <div className="md:col-span-2">
                         <strong>Store Images:</strong>
-                        {merchant.storeImages && merchant.storeImages.length > 0 ? (
+                        {merchant.storeImages &&
+                        merchant.storeImages.length > 0 ? (
                           <div className="flex flex-wrap gap-2 mt-1">
                             {merchant.storeImages.map((img, index) => (
-                              <img key={index} src={img} alt={`Store ${index + 1}`} className="w-20 h-20 object-cover" />
+                              <img
+                                key={index}
+                                src={img}
+                                alt={`Store ${index + 1}`}
+                                className="w-20 h-20 object-cover"
+                              />
                             ))}
                           </div>
-                        ) : "N/A"}
+                        ) : (
+                          "N/A"
+                        )}
                       </div>
                       <div>
-                        <strong>Minimum Order Value:</strong> ₹{merchant.minimumOrderValue ?? "N/A"}
+                        <strong>Minimum Order Value:</strong> ₹
+                        {merchant.minimumOrderValue ?? "N/A"}
                       </div>
                       <div className="md:col-span-2">
                         <strong>Offline Discounts:</strong>
-                        {merchant.offlineDiscount && merchant.offlineDiscount.length > 0 ? (
+                        {merchant.offlineDiscount &&
+                        merchant.offlineDiscount.length > 0 ? (
                           <div className="space-y-2 mt-1">
                             {merchant.offlineDiscount.map((discount, index) => (
                               <div key={index} className="border p-2 rounded">
-                                <div><strong>Category:</strong> {discount.category}</div>
-                                <div><strong>Title:</strong> {discount.offerTitle}</div>
-                                <div><strong>Description:</strong> {discount.offerDescription}</div>
-                                <div><strong>Discount:</strong> {discount.discountPercent}% up to ₹{discount.discountValue}</div>
-                                <div><strong>Status:</strong> {discount.status}</div>
-                                <div><strong>Valid Upto:</strong> {new Date(discount.validUpto).toLocaleDateString()}</div>
+                                <div>
+                                  <strong>Category:</strong> {discount.category}
+                                </div>
+                                <div>
+                                  <strong>Title:</strong> {discount.offerTitle}
+                                </div>
+                                <div>
+                                  <strong>Description:</strong>{" "}
+                                  {discount.offerDescription}
+                                </div>
+                                <div>
+                                  <strong>Discount:</strong>{" "}
+                                  {discount.discountPercent}% up to ₹
+                                  {discount.discountValue}
+                                </div>
+                                <div>
+                                  <strong>Status:</strong> {discount.status}
+                                </div>
+                                <div>
+                                  <strong>Valid Upto:</strong>{" "}
+                                  {new Date(
+                                    discount.validUpto
+                                  ).toLocaleDateString()}
+                                </div>
                               </div>
                             ))}
                           </div>
-                        ) : "N/A"}
+                        ) : (
+                          "N/A"
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -214,26 +339,48 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                       </div>
                       <div className="md:col-span-2">
                         <strong>Address:</strong>{" "}
-                        {[merchant.streetAddress, merchant.locality, merchant.city, merchant.state, merchant.pincode, merchant.country]
+                        {[
+                          merchant.streetAddress,
+                          merchant.locality,
+                          merchant.city,
+                          merchant.state,
+                          merchant.pincode,
+                          merchant.country,
+                        ]
                           .filter(Boolean)
                           .join(", ") || "N/A"}
                       </div>
                       <div>
-                        <strong>Map Location:</strong> {merchant.mapLocation || "N/A"}
+                        <strong>Map Location:</strong>{" "}
+                        {merchant.mapLocation || "N/A"}
                       </div>
                       <div className="md:col-span-2">
                         <strong>Branch Locations:</strong>
-                        {merchant.branchLocations && merchant.branchLocations.length > 0 ? (
+                        {merchant.branchLocations &&
+                        merchant.branchLocations.length > 0 ? (
                           <div className="space-y-2 mt-1">
                             {merchant.branchLocations.map((branch, index) => (
                               <div key={index} className="border p-2 rounded">
-                                <div><strong>Branch Name:</strong> {branch.branchName}</div>
-                                <div><strong>Address:</strong> {branch.streetAddress}, {branch.locality}, {branch.city}, {branch.state} {branch.pincode}, {branch.country}</div>
-                                <div><strong>Map Location:</strong> {branch.mapLocation || "N/A"}</div>
+                                <div>
+                                  <strong>Branch Name:</strong>{" "}
+                                  {branch.branchName}
+                                </div>
+                                <div>
+                                  <strong>Address:</strong>{" "}
+                                  {branch.streetAddress}, {branch.locality},{" "}
+                                  {branch.city}, {branch.state} {branch.pincode}
+                                  , {branch.country}
+                                </div>
+                                <div>
+                                  <strong>Map Location:</strong>{" "}
+                                  {branch.mapLocation || "N/A"}
+                                </div>
                               </div>
                             ))}
                           </div>
-                        ) : "N/A"}
+                        ) : (
+                          "N/A"
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -251,24 +398,36 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                       <div>
                         <strong>Email:</strong> {merchant.email}{" "}
                         {merchant.emailVerified ? (
-                          <Badge className="bg-green-100 text-green-800">Verified</Badge>
+                          <Badge className="bg-green-100 text-green-800">
+                            Verified
+                          </Badge>
                         ) : (
-                          <Badge className="bg-red-100 text-red-800">Not Verified</Badge>
+                          <Badge className="bg-red-100 text-red-800">
+                            Not Verified
+                          </Badge>
                         )}
                       </div>
                       <div>
                         <strong>Phone:</strong> {merchant.phone}{" "}
                         {merchant.phoneVerified ? (
-                          <Badge className="bg-green-100 text-green-800">Verified</Badge>
+                          <Badge className="bg-green-100 text-green-800">
+                            Verified
+                          </Badge>
                         ) : (
-                          <Badge className="bg-red-100 text-red-800">Not Verified</Badge>
+                          <Badge className="bg-red-100 text-red-800">
+                            Not Verified
+                          </Badge>
                         )}
                       </div>
                       <div>
                         <strong>WhatsApp:</strong> {merchant.whatsapp}{" "}
                         {merchant.isWhatsappSame ? (
-                          <Badge className="bg-blue-100 text-blue-800">Same as phone</Badge>
-                        ) : ""}
+                          <Badge className="bg-blue-100 text-blue-800">
+                            Same as phone
+                          </Badge>
+                        ) : (
+                          ""
+                        )}
                       </div>
                       <div>
                         <strong>Business Hours:</strong>{" "}
@@ -287,10 +446,17 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                       <div>
                         <strong>QR Code Link:</strong>{" "}
                         {merchant.qrcodeLink ? (
-                          <a href={merchant.qrcodeLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <a
+                            href={merchant.qrcodeLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 underline"
+                          >
                             View QR
                           </a>
-                        ) : "N/A"}
+                        ) : (
+                          "N/A"
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -307,16 +473,24 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                     {merchant.purchasedPackage ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <strong>Variant Name:</strong> {merchant.purchasedPackage.variantName}
+                          <strong>Variant Name:</strong>{" "}
+                          {merchant.purchasedPackage.variantName}
                         </div>
                         <div>
-                          <strong>Purchase Date:</strong> {new Date(merchant.purchasedPackage.purchaseDate).toLocaleDateString()}
+                          <strong>Purchase Date:</strong>{" "}
+                          {new Date(
+                            merchant.purchasedPackage.purchaseDate
+                          ).toLocaleDateString()}
                         </div>
                         <div>
-                          <strong>Expiry Date:</strong> {new Date(merchant.purchasedPackage.expiryDate).toLocaleDateString()}
+                          <strong>Expiry Date:</strong>{" "}
+                          {new Date(
+                            merchant.purchasedPackage.expiryDate
+                          ).toLocaleDateString()}
                         </div>
                         <div>
-                          <strong>Transaction ID:</strong> {merchant.purchasedPackage.transactionId}
+                          <strong>Transaction ID:</strong>{" "}
+                          {merchant.purchasedPackage.transactionId}
                         </div>
                       </div>
                     ) : (
@@ -336,15 +510,24 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                     {merchant.renewal ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <strong>Renewed:</strong> {merchant.renewal.isRenewed ? "Yes" : "No"}
+                          <strong>Renewed:</strong>{" "}
+                          {merchant.renewal.isRenewed ? "Yes" : "No"}
                         </div>
                         <div>
                           <strong>Renewal Date:</strong>{" "}
-                          {merchant.renewal.renewalDate ? new Date(merchant.renewal.renewalDate).toLocaleDateString() : "N/A"}
+                          {merchant.renewal.renewalDate
+                            ? new Date(
+                                merchant.renewal.renewalDate
+                              ).toLocaleDateString()
+                            : "N/A"}
                         </div>
                         <div>
                           <strong>Renewal Expiry:</strong>{" "}
-                          {merchant.renewal.renewalExpiry ? new Date(merchant.renewal.renewalExpiry).toLocaleDateString() : "N/A"}
+                          {merchant.renewal.renewalExpiry
+                            ? new Date(
+                                merchant.renewal.renewalExpiry
+                              ).toLocaleDateString()
+                            : "N/A"}
                         </div>
                       </div>
                     ) : (
@@ -364,22 +547,28 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                     {merchant.bankDetails ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <strong>Bank Name:</strong> {merchant.bankDetails.bankName || "N/A"}
+                          <strong>Bank Name:</strong>{" "}
+                          {merchant.bankDetails.bankName || "N/A"}
                         </div>
                         <div>
-                          <strong>Account Holder Name:</strong> {merchant.bankDetails.accountHolderName || "N/A"}
+                          <strong>Account Holder Name:</strong>{" "}
+                          {merchant.bankDetails.accountHolderName || "N/A"}
                         </div>
                         <div>
-                          <strong>Account Number:</strong> {merchant.bankDetails.accountNumber || "N/A"}
+                          <strong>Account Number:</strong>{" "}
+                          {merchant.bankDetails.accountNumber || "N/A"}
                         </div>
                         <div>
-                          <strong>IFSC Code:</strong> {merchant.bankDetails.ifscCode || "N/A"}
+                          <strong>IFSC Code:</strong>{" "}
+                          {merchant.bankDetails.ifscCode || "N/A"}
                         </div>
                         <div>
-                          <strong>Branch Name:</strong> {merchant.bankDetails.branchName || "N/A"}
+                          <strong>Branch Name:</strong>{" "}
+                          {merchant.bankDetails.branchName || "N/A"}
                         </div>
                         <div>
-                          <strong>UPI ID:</strong> {merchant.bankDetails.upiId || "N/A"}
+                          <strong>UPI ID:</strong>{" "}
+                          {merchant.bankDetails.upiId || "N/A"}
                         </div>
                       </div>
                     ) : (
@@ -398,10 +587,12 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                   <CardContent className="pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <strong>Listing Limit:</strong> {merchant.ListingLimit ?? "N/A"}
+                        <strong>Listing Limit:</strong>{" "}
+                        {merchant.ListingLimit ?? "N/A"}
                       </div>
                       <div>
-                        <strong>Added Listings:</strong> {merchant.Addedlistings ?? "N/A"}
+                        <strong>Added Listings:</strong>{" "}
+                        {merchant.Addedlistings ?? "N/A"}
                       </div>
                     </div>
                     <div className="mt-4">
@@ -410,15 +601,20 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                         <div className="space-y-4 mt-2">
                           {merchant.products.map((product, index) => (
                             <div key={index} className="border p-4 rounded-md">
-                              {product.productImages && product.productImages.length > 0 && (
-                                <img
-                                  src={product.productImages[0]}
-                                  alt={product.productName}
-                                  className="w-20 h-20 object-cover mb-2 rounded"
-                                />
-                              )}
-                              <h4 className="font-semibold text-sm">{product.productName}</h4>
-                              <p className="text-xs text-gray-600 mb-1">Category: {product.productCategory}</p>
+                              {product.productImages &&
+                                product.productImages.length > 0 && (
+                                  <img
+                                    src={product.productImages[0]}
+                                    alt={product.productName}
+                                    className="w-20 h-20 object-cover mb-2 rounded"
+                                  />
+                                )}
+                              <h4 className="font-semibold text-sm">
+                                {product.productName}
+                              </h4>
+                              <p className="text-xs text-gray-600 mb-1">
+                                Category: {product.productCategory}
+                              </p>
                               <p className="text-sm mb-1">
                                 Original: ₹{product.originalPrice}
                                 {product.discountedPrice && (
@@ -432,18 +628,24 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                                   {product.productDescription}
                                 </p>
                               )}
-                              {product.productVariants && product.productVariants.length > 0 && (
-                                <div className="mt-2">
-                                  <strong className="text-xs">Variants:</strong>
-                                  <ul className="list-disc list-inside mt-1 space-y-0.5 text-xs">
-                                    {product.productVariants.map((variant, vIndex) => (
-                                      <li key={vIndex}>
-                                        {variant.name} - ₹{variant.price} (Stock: {variant.stock})
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
+                              {product.productVariants &&
+                                product.productVariants.length > 0 && (
+                                  <div className="mt-2">
+                                    <strong className="text-xs">
+                                      Variants:
+                                    </strong>
+                                    <ul className="list-disc list-inside mt-1 space-y-0.5 text-xs">
+                                      {product.productVariants.map(
+                                        (variant, vIndex) => (
+                                          <li key={vIndex}>
+                                            {variant.name} - ₹{variant.price}{" "}
+                                            (Stock: {variant.stock})
+                                          </li>
+                                        )
+                                      )}
+                                    </ul>
+                                  </div>
+                                )}
                             </div>
                           ))}
                         </div>
@@ -464,28 +666,36 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                   <CardContent className="pt-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <strong>Total Earnings:</strong> ₹{merchant.totalEarnings ?? "N/A"}
+                        <strong>Total Earnings:</strong> ₹
+                        {merchant.totalEarnings ?? "N/A"}
                       </div>
                       <div>
                         <strong>Website Status:</strong>{" "}
                         {merchant.isWebsite ? (
-                          <Badge className="bg-green-100 text-green-800">Enabled</Badge>
+                          <Badge className="bg-green-100 text-green-800">
+                            Enabled
+                          </Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-800">Disabled</Badge>
+                          <Badge className="bg-gray-100 text-gray-800">
+                            Disabled
+                          </Badge>
                         )}
                       </div>
                     </div>
                     <div>
-                      <strong>Graphics:</strong> {merchant.totalGraphics ?? 0} total
-                      {merchant.ds_graphics && merchant.ds_graphics.length > 0 && (
-                        <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
-                          {merchant.ds_graphics.map((graphic, index) => (
-                            <li key={index}>
-                              ID: {graphic.graphicId}, Status: {graphic.status}, Subject: {graphic.subject}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                      <strong>Graphics:</strong> {merchant.totalGraphics ?? 0}{" "}
+                      total
+                      {merchant.ds_graphics &&
+                        merchant.ds_graphics.length > 0 && (
+                          <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
+                            {merchant.ds_graphics.map((graphic, index) => (
+                              <li key={index}>
+                                ID: {graphic.graphicId}, Status:{" "}
+                                {graphic.status}, Subject: {graphic.subject}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                     </div>
                     <div>
                       <strong>Reels:</strong> {merchant.totalReels ?? 0} total
@@ -493,23 +703,26 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                         <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
                           {merchant.ds_reel.map((reel, index) => (
                             <li key={index}>
-                              ID: {reel.reelId}, Status: {reel.status}, Subject: {reel.subject}
+                              ID: {reel.reelId}, Status: {reel.status}, Subject:{" "}
+                              {reel.subject}
                             </li>
                           ))}
                         </ul>
                       )}
                     </div>
                     <div>
-                      <strong>Podcasts:</strong> {merchant.totalPodcast ?? 0} total, {merchant.completedPodcast ?? 0} completed
-                      {merchant.podcastLog && merchant.podcastLog.length > 0 && (
-                        <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
-                          {merchant.podcastLog.map((podcast, index) => (
-                            <li key={index}>
-                              {podcast.title} - Status: {podcast.status}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                      <strong>Podcasts:</strong> {merchant.totalPodcast ?? 0}{" "}
+                      total, {merchant.completedPodcast ?? 0} completed
+                      {merchant.podcastLog &&
+                        merchant.podcastLog.length > 0 && (
+                          <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
+                            {merchant.podcastLog.map((podcast, index) => (
+                              <li key={index}>
+                                {podcast.title} - Status: {podcast.status}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                     </div>
                     <div>
                       <strong>Website Logs:</strong>
@@ -517,7 +730,8 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                         <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
                           {merchant.ds_weblog.map((weblog, index) => (
                             <li key={index}>
-                              ID: {weblog.weblog_id}, Status: {weblog.status}, Description: {weblog.description}
+                              ID: {weblog.weblog_id}, Status: {weblog.status},
+                              Description: {weblog.description}
                             </li>
                           ))}
                         </ul>
@@ -540,15 +754,30 @@ export default function MerchantViewModal({ merchant, isOpen, onClose }: Merchan
                       <div className="space-y-4">
                         {merchant.ratings.map((rating, index) => (
                           <div key={index} className="border p-4 rounded-md">
-                            <div><strong>User:</strong> {rating.user}</div>
-                            <div><strong>Rating:</strong> {rating.rating}/5</div>
-                            <div><strong>Review:</strong> {rating.review || "N/A"}</div>
-                            <div><strong>Reply:</strong> {rating.reply || "N/A"}</div>
-                            <div><strong>Date:</strong> {new Date(rating.createdAt || "").toLocaleDateString()}</div>
+                            <div>
+                              <strong>User:</strong> {rating.user}
+                            </div>
+                            <div>
+                              <strong>Rating:</strong> {rating.rating}/5
+                            </div>
+                            <div>
+                              <strong>Review:</strong> {rating.review || "N/A"}
+                            </div>
+                            <div>
+                              <strong>Reply:</strong> {rating.reply || "N/A"}
+                            </div>
+                            <div>
+                              <strong>Date:</strong>{" "}
+                              {new Date(
+                                rating.createdAt || ""
+                              ).toLocaleDateString()}
+                            </div>
                           </div>
                         ))}
                       </div>
-                    ) : <p className="text-sm">No reviews.</p>}
+                    ) : (
+                      <p className="text-sm">No reviews.</p>
+                    )}
                   </CardContent>
                 </Card>
               </AccordionContent>

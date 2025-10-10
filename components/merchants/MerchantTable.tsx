@@ -1,5 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +65,9 @@ export default function MerchantTable({
         (merchant.displayName ?? "")
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        (merchant.email ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (merchant.email ?? "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         (merchant.category ?? "")
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
@@ -150,7 +158,7 @@ export default function MerchantTable({
                     <TableHead>Average Ratings</TableHead>
                     <TableHead>Joining Date</TableHead>
                     <TableHead>Visibility</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -173,8 +181,13 @@ export default function MerchantTable({
                           .filter(Boolean)
                           .join(", ")}
                       </TableCell>*/}
-                      <TableCell> 
-                        {[merchant.streetAddress, merchant.city, merchant.state, merchant.pincode]
+                      <TableCell>
+                        {[
+                          merchant.streetAddress,
+                          merchant.city,
+                          // merchant.state,
+                          // merchant.pincode,
+                        ]
                           .filter(Boolean)
                           .join(", ")}
                       </TableCell>
@@ -185,30 +198,17 @@ export default function MerchantTable({
                       </TableCell>
                       <TableCell>
                         {merchant.visibility ? (
-                          <Badge className="bg-green-100 text-green-800">Visible</Badge>
+                          <Badge className="bg-green-100 text-green-800">
+                            Visible
+                          </Badge>
                         ) : (
-                          <Badge className="bg-red-100 text-red-800">Hidden</Badge>
+                          <Badge className="bg-red-100 text-red-800">
+                            Hidden
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  onSetModal({ type: "view", merchant })
-                                }
-                              >
-                                <BookUser className="h-4 w-4 text-gray-500" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>View Details</p>
-                            </TooltipContent>
-                          </Tooltip>
-
                           {merchant.status === "pending" && (
                             <>
                               <Tooltip>
@@ -275,7 +275,12 @@ export default function MerchantTable({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{merchant.status === "active" ? "Deactivate" : "Activate"} Merchant</p>
+                                <p>
+                                  {merchant.status === "active"
+                                    ? "Deactivate"
+                                    : "Activate"}{" "}
+                                  Merchant
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -311,6 +316,26 @@ export default function MerchantTable({
                                 size="sm"
                                 onClick={() =>
                                   onSetModal({
+                                    type: "toggleStatuses",
+                                    merchant,
+                                  })
+                                }
+                              >
+                                <CheckCircle className="h-4 w-4 text-purple-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Update Badges</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  onSetModal({
                                     type: "adjustLimits",
                                     merchant,
                                   })
@@ -323,6 +348,24 @@ export default function MerchantTable({
                               <p>Adjust Limits</p>
                             </TooltipContent>
                           </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  onSetModal({ type: "view", merchant })
+                                }
+                              >
+                                <BookUser className="h-4 w-4 text-gray-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View Details</p>
+                            </TooltipContent>
+                          </Tooltip>
+
                         </div>
                       </TableCell>
                     </TableRow>
@@ -341,7 +384,7 @@ export default function MerchantTable({
 
             {/* Pagination Controls */}
             {filteredMerchants.length > 0 && (
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center items-center gap-4 mt-4">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-700">Rows per page:</span>
                   <Select
@@ -362,30 +405,37 @@ export default function MerchantTable({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-700">
+                <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                  <span className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
                     Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
-                    {Math.min(currentPage * rowsPerPage, filteredMerchants.length)} of{" "}
-                    {filteredMerchants.length} entries
+                    {Math.min(
+                      currentPage * rowsPerPage,
+                      filteredMerchants.length
+                    )}{" "}
+                    of {filteredMerchants.length} entries
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                    }
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

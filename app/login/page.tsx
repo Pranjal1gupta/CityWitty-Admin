@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import logo from "../../public/logo.png";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -59,19 +61,25 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center p-4 overflow-hidden">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] rounded-lg flex items-center justify-center">
-              <Lock className="w-6 h-6 text-white" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold text-center">
-            CityWitty Admin
-          </CardTitle>
-          <CardDescription className="text-center">
-            Sign in to access your admin dashboard
-          </CardDescription>
-        </CardHeader>
+        <CardHeader className="space-y-0">
+  <div className="flex items-center justify-center mb-0">
+    <div className="w-12 h-12 flex items-center justify-center relative">
+      <Image src={logo} alt="" fill style={{ objectFit: "contain" }} />
+    </div>
+  </div>
+
+  <CardTitle className="text-2xl font-bold text-center tracking-wide leading-tight">
+    <span className="bg-gradient-to-b from-[#fa2b57] to-[#fb7737] bg-clip-text text-transparent uppercase">City</span>
+    <span className="text-[#00b3fe] uppercase">Witty</span>
+    <br />
+    <span className="text-gray-600 uppercase text-lg block mt-0.5">ADMIN</span>
+  </CardTitle>
+
+  <CardDescription className="text-center mt-1 text-sm">
+    Sign in to access your admin dashboard
+  </CardDescription>
+</CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}

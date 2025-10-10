@@ -53,11 +53,11 @@ export default function MerchantsPage() {
       }
     };
     fetchData();
-    const interval = setInterval(() => {
-      fetchData();
-    }, 3000);
+    // const interval = setInterval(() => {
+    //   fetchData();
+    // }, 3000);
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
 
   }, [user, pathname]); // refetch when route changes
 
@@ -94,30 +94,7 @@ export default function MerchantsPage() {
     }
   };
 
-  // Unified merchant visibility update helper
-  const updateMerchantVisibility = async (
-    merchantId: string,
-    visibility: boolean
-  ) => {
-    try {
-      const res = await fetch(`/api/merchants/${merchantId}/visibility`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility }),
-      });
-      if (!res.ok) throw new Error("Failed to update merchant visibility");
-      const updatedMerchant = await res.json();
-      setMerchants((prev) => {
-        const updated = prev.map((m) =>
-          m._id === merchantId ? { ...m, ...updatedMerchant } : m
-        );
-        return updated;
-      });
-      toast.success("Merchant visibility updated successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Error updating merchant visibility");
-    }
-  };
+
 
   // Unified merchant limits update helper
   const updateMerchantLimits = async (
@@ -145,6 +122,56 @@ export default function MerchantsPage() {
     }
   };
 
+  // Unified merchant statuses update helper
+  const updateMerchantStatuses = async (
+    merchantId: string,
+    statuses: { citywittyAssured?: boolean; isVerified?: boolean; isCWassured?: boolean; isPremiumSeller?: boolean; isTopMerchant?: boolean }
+  ) => {
+    try {
+      const res = await fetch(`/api/merchants/${merchantId}/statuses`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(statuses),
+      });
+      if (!res.ok) throw new Error("Failed to update merchant statuses");
+      const updatedMerchant = await res.json();
+      setMerchants((prev) => {
+        const updated = prev.map((m) =>
+          m._id === merchantId ? { ...m, ...updatedMerchant } : m
+        );
+        return updated;
+      });
+      toast.success("Merchant statuses updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Error updating merchant statuses");
+    }
+  };
+
+  // Unified merchant visibility update helper
+  const updateMerchantVisibility = async (
+    merchantId: string,
+    visibility: boolean
+  ) => {
+    try {
+      const res = await fetch(`/api/merchants/${merchantId}/statuses`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility }),
+      });
+      if (!res.ok) throw new Error("Failed to update merchant visibility");
+      const updatedMerchant = await res.json();
+      setMerchants((prev) => {
+        const updated = prev.map((m) =>
+          m._id === merchantId ? { ...m, ...updatedMerchant } : m
+        );
+        return updated;
+      });
+      toast.success("Merchant visibility updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Error updating merchant visibility");
+    }
+  };
+
 
 
   if (isLoading)
@@ -161,7 +188,7 @@ export default function MerchantsPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Merchants</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Merchants</h1>
               <p className="text-muted-foreground">
                 Manage and monitor all merchant accounts
               </p>
@@ -198,6 +225,7 @@ export default function MerchantsPage() {
             onUpdateMerchantStatus={updateMerchantStatus}
             onUpdateMerchantVisibility={updateMerchantVisibility}
             onUpdateMerchantLimits={updateMerchantLimits}
+            onUpdateMerchantStatuses={updateMerchantStatuses}
           />
         </div>
       </DashboardLayout>

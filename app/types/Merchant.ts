@@ -58,8 +58,10 @@ export interface Rating {
 export interface Merchant {
   _id: string;
   merchantId: string;
+  username: string;
   legalName: string;
   displayName: string;
+  merchantSlug: string;
   email: string;
   emailVerified?: boolean;
   phone: string;
@@ -99,6 +101,10 @@ export interface Merchant {
   visibility: boolean;
   joinedSince: string;
   citywittyAssured: boolean;
+  isVerified?: boolean;
+  isCWassured?: boolean;
+  isPremiumSeller?: boolean;
+  isTopMerchant?: boolean;
   ratings: Rating[];
   averageRating?: number;
   tags?: string[];
@@ -207,4 +213,4 @@ export interface Stats {
   suspendedMerchants: number;
 }
 
-export type ModalType = "view" | "approve" | "activate" | "deactivate" | "toggleVisibility" | "adjustLimits" | null;
+export type ModalType = "view" | "approve" | "activate" | "deactivate" | "toggleVisibility" | "adjustLimits" | "toggleStatuses" | null;

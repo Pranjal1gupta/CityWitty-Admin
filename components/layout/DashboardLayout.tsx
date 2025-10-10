@@ -398,6 +398,7 @@ const navigation = [
   { name: "Transactions", href: "/transactions", icon: Receipt },
   { name: "Careers", href: "/careers", icon: Briefcase },
   { name: "Feedback", href: "/feedback", icon: MessageSquare },
+  { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Profile", href: "/profile", icon: User },
 ];
 
