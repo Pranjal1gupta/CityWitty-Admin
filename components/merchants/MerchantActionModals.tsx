@@ -24,7 +24,7 @@ type MerchantStatuses = {
 };
 
 interface MerchantActionModalsProps {
-  modal: { type: ModalType; merchant: Merchant | null };
+  modal: { type: ModalType; merchant: Merchant | null; newVisibility?: boolean; newStatus?: string };
   onClose: () => void;
   onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => void;
   onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void;
@@ -119,6 +119,10 @@ export default function MerchantActionModals({
       onUpdateMerchantLimits(merchant._id, limits, secretCode);
     } else if (modal.type === "toggleStatuses") {
       onUpdateMerchantStatuses(merchant._id, statuses);
+    } else if (modal.type === "confirmVisibilityChange") {
+      onUpdateMerchantVisibility(merchant._id, modal.newVisibility!);
+    } else if (modal.type === "confirmStatusChange") {
+      onUpdateMerchantStatus(merchant._id, modal.newStatus!);
     }
     onClose();
     setShowConfirmation(false);
@@ -166,6 +170,20 @@ export default function MerchantActionModals({
           title: "Toggle Statuses",
           description: `Toggle statuses for ${merchant.displayName}.`,
           confirmText: "Update Statuses",
+          confirmClass: "bg-green-600 hover:bg-green-700",
+        };
+      case "confirmVisibilityChange":
+        return {
+          title: "Confirm Visibility Change",
+          description: `Are you sure you want to change visibility to ${modal.newVisibility ? "Visible" : "Hidden"} for ${merchant.displayName}?`,
+          confirmText: "Confirm",
+          confirmClass: "bg-green-600 hover:bg-green-700",
+        };
+      case "confirmStatusChange":
+        return {
+          title: "Confirm Status Change",
+          description: `Are you sure you want to change status to ${modal.newStatus} for ${merchant.displayName}?`,
+          confirmText: "Confirm",
           confirmClass: "bg-green-600 hover:bg-green-700",
         };
       default:
@@ -294,7 +312,7 @@ export default function MerchantActionModals({
           </Button>
           <Button
             className={content.confirmClass}
-            onClick={(modal.type === "adjustLimits" || modal.type === "toggleStatuses") ? () => setShowConfirmation(true) : handleConfirm}
+            onClick={(modal.type === "adjustLimits" || modal.type === "toggleStatuses") ? () => setShowConfirmation(true) : (modal.type === "confirmVisibilityChange" || modal.type === "confirmStatusChange") ? handleConfirmAction : handleConfirm}
             disabled={
               (modal.type === "deactivate" && !suspensionReason.trim()) ||
               (modal.type === "adjustLimits" && secretCode !== "SuperSecret123")
@@ -309,7 +327,7 @@ export default function MerchantActionModals({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirm Update</DialogTitle>
-          <DialogDescription>Are you sure you want to {modal.type === "adjustLimits" ? "update the limits" : "update the statuses"} for {merchant.displayName}?</DialogDescription>
+          <DialogDescription>Are you sure you want to {modal.type === "adjustLimits" ? "update the limits" : modal.type === "toggleStatuses" ? "update the statuses" : "change the visibility"} for {merchant.displayName}?</DialogDescription>
         </DialogHeader>
         <DialogFooter className="space-x-2">
           <Button variant="outline" onClick={() => setShowConfirmation(false)}>

@@ -28,13 +28,13 @@ export async function GET(request: NextRequest) {
       query.type = typeFilter;
     }
     if (audienceFilter !== 'all') {
-      query.audience = audienceFilter;
+      query.target_audience = audienceFilter;
     }
 
     const skip = (page - 1) * limit;
 
     const notifications = await Notification.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ created_at: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
@@ -60,8 +60,7 @@ export async function GET(request: NextRequest) {
         notifications: notifications.map(n => ({
           ...n,
           _id: (n._id as Types.ObjectId).toString(),
-          createdAt: n.createdAt.toISOString(),
-          updatedAt: n.updatedAt.toISOString(),
+          created_at: n.created_at.toISOString(),
         })),
         stats,
         pagination: {
@@ -93,32 +92,33 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
-    const { title, message, type, audience, targetId, icon, additional } = body;
+    const { title, message, type, target_audience, target_ids, icon, additional_field, is_active, expires_at } = body;
 
     const newNotification = new Notification({
       title,
       message,
       type,
-      audience,
-      targetId: targetId || undefined,
+      status: 'sent',
+      target_audience,
+      target_ids: target_ids || undefined,
       icon,
-      additional: additional || undefined,
-      status: 'sent', // Set to sent on creation
+      additional_field: additional_field || undefined,
+      is_active: is_active !== undefined ? is_active : true,
+      expires_at: expires_at || undefined,
     });
 
     const savedNotification = await newNotification.save();
 
     // Stub for delivery logic (e.g., send email/push)
-    console.log(`Notification sent to ${audience}: ${title}`);
+    console.log(`Notification sent to ${target_audience}: ${title}`);
 
     return NextResponse.json({
       success: true,
       message: 'Notification sent successfully',
       notification: {
         ...savedNotification.toObject(),
-        _id: savedNotification._id.toString(),
-        createdAt: savedNotification.createdAt.toISOString(),
-        updatedAt: savedNotification.updatedAt.toISOString(),
+        _id: (savedNotification._id as Types.ObjectId).toString(),
+        created_at: savedNotification.created_at.toISOString(),
       },
     }, { status: 201 });
 

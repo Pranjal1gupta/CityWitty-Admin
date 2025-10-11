@@ -28,6 +28,8 @@ export default function MerchantsPage() {
   const [modal, setModal] = useState<{
     type: ModalType;
     merchant: Merchant | null;
+    newVisibility?: boolean;
+    newStatus?: string;
   }>({
     type: null,
     merchant: null,
@@ -213,6 +215,7 @@ export default function MerchantsPage() {
             dataLoading={dataLoading}
             onSetModal={setModal}
             onUpdateMerchantStatus={updateMerchantStatus}
+            onUpdateMerchantVisibility={updateMerchantVisibility}
           />
           <MerchantViewModal
             merchant={modal.merchant}

@@ -26,8 +26,7 @@ export async function GET(
       notification: {
         ...notification,
         _id: (notification._id as Types.ObjectId).toString(),
-        createdAt: notification.createdAt.toISOString(),
-        updatedAt: notification.updatedAt.toISOString(),
+        created_at: notification.created_at.toISOString(),
       },
     });
   } catch (error) {
@@ -48,7 +47,7 @@ export async function PUT(
 
     const { id } = params;
     const body = await request.json();
-    const { title, message, type, audience, targetId, icon, additional, status } = body;
+    const { title, message, type, target_audience, target_ids, icon, additional_field, status, is_active, expires_at } = body;
 
     const existingNotification = await Notification.findById(id);
     if (!existingNotification) {
@@ -64,11 +63,13 @@ export async function PUT(
         title,
         message,
         type,
-        audience,
-        targetId: targetId || undefined,
+        target_audience,
+        target_ids: target_ids || undefined,
         icon,
-        additional: additional || undefined,
+        additional_field: additional_field || undefined,
         status: status || 'sent',
+        is_active,
+        expires_at,
       },
       { new: true, runValidators: true }
     );
@@ -85,9 +86,8 @@ export async function PUT(
       message: 'Notification updated successfully',
       notification: {
         ...updatedNotification.toObject(),
-        _id: updatedNotification._id.toString(),
-        createdAt: updatedNotification.createdAt.toISOString(),
-        updatedAt: updatedNotification.updatedAt.toISOString(),
+        _id: (updatedNotification._id as Types.ObjectId).toString(),
+        created_at: updatedNotification.created_at.toISOString(),
       },
     }, { status: 200 });
   } catch (error) {

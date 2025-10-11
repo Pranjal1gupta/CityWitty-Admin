@@ -29,10 +29,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
 import {
   BookUser,
-  Eye,
-  EyeOff,
   ToggleLeft,
   ToggleRight,
   CheckCircle,
@@ -44,8 +43,14 @@ import { Merchant, ModalType } from "@/app/types/Merchant";
 interface MerchantTableProps {
   merchants: Merchant[];
   dataLoading: boolean;
-  onSetModal: (modal: { type: ModalType; merchant: Merchant | null }) => void;
+  onSetModal: (modal: {
+    type: ModalType;
+    merchant: Merchant | null;
+    newVisibility?: boolean;
+    newStatus?: string;
+  }) => void;
   onUpdateMerchantStatus: (merchantId: string, status: string) => void;
+  onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void;
 }
 
 export default function MerchantTable({
@@ -53,6 +58,7 @@ export default function MerchantTable({
   dataLoading,
   onSetModal,
   onUpdateMerchantStatus,
+  onUpdateMerchantVisibility,
 }: MerchantTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -108,6 +114,23 @@ export default function MerchantTable({
     }
   };
 
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "active":
+        return " !text-green-700";
+      case "pending":
+        return " !text-yellow-700";
+      case "suspended":
+        return " !text-red-700";
+      default:
+        return "";
+    }
+  };
+
+  const getVisibilityBadgeClass = (visibility: boolean) => {
+    return visibility ? "!text-green-700" : "!text-red-700";
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -154,9 +177,9 @@ export default function MerchantTable({
                     <TableHead>Merchant</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Average Ratings</TableHead>
-                    <TableHead>Joining Date</TableHead>
+                    {/* <TableHead>Joining Date</TableHead> */}
+                    <TableHead>Current Status</TableHead>
                     <TableHead>Visibility</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
@@ -191,124 +214,54 @@ export default function MerchantTable({
                           .filter(Boolean)
                           .join(", ")}
                       </TableCell>
-                      <TableCell>{getStatusBadge(merchant.status)}</TableCell>
+
                       <TableCell>{merchant.averageRating ?? "N/A"}</TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         {new Date(merchant.joinedSince).toLocaleDateString()}
+                      </TableCell> */}
+                      <TableCell>
+                        <Select
+                          value={merchant.status}
+                          onValueChange={(value) => {
+                            onSetModal({
+                              type: "confirmStatusChange",
+                              merchant,
+                              newStatus: value,
+                            });
+                          }}
+                        >
+                          <SelectTrigger className={`w-28 px-2 py-0.5 text-sm font-semibold border-0 ${getStatusBadgeClass(merchant.status)}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active" >Active</SelectItem>
+                            <SelectItem value="suspended" >Suspended</SelectItem>
+                            <SelectItem value="pending" >Pending</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
-                        {merchant.visibility ? (
-                          <Badge className="bg-green-100 text-green-800">
-                            Visible
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-red-100 text-red-800">
-                            Hidden
-                          </Badge>
-                        )}
+                        <Select
+                          value={merchant.visibility ? "visible" : "hidden"}
+                          onValueChange={(value) => {
+                            onSetModal({
+                              type: "confirmVisibilityChange",
+                              merchant,
+                              newVisibility: value === "visible",
+                            });
+                          }}
+                        >
+                          <SelectTrigger className={`w-28 px-2 py-0.5 text-sm font-semibold border-0 ${getVisibilityBadgeClass(merchant.visibility)}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="visible">Visible</SelectItem>
+                            <SelectItem value="hidden">Hidden</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          {merchant.status === "pending" && (
-                            <>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      onSetModal({ type: "approve", merchant })
-                                    }
-                                    className="text-green-600 hover:text-green-700"
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Approve Merchant</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      onUpdateMerchantStatus(
-                                        merchant._id,
-                                        "suspended"
-                                      )
-                                    }
-                                    className="text-red-600 hover:text-red-700"
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Reject Merchant</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </>
-                          )}
-
-                          {merchant.status !== "pending" && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    onSetModal({
-                                      type:
-                                        merchant.status === "active"
-                                          ? "deactivate"
-                                          : "activate",
-                                      merchant,
-                                    })
-                                  }
-                                >
-                                  {merchant.status === "active" ? (
-                                    <ToggleRight className="h-4 w-4 text-green-600" />
-                                  ) : (
-                                    <ToggleLeft className="h-4 w-4 text-gray-400" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  {merchant.status === "active"
-                                    ? "Deactivate"
-                                    : "Activate"}{" "}
-                                  Merchant
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  onSetModal({
-                                    type: "toggleVisibility",
-                                    merchant,
-                                  })
-                                }
-                              >
-                                {merchant.visibility ? (
-                                  <Eye className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <EyeOff className="h-4 w-4 text-gray-400" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Toggle Visibility</p>
-                            </TooltipContent>
-                          </Tooltip>
-
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -365,7 +318,6 @@ export default function MerchantTable({
                               <p>View Details</p>
                             </TooltipContent>
                           </Tooltip>
-
                         </div>
                       </TableCell>
                     </TableRow>

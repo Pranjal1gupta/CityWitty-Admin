@@ -3,6 +3,7 @@ export interface Notification {
   title: string;
   message: string;
   type: 'info' | 'alert' | 'update' | 'promotion' | 'warning';
+  status: 'draft' | 'sent' | 'failed';
   target_audience: 'user' | 'merchant' | 'franchise' | 'all';
   target_ids?: string[];
   icon?: string;

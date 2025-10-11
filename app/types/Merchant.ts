@@ -213,4 +213,4 @@ export interface Stats {
   suspendedMerchants: number;
 }
 
-export type ModalType = "view" | "approve" | "activate" | "deactivate" | "toggleVisibility" | "adjustLimits" | "toggleStatuses" | null;
+export type ModalType = "view" | "approve" | "activate" | "deactivate" | "toggleVisibility" | "adjustLimits" | "toggleStatuses" | "confirmVisibilityChange" | "confirmStatusChange" | null;
