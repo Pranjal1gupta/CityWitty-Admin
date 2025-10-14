@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 let isConnected = false; // track connection
 
-export default async function dbConnect() {
+async function connectToDatabase() {
   if (isConnected) return;
 
   try {
@@ -14,6 +14,10 @@ export default async function dbConnect() {
     console.log("✅ MongoDB connected");
   } catch (err) {
     console.error("❌ MongoDB connection error:", err);
-    throw err;
-  }
+    throw err;
+  }
 }
+
+// Export with both names for backward compatibility
+export default connectToDatabase;
+export const dbConnect = connectToDatabase;

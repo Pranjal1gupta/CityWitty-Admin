@@ -1,38 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import { Types } from 'mongoose';
-import Notification from '@/models/Notification';
+import { NextRequest, NextResponse } from "next/server";
+import connectToDatabase from "@/lib/mongodb";
+import Notification from "@/models/Notification";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    await connectToDatabase();
 
-    const { id } = params;
-
-    const notification = await Notification.findById(id).lean();
+    const notification = await Notification.findById(params.id);
 
     if (!notification) {
       return NextResponse.json(
-        { error: 'Notification not found' },
+        { error: "Notification not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      notification: {
-        ...notification,
-        _id: (notification._id as Types.ObjectId).toString(),
-        created_at: notification.created_at.toISOString(),
-      },
-    });
+    return NextResponse.json(notification);
   } catch (error) {
-    console.error('Error fetching notification:', error);
+    console.error("Error fetching notification:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch notification' },
+      { error: "Failed to fetch notification" },
       { status: 500 }
     );
   }
@@ -43,61 +33,77 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    await connectToDatabase();
 
-    const { id } = params;
     const body = await request.json();
-    const { title, message, type, target_audience, target_ids, icon, additional_field, status, is_active, expires_at } = body;
+    const {
+      title,
+      message,
+      type,
+      status,
+      target_audience,
+      target_ids,
+      icon,
+      expires_at,
+      additional_field,
+    } = body;
 
-    const existingNotification = await Notification.findById(id);
-    if (!existingNotification) {
-      return NextResponse.json(
-        { success: false, message: 'Notification not found' },
-        { status: 404 }
-      );
+    const updateData: any = {};
+
+    if (title !== undefined) updateData.title = title;
+    if (message !== undefined) updateData.message = message;
+    if (type !== undefined) updateData.type = type;
+    if (status !== undefined) updateData.status = status;
+    if (target_audience !== undefined) updateData.target_audience = target_audience;
+    if (target_ids !== undefined) updateData.target_ids = target_ids;
+    if (icon !== undefined) updateData.icon = icon;
+    if (expires_at !== undefined) updateData.expires_at = expires_at ? new Date(expires_at) : null;
+    if (additional_field !== undefined) {
+      // Convert object to Map for Mongoose schema
+      if (typeof additional_field === 'object' && additional_field !== null) {
+        updateData.additional_field = new Map(Object.entries(additional_field));
+      } else {
+        updateData.additional_field = additional_field;
+      }
     }
 
-    const updatedNotification = await Notification.findByIdAndUpdate(
-      id,
-      {
-        title,
-        message,
-        type,
-        target_audience,
-        target_ids: target_ids || undefined,
-        icon,
-        additional_field: additional_field || undefined,
-        status: status || 'sent',
-        is_active,
-        expires_at,
-      },
+    // Automatically update is_read array if target_ids or target_audience are being updated
+    if (target_ids !== undefined || target_audience !== undefined) {
+      // Get the current notification to access existing values
+      const currentNotification = await Notification.findById(params.id);
+      
+      if (currentNotification) {
+        const finalTargetIds = target_ids !== undefined ? target_ids : currentNotification.target_ids;
+        const finalTargetAudience = target_audience !== undefined ? target_audience : currentNotification.target_audience;
+        
+        // Rebuild is_read array based on updated target_ids and target_audience
+        updateData.is_read = (finalTargetIds || []).map((targetId: string) => ({
+          target_id: targetId,
+          target_type: finalTargetAudience,
+          read: false,
+          read_at: null,
+        }));
+      }
+    }
+
+    const notification = await Notification.findByIdAndUpdate(
+      params.id,
+      updateData,
       { new: true, runValidators: true }
     );
 
-    if (!updatedNotification) {
+    if (!notification) {
       return NextResponse.json(
-        { success: false, message: 'Notification not found' },
+        { error: "Notification not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Notification updated successfully',
-      notification: {
-        ...updatedNotification.toObject(),
-        _id: (updatedNotification._id as Types.ObjectId).toString(),
-        created_at: updatedNotification.created_at.toISOString(),
-      },
-    }, { status: 200 });
+    return NextResponse.json(notification);
   } catch (error) {
-    console.error('Error updating notification:', error);
-    let errorMessage = 'Failed to update notification';
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    }
+    console.error("Error updating notification:", error);
     return NextResponse.json(
-      { success: false, message: errorMessage },
+      { error: "Failed to update notification" },
       { status: 500 }
     );
   }
@@ -108,27 +114,22 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    await connectToDatabase();
 
-    const { id } = params;
+    const notification = await Notification.findByIdAndDelete(params.id);
 
-    const deletedNotification = await Notification.findByIdAndDelete(id);
-
-    if (!deletedNotification) {
+    if (!notification) {
       return NextResponse.json(
-        { success: false, message: 'Notification not found' },
+        { error: "Notification not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Notification deleted successfully',
-    }, { status: 200 });
+    return NextResponse.json({ message: "Notification deleted successfully" });
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    console.error("Error deleting notification:", error);
     return NextResponse.json(
-      { success: false, message: 'Failed to delete notification' },
+      { error: "Failed to delete notification" },
       { status: 500 }
     );
   }

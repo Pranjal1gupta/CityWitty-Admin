@@ -1,136 +1,130 @@
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import { Types } from 'mongoose';
-import Notification from '@/models/Notification';
-
-// Disable ISR / caching
-export const revalidate = 0;
+import { NextRequest, NextResponse } from "next/server";
+import connectToDatabase from "@/lib/mongodb";
+import Notification from "@/models/Notification";
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
+    await connectToDatabase();
 
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
-    const typeFilter = searchParams.get('type') || 'all';
-    const audienceFilter = searchParams.get('audience') || 'all';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-
-    const query: any = {};
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { message: { $regex: search, $options: 'i' } }
-      ];
-    }
-    if (typeFilter !== 'all') {
-      query.type = typeFilter;
-    }
-    if (audienceFilter !== 'all') {
-      query.target_audience = audienceFilter;
-    }
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
+    const type = searchParams.get("type") || "";
+    const status = searchParams.get("status") || "";
+    const targetAudience = searchParams.get("targetAudience") || "";
 
     const skip = (page - 1) * limit;
 
+    let query: any = {};
+
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { message: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (type && type !== "all") {
+      query.type = type;
+    }
+
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    if (targetAudience && targetAudience !== "all") {
+      query.target_audience = targetAudience;
+    }
+
     const notifications = await Notification.find(query)
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
     const total = await Notification.countDocuments(query);
 
-    // Calculate stats
-    const allNotifications = await Notification.find({}).lean();
-    const stats = {
-      total: allNotifications.length,
-      byType: {
-        info: allNotifications.filter(n => n.type === 'info').length,
-        alert: allNotifications.filter(n => n.type === 'alert').length,
-        update: allNotifications.filter(n => n.type === 'update').length,
-        promotion: allNotifications.filter(n => n.type === 'promotion').length,
-        warning: allNotifications.filter(n => n.type === 'warning').length,
-      },
-      unread: allNotifications.filter(n => n.status === 'sent').length, // Assuming unread if sent, adjust logic as needed
-    };
-
-    return NextResponse.json(
-      {
-        notifications: notifications.map(n => ({
-          ...n,
-          _id: (n._id as Types.ObjectId).toString(),
-          created_at: n.created_at.toISOString(),
-        })),
-        stats,
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit),
-        },
-      },
-      {
-        status: 200,
-        headers: { "Cache-Control": "no-store, max-age=0" },
-      }
-    );
+    return NextResponse.json({
+      notifications,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error("Error fetching notifications:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch notifications' },
-      {
-        status: 500,
-        headers: { "Cache-Control": "no-store, max-age=0" },
-      }
+      { error: "Failed to fetch notifications" },
+      { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
+    await connectToDatabase();
 
     const body = await request.json();
-    const { title, message, type, target_audience, target_ids, icon, additional_field, is_active, expires_at } = body;
-
-    const newNotification = new Notification({
+    const {
       title,
       message,
       type,
-      status: 'sent',
       target_audience,
-      target_ids: target_ids || undefined,
+      target_ids,
       icon,
-      additional_field: additional_field || undefined,
-      is_active: is_active !== undefined ? is_active : true,
-      expires_at: expires_at || undefined,
-    });
+      expires_at,
+      additional_field,
+    } = body;
 
-    const savedNotification = await newNotification.save();
-
-    // Stub for delivery logic (e.g., send email/push)
-    console.log(`Notification sent to ${target_audience}: ${title}`);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Notification sent successfully',
-      notification: {
-        ...savedNotification.toObject(),
-        _id: (savedNotification._id as Types.ObjectId).toString(),
-        created_at: savedNotification.created_at.toISOString(),
-      },
-    }, { status: 201 });
-
-  } catch (error) {
-    console.error('Error sending notification:', error);
-    let errorMessage = 'Failed to send notification';
-    if (error instanceof Error) {
-      errorMessage = error.message;
+    // Validate required fields
+    if (!title || !message || !target_audience) {
+      return NextResponse.json(
+        { error: "Title, message, and target audience are required" },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({
-      success: false,
-      message: errorMessage,
-    }, { status: 500 });
+
+    // Automatically populate is_read array based on target_ids and target_audience
+    const isReadArray = (target_ids || []).map((targetId: string) => ({
+      target_id: targetId,
+      target_type: target_audience,
+      read: false,
+      read_at: null,
+    }));
+
+    // Create notification
+    const notificationData: any = {
+      title,
+      message,
+      type: type || "info",
+      status: "draft",
+      target_audience,
+      target_ids: target_ids || [],
+      icon: icon || "",
+      expires_at: expires_at ? new Date(expires_at) : null,
+      is_read: isReadArray, // Automatically populated from target_ids
+    };
+
+    // Only add additional_field if it has content
+    if (additional_field && Object.keys(additional_field).length > 0) {
+      notificationData.additional_field = new Map(Object.entries(additional_field));
+    }
+
+    const notification = new Notification(notificationData);
+
+    await notification.save();
+
+    return NextResponse.json(notification, { status: 201 });
+  } catch (error: any) {
+    console.error("Error creating notification:", error);
+    
+    // Provide more detailed error message
+    const errorMessage = error.message || "Failed to create notification";
+    const statusCode = error.name === "ValidationError" ? 400 : 500;
+    
+    return NextResponse.json(
+      { error: errorMessage, details: error.errors || {} },
+      { status: statusCode }
+    );
   }
 }

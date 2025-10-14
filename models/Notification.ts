@@ -1,32 +1,32 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface IReadStatus {
+  target_id: mongoose.Types.ObjectId | string;
+  target_type: "user" | "merchant" | "franchise";
+  read: boolean;
+  read_at?: Date | null;
+}
+
 export interface INotification extends Document {
   title: string;
   message: string;
   type: "info" | "alert" | "update" | "promotion" | "warning";
-  status: "draft" | "sent" | "failed";
+  status: "draft" | "sent" | "unsent";
   target_audience: "user" | "merchant" | "franchise" | "all";
-  target_ids?: string[]; // Optional specific recipients
+  target_ids?: string[];
   icon?: string;
-  expires_at?: Date;
-  is_active: boolean;
-  is_read: boolean; // Can store read status or user IDs
-  created_at: Date;
-  // additional_field?: Record<string, any>; // Flexible field for future data
+
+  is_read: IReadStatus[];
+  additional_field?: Record<string, any>;
+  expires_at?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const NotificationSchema = new Schema<INotification>(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    message: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    title: { type: String, required: true, trim: true },
+    message: { type: String, required: true, trim: true },
     type: {
       type: String,
       enum: ["info", "alert", "update", "promotion", "warning"],
@@ -34,8 +34,8 @@ const NotificationSchema = new Schema<INotification>(
     },
     status: {
       type: String,
-      enum: ["draft", "sent", "failed"],
-      default: "sent",
+      enum: ["draft", "sent", "unsent"],
+      default: "draft",
     },
     target_audience: {
       type: String,
@@ -43,34 +43,38 @@ const NotificationSchema = new Schema<INotification>(
       required: true,
     },
     target_ids: [String],
-    icon: {
-      type: String,
-      default: "",
+    icon: { type: String, default: "" },
+
+    // 👇 Read tracking for each recipient
+    is_read: [
+      {
+        target_id: {
+          type: String, // or String if your IDs vary
+        },
+        target_type: {
+          type: String,
+          enum: ["user", "merchant", "franchise", "all"],
+        },
+        read: {
+          type: Boolean,
+          default: false,
+        },
+        read_at: {
+          type: Date,
+          default: null,
+        },
+      },
+    ],
+
+    additional_field: {
+      type: Map,
+      of: Schema.Types.Mixed,
+      default: {},
     },
-    expires_at: {
-      type: Date,
-      default: null,
-    },
-    is_active: {
-      type: Boolean,
-      default: true,
-    },
-    is_read: {
-      type: Boolean, // can be boolean or array of ObjectIds
-      default: false,
-    },
-    created_at: {
-      type: Date,
-      default: Date.now,
-    },
-    // additional_field: {
-    //   type: Schema.Types.Mixed, // flexible object for extra metadata
-    //   default: {},
-    // },
+    expires_at: { type: Date, default: null },
   },
-  {
-    timestamps: true, // we already handle created_at manually
-  }
+  { timestamps: true }
 );
 
-export default mongoose.model<INotification>("Notification", NotificationSchema);
+export default mongoose.models.Notification ||
+  mongoose.model<INotification>("Notification", NotificationSchema);

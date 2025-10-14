@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,14 +23,152 @@ type MerchantStatuses = {
   isTopMerchant: boolean;
 };
 
+type MerchantLimits = {
+  ListingLimit: number;
+  totalGraphics: number;
+  totalReels: number;
+  isWebsite: boolean;
+  totalPodcast: number;
+};
+
 interface MerchantActionModalsProps {
-  modal: { type: ModalType; merchant: Merchant | null; newVisibility?: boolean; newStatus?: string };
+  modal: { type: ModalType; merchant: Merchant | null; newVisibility?: boolean; newStatus?: string; suspensionReason?: string };
   onClose: () => void;
   onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => void;
   onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void;
-  onUpdateMerchantLimits: (merchantId: string, limits: { ListingLimit?: number; totalGraphics?: number; totalReels?: number; isWebsite?: boolean; totalPodcast?: number }, secretCode: string) => void;
-  onUpdateMerchantStatuses: (merchantId: string, statuses: { citywittyAssured?: boolean; isVerified?: boolean; isCWassured?: boolean; isPremiumSeller?: boolean; isTopMerchant?: boolean }) => void;
+  onUpdateMerchantLimits: (merchantId: string, limits: MerchantLimits, secretCode: string) => void;
+  onUpdateMerchantStatuses: (merchantId: string, statuses: Partial<MerchantStatuses>) => void;
 }
+
+// Constants
+const MODAL_CONFIGS = {
+  deactivate: {
+    title: "Deactivate Merchant",
+    description: (name: string, visibility?: boolean, status?: string) => `Deactivate ${name}. This will suspend their account.`,
+    confirmText: "Suspend Merchant",
+    confirmClass: "bg-red-600 hover:bg-red-700",
+  },
+  approve: {
+    title: "Approve Merchant",
+    description: (name: string, visibility?: boolean, status?: string) => `Approve ${name} to activate their account?`,
+    confirmText: "Yes, Approve",
+    confirmClass: "bg-green-600 hover:bg-green-700",
+  },
+  activate: {
+    title: "Activate Merchant",
+    description: (name: string, visibility?: boolean, status?: string) => `Activate ${name} to allow transactions?`,
+    confirmText: "Yes, Activate",
+    confirmClass: "bg-green-600 hover:bg-green-700",
+  },
+  adjustLimits: {
+    title: "Adjust Limits",
+    description: (name: string, visibility?: boolean, status?: string) => `Adjust limits for ${name}.`,
+    confirmText: "Update Limits",
+    confirmClass: "bg-green-600 hover:bg-green-700",
+  },
+  toggleVisibility: {
+    title: "Toggle Visibility",
+    description: (name: string, visibility?: boolean, status?: string) => `Toggle visibility for ${name}.`,
+    confirmText: "Toggle Visibility",
+    confirmClass: "bg-green-600 hover:bg-green-700",
+  },
+  toggleStatuses: {
+    title: "Toggle Statuses",
+    description: (name: string, visibility?: boolean, status?: string) => `Toggle statuses for ${name}.`,
+    confirmText: "Update Statuses",
+    confirmClass: "bg-green-600 hover:bg-green-700",
+  },
+  confirmVisibilityChange: {
+    title: "Confirm Visibility Change",
+    description: (name: string, visibility?: boolean, status?: string) => `Are you sure you want to change visibility to ${visibility ? "Visible" : "Hidden"} for ${name}?`,
+    confirmText: "Confirm",
+    confirmClass: "bg-green-600 hover:bg-green-700",
+  },
+  confirmStatusChange: {
+    title: "Confirm Status Change",
+    description: (name: string, visibility?: boolean, status?: string) => `Are you sure you want to change status to ${status} for ${name}?`,
+    confirmText: "Confirm",
+    confirmClass: "bg-green-600 hover:bg-green-700",
+  },
+};
+
+const STATUS_ITEMS = [
+  { key: 'citywittyAssured' as const, label: 'Citywitty Assured' },
+  { key: 'isVerified' as const, label: 'Verified' },
+  { key: 'isCWassured' as const, label: 'CW Assured' },
+  { key: 'isPremiumSeller' as const, label: 'Premium Seller' },
+  { key: 'isTopMerchant' as const, label: 'Top Merchant' },
+];
+
+// Helper functions
+const initializeLimits = (merchant: Merchant): MerchantLimits => ({
+  ListingLimit: merchant.ListingLimit || 0,
+  totalGraphics: merchant.totalGraphics || 0,
+  totalReels: merchant.totalReels || 0,
+  isWebsite: merchant.isWebsite || false,
+  totalPodcast: merchant.totalPodcast || 0,
+});
+
+const initializeStatuses = (merchant: Merchant): MerchantStatuses => ({
+  citywittyAssured: merchant.citywittyAssured || false,
+  isVerified: merchant.isVerified || false,
+  isCWassured: merchant.isCWassured || false,
+  isPremiumSeller: merchant.isPremiumSeller || false,
+  isTopMerchant: merchant.isTopMerchant || false,
+});
+
+const getModalConfig = (type: ModalType, merchantName: string, newVisibility?: boolean, newStatus?: string) => {
+  if (!type || type === "view") return null;
+  const config = MODAL_CONFIGS[type as keyof typeof MODAL_CONFIGS];
+  if (!config) return null;
+
+  return {
+    ...config,
+    description: typeof config.description === 'function'
+      ? config.description(merchantName, newVisibility, newStatus)
+      : config.description,
+  };
+};
+
+const handleSimpleConfirm = (modal: MerchantActionModalsProps['modal'], merchant: Merchant, onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => void, onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void, onClose: () => void) => {
+  switch (modal.type) {
+    case "approve":
+    case "activate":
+      onUpdateMerchantStatus(merchant._id, "active");
+      break;
+    case "deactivate":
+      onUpdateMerchantStatus(merchant._id, "suspended", modal.suspensionReason);
+      break;
+    case "toggleVisibility":
+      onUpdateMerchantVisibility(merchant._id, !merchant.visibility);
+      break;
+  }
+  onClose();
+};
+
+const handleComplexConfirm = (modal: MerchantActionModalsProps['modal'], merchant: Merchant, limits: MerchantLimits, secretCode: string, statuses: MerchantStatuses, onUpdateMerchantLimits: (merchantId: string, limits: MerchantLimits, secretCode: string) => void, onUpdateMerchantStatuses: (merchantId: string, statuses: Partial<MerchantStatuses>) => void, onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void, onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => void, onClose: () => void) => {
+  switch (modal.type) {
+    case "adjustLimits":
+      if (secretCode !== "SuperSecret123") {
+        toast.error("Invalid secret code");
+        return;
+      }
+      onUpdateMerchantLimits(merchant._id, limits, secretCode);
+      break;
+    case "toggleStatuses":
+      onUpdateMerchantStatuses(merchant._id, statuses);
+      break;
+    case "confirmVisibilityChange":
+      onUpdateMerchantVisibility(merchant._id, modal.newVisibility!);
+      break;
+    case "confirmStatusChange":
+      onUpdateMerchantStatus(merchant._id, modal.newStatus!);
+      break;
+  }
+  onClose();
+};
+
+
 
 export default function MerchantActionModals({
   modal,
@@ -41,7 +179,7 @@ export default function MerchantActionModals({
   onUpdateMerchantStatuses,
 }: MerchantActionModalsProps) {
   const [suspensionReason, setSuspensionReason] = useState("");
-  const [limits, setLimits] = useState({
+  const [limits, setLimits] = useState<MerchantLimits>({
     ListingLimit: 0,
     totalGraphics: 0,
     totalReels: 0,
@@ -56,13 +194,6 @@ export default function MerchantActionModals({
     isPremiumSeller: false,
     isTopMerchant: false,
   });
-  const [originalStatuses, setOriginalStatuses] = useState<MerchantStatuses>({
-    citywittyAssured: false,
-    isVerified: false,
-    isCWassured: false,
-    isPremiumSeller: false,
-    isTopMerchant: false,
-  });
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   useEffect(() => {
@@ -71,25 +202,12 @@ export default function MerchantActionModals({
       setSuspensionReason("");
     }
     if (modal.type === "adjustLimits" && modal.merchant) {
-      setLimits({
-        ListingLimit: modal.merchant.ListingLimit || 0,
-        totalGraphics: modal.merchant.totalGraphics || 0,
-        totalReels: modal.merchant.totalReels || 0,
-        isWebsite: modal.merchant.isWebsite || false,
-        totalPodcast: modal.merchant.totalPodcast || 0,
-      });
+      setLimits(initializeLimits(modal.merchant));
       setSecretCode("");
     }
     if (modal.type === "toggleStatuses" && modal.merchant) {
-      const initialStatuses = {
-        citywittyAssured: modal.merchant.citywittyAssured || false,
-        isVerified: modal.merchant.isVerified || false,
-        isCWassured: modal.merchant.isCWassured || false,
-        isPremiumSeller: modal.merchant.isPremiumSeller || false,
-        isTopMerchant: modal.merchant.isTopMerchant || false,
-      };
+      const initialStatuses = initializeStatuses(modal.merchant);
       setStatuses(initialStatuses);
-      setOriginalStatuses(initialStatuses);
     }
   }, [modal.type, modal.merchant]);
 
@@ -97,112 +215,11 @@ export default function MerchantActionModals({
 
   const merchant = modal.merchant!;
 
-  const handleConfirm = () => {
-    if (modal.type === "approve") {
-      onUpdateMerchantStatus(merchant._id, "active");
-    } else if (modal.type === "deactivate") {
-      onUpdateMerchantStatus(merchant._id, "suspended", suspensionReason);
-    } else if (modal.type === "activate") {
-      onUpdateMerchantStatus(merchant._id, "active");
-    } else if (modal.type === "toggleVisibility") {
-      onUpdateMerchantVisibility(merchant._id, !merchant.visibility);
-    }
-    onClose();
-  };
+  const handleConfirm = () => handleSimpleConfirm(modal, merchant, onUpdateMerchantStatus, onUpdateMerchantVisibility, onClose);
 
-  const handleConfirmAction = () => {
-    if (modal.type === "adjustLimits") {
-      if (secretCode !== "SuperSecret123") {
-        toast.error("Invalid secret code");
-        return;
-      }
-      onUpdateMerchantLimits(merchant._id, limits, secretCode);
-    } else if (modal.type === "toggleStatuses") {
-      onUpdateMerchantStatuses(merchant._id, statuses);
-    } else if (modal.type === "confirmVisibilityChange") {
-      onUpdateMerchantVisibility(merchant._id, modal.newVisibility!);
-    } else if (modal.type === "confirmStatusChange") {
-      onUpdateMerchantStatus(merchant._id, modal.newStatus!);
-    }
-    onClose();
-    setShowConfirmation(false);
-  };
+  const handleConfirmAction = () => handleComplexConfirm(modal, merchant, limits, secretCode, statuses, onUpdateMerchantLimits, onUpdateMerchantStatuses, onUpdateMerchantVisibility, onUpdateMerchantStatus, () => setShowConfirmation(false));
 
-  const getModalContent = () => {
-    switch (modal.type) {
-      case "deactivate":
-        return {
-          title: "Deactivate Merchant",
-          description: `Deactivate ${merchant.displayName}. This will suspend their account.`,
-          confirmText: "Suspend Merchant",
-          confirmClass: "bg-red-600 hover:bg-red-700",
-        };
-      case "approve":
-        return {
-          title: "Approve Merchant",
-          description: `Approve ${merchant.displayName} to activate their account?`,
-          confirmText: "Yes, Approve",
-          confirmClass: "bg-green-600 hover:bg-green-700",
-        };
-      case "activate":
-        return {
-          title: "Activate Merchant",
-          description: `Activate ${merchant.displayName} to allow transactions?`,
-          confirmText: "Yes, Activate",
-          confirmClass: "bg-green-600 hover:bg-green-700",
-        };
-      case "adjustLimits":
-        return {
-          title: "Adjust Limits",
-          description: `Adjust limits for ${merchant.displayName}.`,
-          confirmText: "Update Limits",
-          confirmClass: "bg-green-600 hover:bg-green-700",
-        };
-      case "toggleVisibility":
-        return {
-          title: "Toggle Visibility",
-          description: `Toggle visibility for ${merchant.displayName}.`,
-          confirmText: "Toggle Visibility",
-          confirmClass: "bg-green-600 hover:bg-green-700",
-        };
-      case "toggleStatuses":
-        return {
-          title: "Toggle Statuses",
-          description: `Toggle statuses for ${merchant.displayName}.`,
-          confirmText: "Update Statuses",
-          confirmClass: "bg-green-600 hover:bg-green-700",
-        };
-      case "confirmVisibilityChange":
-        return {
-          title: "Confirm Visibility Change",
-          description: `Are you sure you want to change visibility to ${modal.newVisibility ? "Visible" : "Hidden"} for ${merchant.displayName}?`,
-          confirmText: "Confirm",
-          confirmClass: "bg-green-600 hover:bg-green-700",
-        };
-      case "confirmStatusChange":
-        return {
-          title: "Confirm Status Change",
-          description: `Are you sure you want to change status to ${modal.newStatus} for ${merchant.displayName}?`,
-          confirmText: "Confirm",
-          confirmClass: "bg-green-600 hover:bg-green-700",
-        };
-      default:
-        return null;
-    }
-  };
-
-  const statusKeys = ['citywittyAssured', 'isVerified', 'isCWassured', 'isPremiumSeller', 'isTopMerchant'] as const;
-  type StatusKey = typeof statusKeys[number];
-
-  const statusItems: { key: StatusKey; label: string }[] = [
-    { key: 'citywittyAssured', label: 'Citywitty Assured' },
-    { key: 'isVerified', label: 'Verified' },
-    { key: 'isCWassured', label: 'CW Assured' },
-    { key: 'isPremiumSeller', label: 'Premium Seller' },
-    { key: 'isTopMerchant', label: 'Top Merchant' },
-  ];
-
-  const content = getModalContent();
+  const content = getModalConfig(modal.type, merchant.displayName, modal.newVisibility, modal.newStatus);
   if (!content) return null;
 
   return (
@@ -234,7 +251,7 @@ export default function MerchantActionModals({
               <Input
                 type="number"
                 value={limits.ListingLimit || ""}
-                onChange={(e) => setLimits(prev => ({ ...prev, ListingLimit: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setLimits((prev: MerchantLimits) => ({ ...prev, ListingLimit: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter listing limit"
                 className="mt-2"
               />
@@ -244,7 +261,7 @@ export default function MerchantActionModals({
               <Input
                 type="number"
                 value={limits.totalGraphics || ""}
-                onChange={(e) => setLimits(prev => ({ ...prev, totalGraphics: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setLimits((prev: MerchantLimits) => ({ ...prev, totalGraphics: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter total graphics"
                 className="mt-2"
               />
@@ -254,7 +271,7 @@ export default function MerchantActionModals({
               <Input
                 type="number"
                 value={limits.totalReels || ""}
-                onChange={(e) => setLimits(prev => ({ ...prev, totalReels: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setLimits((prev: MerchantLimits) => ({ ...prev, totalReels: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter total reels"
                 className="mt-2"
               />
@@ -264,7 +281,7 @@ export default function MerchantActionModals({
               <Input
                 type="number"
                 value={limits.totalPodcast || ""}
-                onChange={(e) => setLimits(prev => ({ ...prev, totalPodcast: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setLimits((prev: MerchantLimits) => ({ ...prev, totalPodcast: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter total podcast"
                 className="mt-2"
               />
@@ -273,7 +290,7 @@ export default function MerchantActionModals({
               <label className="text-sm font-medium">Is Website</label>
               <Switch
                 checked={limits.isWebsite}
-                onCheckedChange={(checked) => setLimits(prev => ({ ...prev, isWebsite: checked }))}
+                onCheckedChange={(checked) => setLimits((prev: MerchantLimits) => ({ ...prev, isWebsite: checked }))}
               />
             </div>
             <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
@@ -290,7 +307,7 @@ export default function MerchantActionModals({
         )}
         {modal.type === "toggleStatuses" && (
           <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto">
-            {statusItems.map(({ key, label }) => (
+            {STATUS_ITEMS.map(({ key, label }) => (
               <div key={key} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
                 <div className="flex-1">
                   <h4 className="font-medium text-sm">{label}</h4>
@@ -300,7 +317,7 @@ export default function MerchantActionModals({
                 </div>
                 <Switch
                   checked={statuses[key]}
-                  onCheckedChange={(checked) => setStatuses(prev => ({ ...prev, [key]: checked }))}
+                  onCheckedChange={(checked) => setStatuses((prev: MerchantStatuses) => ({ ...prev, [key]: checked }))}
                 />
               </div>
             ))}
