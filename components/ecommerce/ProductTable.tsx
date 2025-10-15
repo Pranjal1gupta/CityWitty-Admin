@@ -9,7 +9,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, ToggleLeft, ToggleRight, Image } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Eye, Edit, Image } from "lucide-react";
 import { Product } from "@/app/types/ecommerce";
 
 interface ProductTableProps {
@@ -19,7 +26,7 @@ interface ProductTableProps {
   statusFilter: string;
   onViewProduct: (product: Product) => void;
   onEditProduct: (product: Product) => void;
-  onToggleStatus: (productId: string) => void;
+  onUpdateStatus: (productId: string, status: string) => void;
 }
 
 export const ProductTable = ({
@@ -29,7 +36,7 @@ export const ProductTable = ({
   statusFilter,
   onViewProduct,
   onEditProduct,
-  onToggleStatus,
+  onUpdateStatus,
 }: ProductTableProps) => {
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -62,6 +69,17 @@ export const ProductTable = ({
       return <Badge className="bg-yellow-100 text-yellow-800">Low Stock</Badge>;
     } else {
       return <Badge className="bg-green-100 text-green-800">In Stock</Badge>;
+    }
+  };
+
+   const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "active":
+        return " !text-green-700";
+      case "inactive":
+        return " !text-red-700";
+      default:
+        return "";
     }
   };
 
@@ -119,9 +137,23 @@ export const ProductTable = ({
                   {getStockBadge(product.stock)}
                 </div>
               </TableCell>
-              <TableCell>{getStatusBadge(product.status)}</TableCell>
+              {/* <TableCell>{getStatusBadge(product.status)}</TableCell> */}
+              <TableCell>
+                <Select
+                    value={product.status}
+                    onValueChange={(value) => onUpdateStatus(product.id, value)}
+                  >
+                    <SelectTrigger className={`w-28 px-2 py-0.5 text-sm font-semibold border-0 ${getStatusBadgeClass(product.status)}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+              </TableCell>
               <TableCell>{product.sales} sold</TableCell>
-              <TableCell>${product.revenue.toFixed(2)}</TableCell>
+              <TableCell>Rs. {product.revenue.toFixed(2)}</TableCell>
               <TableCell>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -138,17 +170,7 @@ export const ProductTable = ({
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onToggleStatus(product.id)}
-                  >
-                    {product.status === "active" ? (
-                      <ToggleRight className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <ToggleLeft className="h-4 w-4 text-gray-400" />
-                    )}
-                  </Button>
+                  
                 </div>
               </TableCell>
             </TableRow>

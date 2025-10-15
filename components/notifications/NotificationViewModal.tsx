@@ -245,6 +245,18 @@ export default function NotificationViewModal({
             </div>
           )}
 
+          {notification.expires_at && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Expires At</h4>
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span>{new Date(notification.expires_at).toLocaleDateString()}</span>
+                  <Clock className="h-4 w-4 ml-2" />
+                  <span>{new Date(notification.expires_at).toLocaleTimeString()}</span>
+                </div>
+              </div>
+            )}
+
           {/* Timestamps */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -267,17 +279,7 @@ export default function NotificationViewModal({
               </div>
             </div>
 
-            {notification.expires_at && (
-              <div>
-                <h4 className="text-sm font-medium mb-2">Expires At</h4>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <Calendar className="h-4 w-4" />
-                  <span>{new Date(notification.expires_at).toLocaleDateString()}</span>
-                  <Clock className="h-4 w-4 ml-2" />
-                  <span>{new Date(notification.expires_at).toLocaleTimeString()}</span>
-                </div>
-              </div>
-            )}
+            
           </div>
 
 

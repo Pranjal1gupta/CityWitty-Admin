@@ -301,6 +301,18 @@ export default function EcommercePage() {
     toast.info(`Viewing product: ${product.name}`);
   };
 
+  const handleUpdateStatus = async (productId: string, status: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      try {
+        await updateProduct({ ...product, status });
+        toast.success(`Product status updated to ${status}`);
+      } catch (error) {
+        toast.error("Failed to update product status");
+      }
+    }
+  };
+
   const closeDialog = () => {
     setIsAddDialogOpen(false);
     if (isEditMode) {
@@ -412,7 +424,7 @@ export default function EcommercePage() {
                 statusFilter={statusFilter}
                 onViewProduct={handleViewProduct}
                 onEditProduct={handleEditProduct}
-                onToggleStatus={toggleProductStatus}
+                onUpdateStatus={handleUpdateStatus}
               />
             </div>
           </CardContent>

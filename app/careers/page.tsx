@@ -937,16 +937,13 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
 
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            <select
-                              aria-label={`Change status for ${app.fullName}`}
-                              className="border rounded px-2 py-1 text-sm w-max"
+                            <Select
                               value={
                                 app.status === "Called for Interview"
                                   ? "Interview"
                                   : app.status
                               }
-                              onChange={(e) => {
-                                const newStatus = e.target.value;
+                              onValueChange={(newStatus) => {
                                 setModal({
                                   type: "statusConfirm",
                                   application: app,
@@ -958,21 +955,26 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                               }}
                               disabled={actionLoadingId === app._id}
                             >
-                              {statuses.map((s) => (
-                                <option
-                                  key={s}
-                                  value={
-                                    s === "Called for Interview"
+                              <SelectTrigger className="w-max">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {statuses.map((s) => (
+                                  <SelectItem
+                                    key={s}
+                                    value={
+                                      s === "Called for Interview"
+                                        ? "Interview"
+                                        : s
+                                    }
+                                  >
+                                    {s === "Called for Interview"
                                       ? "Interview"
-                                      : s
-                                  }
-                                >
-                                  {s === "Called for Interview"
-                                    ? "Interview"
-                                    : s}
-                                </option>
-                              ))}
-                            </select>
+                                      : s}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <Button
                               variant="outline"
                               size="sm"

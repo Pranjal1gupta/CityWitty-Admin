@@ -29,6 +29,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import {
   Eye,
@@ -72,6 +80,17 @@ export default function NotificationTable({
   const [targetFilter, setTargetFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  
+  // Confirmation dialog states
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    type: "send" | "unsend" | "delete" | null;
+    notification: Notification | null;
+  }>({
+    isOpen: false,
+    type: null,
+    notification: null,
+  });
 
   const filteredNotifications = useMemo(() => {
     return notifications.filter((notification) => {
@@ -157,6 +176,71 @@ export default function NotificationTable({
     }
   };
 
+  // Confirmation dialog handlers
+  const openConfirmDialog = (type: "send" | "unsend" | "delete", notification: Notification) => {
+    setConfirmDialog({
+      isOpen: true,
+      type,
+      notification,
+    });
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog({
+      isOpen: false,
+      type: null,
+      notification: null,
+    });
+  };
+
+  const handleConfirmAction = () => {
+    if (!confirmDialog.notification) return;
+
+    switch (confirmDialog.type) {
+      case "send":
+        onUpdateNotification(confirmDialog.notification._id, { status: "sent" });
+        break;
+      case "unsend":
+        onUpdateNotification(confirmDialog.notification._id, { status: "unsent" });
+        break;
+      case "delete":
+        onSetModal({ type: "delete", notification: confirmDialog.notification });
+        break;
+    }
+
+    closeConfirmDialog();
+  };
+
+  const getConfirmDialogContent = () => {
+    if (!confirmDialog.notification) return { title: "", description: "", confirmText: "", confirmClass: "" };
+
+    switch (confirmDialog.type) {
+      case "send":
+        return {
+          title: "Send Notification",
+          description: `Are you sure you want to send "${confirmDialog.notification.title}"? This will deliver the notification to all target recipients.`,
+          confirmText: "Send",
+          confirmClass: "bg-green-600 hover:bg-green-700",
+        };
+      case "unsend":
+        return {
+          title: "Unsend Notification",
+          description: `Are you sure you want to unsend "${confirmDialog.notification.title}"? This will mark the notification as unsent.`,
+          confirmText: "Unsend",
+          confirmClass: "bg-orange-600 hover:bg-orange-700",
+        };
+      case "delete":
+        return {
+          title: "Delete Notification",
+          description: `Are you sure you want to delete "${confirmDialog.notification.title}"? This action cannot be undone.`,
+          confirmText: "Delete",
+          confirmClass: "bg-red-600 hover:bg-red-700",
+        };
+      default:
+        return { title: "", description: "", confirmText: "", confirmClass: "" };
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -197,7 +281,6 @@ export default function NotificationTable({
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="unsent">Unsent</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
           </Select>
           <Select value={targetFilter} onValueChange={setTargetFilter}>
@@ -220,22 +303,22 @@ export default function NotificationTable({
           </div>
         ) : (
           <>
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[200px]">Title & Message</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Target Audience</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="min-w-[150px] px-2 py-1">Title & Message</TableHead>
+                    <TableHead className="px-2 py-1">Type</TableHead>
+                    <TableHead className="px-2 py-1">Target Audience</TableHead>
+                    <TableHead className="px-2 py-1">Status</TableHead>
                     {/* <TableHead>Icon</TableHead> */}
-                    <TableHead>Target IDs</TableHead>
-                    <TableHead>Read Status</TableHead>
-                    <TableHead>Additional Info</TableHead>
-                    <TableHead>Expires At</TableHead>
+                    <TableHead className="px-2 py-1">Target IDs</TableHead>
+                    <TableHead className="px-2 py-1">Read Status</TableHead>
+                    <TableHead className="px-2 py-1">Additional Info</TableHead>
+                    <TableHead className="px-2 py-1">Expires At</TableHead>
                     {/* <TableHead>Created At</TableHead>
                     <TableHead>Updated At</TableHead> */}
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="text-center px-2 py-1">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -248,7 +331,7 @@ export default function NotificationTable({
                         {/* Title & Message */}
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="font-semibold text-gray-900">{notification.title}</div>
+                            <div className="font-semibold text-gray-900">{notification.title ?notification.title.split(' ').slice(0, 4).join(' ') + '..' :'-'}</div>
                             <div className="text-gray-600">
                               {notification.message 
                                 ? notification.message.split(' ').slice(0, 3).join(' ') + '...'
@@ -483,14 +566,15 @@ export default function NotificationTable({
                               </TooltipContent>
                             </Tooltip>
 
-                            {notification.status === "draft" && (
+                            {notification.status === "draft" || notification.status === "unsent" ?
+                            (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() =>
-                                      onUpdateNotification(notification._id, { status: "sent" })
+                                      openConfirmDialog("send", notification)
                                     }
                                   >
                                     <Send className="h-4 w-4 text-green-600" />
@@ -500,16 +584,15 @@ export default function NotificationTable({
                                   <p>Send Notification</p>
                                 </TooltipContent>
                               </Tooltip>
-                            )}
-
-                            {notification.status === "sent" && (
+                            ):
+                            (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() =>
-                                      onUpdateNotification(notification._id, { status: "unsent" })
+                                      openConfirmDialog("unsend", notification)
                                     }
                                   >
                                     <Undo2 className="h-4 w-4 text-orange-600" />
@@ -519,7 +602,8 @@ export default function NotificationTable({
                                   <p>Unsend Notification</p>
                                 </TooltipContent>
                               </Tooltip>
-                            )}
+                            ) }
+
 
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -527,7 +611,7 @@ export default function NotificationTable({
                                   variant="outline"
                                   size="sm"
                                   onClick={() =>
-                                    onSetModal({ type: "delete", notification })
+                                    openConfirmDialog("delete", notification)
                                   }
                                 >
                                   <Trash2 className="h-4 w-4 text-red-600" />
@@ -614,6 +698,32 @@ export default function NotificationTable({
           </>
         )}
       </CardContent>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmDialog.isOpen} onOpenChange={closeConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{getConfirmDialogContent().title}</DialogTitle>
+            <DialogDescription>
+              {getConfirmDialogContent().description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={closeConfirmDialog}
+            >
+              Cancel
+            </Button>
+            <Button
+              className={getConfirmDialogContent().confirmClass}
+              onClick={handleConfirmAction}
+            >
+              {getConfirmDialogContent().confirmText}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

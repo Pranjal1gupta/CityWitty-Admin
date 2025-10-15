@@ -60,7 +60,7 @@ export default function NotificationsPage() {
       acc[notif.type] = (acc[notif.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>),
-    unread: notifications.filter((n) => !n.is_read).length,
+    unread: notifications.filter((n) => n.is_read.some(status => !status.read)).length,
   }), [notifications]);
 
   // Unified notification update helper

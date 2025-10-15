@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, X, Bell, MessageSquare, Users, Tag, Palette, Clock, FileText, Settings } from "lucide-react";
+import { CalendarIcon, Plus, X, Bell, MessageSquare, Users, Tag, Palette, Clock, FileText, Settings, Info, AlertTriangle, Zap, Tags, TrendingUp, TriangleAlert } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import type { Notification, ModalType } from "@/app/types/Notification";
@@ -141,6 +141,24 @@ const ICON_OPTIONS = [
   { value: "warning", label: "Warning" },
 ];
 
+// Helper function to get icon component and color based on icon type
+const getIconDetails = (iconType: string) => {
+  switch (iconType) {
+    case "info":
+      return { Icon: Info, color: "text-blue-500" };
+    case "alert":
+      return { Icon: AlertTriangle, color: "text-red-500" };
+    case "update":
+      return { Icon: TrendingUp, color: "text-green-500" };
+    case "promotion":
+      return { Icon: Zap, color: "text-purple-500" };
+    case "warning":
+      return { Icon: TriangleAlert, color: "text-orange-500" };
+    default:
+      return { Icon: Bell, color: "text-gray-500" };
+  }
+};
+
 // Initialize notification data for form
 // Note: is_read is managed by the backend when users read notifications, not editable here
 const initializeNotificationData = (notification: Notification | null) => ({
@@ -167,6 +185,12 @@ export default function NotificationActionModals({
   const [formData, setFormData] = useState<FormDataType>(initializeNotificationData(null));
   const [expiresAt, setExpiresAt] = useState<Date | undefined>(undefined);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showUnsavedConfirmation, setShowUnsavedConfirmation] = useState(false);
+  const [showStatusConfirmation, setShowStatusConfirmation] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
+  const [initialFormData, setInitialFormData] = useState<FormDataType>(initializeNotificationData(null));
+  const [initialExpiresAt, setInitialExpiresAt] = useState<Date | undefined>(undefined);
+  const [initialAdditionalFields, setInitialAdditionalFields] = useState<{ key: string; value: string }[]>([]);
   const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
   const [merchantOptions, setMerchantOptions] = useState<{ value: string; label: string }[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -177,33 +201,44 @@ export default function NotificationActionModals({
 
   useEffect(() => {
     if (modal.type === "create") {
-      setFormData(initializeNotificationData(null));
+      const initialData = initializeNotificationData(null);
+      setFormData(initialData);
+      setInitialFormData(initialData);
       setExpiresAt(undefined);
+      setInitialExpiresAt(undefined);
       setAdditionalFields([]);
+      setInitialAdditionalFields([]);
       setShowAdditionalFields(false);
     } else if (modal.notification) {
-      setFormData(initializeNotificationData(modal.notification));
-      setExpiresAt(modal.notification.expires_at ? new Date(modal.notification.expires_at) : undefined);
-      
+      const initialData = initializeNotificationData(modal.notification);
+      setFormData(initialData);
+      setInitialFormData(initialData);
+      const initialExpires = modal.notification.expires_at ? new Date(modal.notification.expires_at) : undefined;
+      setExpiresAt(initialExpires);
+      setInitialExpiresAt(initialExpires);
+
       // Parse existing additional_field into key-value pairs
       if (modal.notification.additional_field) {
-        const existingFields = typeof modal.notification.additional_field === 'string' 
-          ? JSON.parse(modal.notification.additional_field) 
+        const existingFields = typeof modal.notification.additional_field === 'string'
+          ? JSON.parse(modal.notification.additional_field)
           : modal.notification.additional_field;
-        
+
         const pairs = Object.entries(existingFields).map(([key, value]) => ({
           key,
           value: String(value)
         }));
-        
+
         setAdditionalFields(pairs);
+        setInitialAdditionalFields(pairs);
         setShowAdditionalFields(pairs.length > 0);
       } else {
         setAdditionalFields([]);
+        setInitialAdditionalFields([]);
         setShowAdditionalFields(false);
       }
     }
     setShowConfirmation(false);
+    setShowUnsavedConfirmation(false);
   }, [modal.type, modal.notification]);
 
   useEffect(() => {
@@ -236,6 +271,28 @@ export default function NotificationActionModals({
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev: FormDataType) => ({ ...prev, [field]: value }));
+  };
+
+  const handleStatusChange = (value: string) => {
+    if (modal.type === "edit" && value !== formData.status) {
+      setPendingStatusChange(value);
+      setShowStatusConfirmation(true);
+    } else {
+      handleInputChange("status", value);
+    }
+  };
+
+  const confirmStatusChange = () => {
+    if (pendingStatusChange) {
+      handleInputChange("status", pendingStatusChange);
+      setPendingStatusChange(null);
+    }
+    setShowStatusConfirmation(false);
+  };
+
+  const cancelStatusChange = () => {
+    setPendingStatusChange(null);
+    setShowStatusConfirmation(false);
   };
 
   const handleTargetAudienceChange = (value: string) => {
@@ -341,6 +398,35 @@ export default function NotificationActionModals({
     }
   };
 
+  const hasUnsavedChanges = () => {
+    const currentFormData = { ...formData };
+    const currentAdditionalFields = additionalFields.map(field => ({ key: field.key.trim(), value: field.value }));
+
+    // Compare form data
+    const formDataChanged = JSON.stringify(currentFormData) !== JSON.stringify(initialFormData);
+
+    // Compare expires at
+    const expiresAtChanged = (expiresAt?.getTime() || null) !== (initialExpiresAt?.getTime() || null);
+
+    // Compare additional fields
+    const additionalFieldsChanged = JSON.stringify(currentAdditionalFields) !== JSON.stringify(initialAdditionalFields);
+
+    return formDataChanged || expiresAtChanged || additionalFieldsChanged;
+  };
+
+  const handleCloseAttempt = () => {
+    if (hasUnsavedChanges()) {
+      setShowUnsavedConfirmation(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const confirmClose = () => {
+    setShowUnsavedConfirmation(false);
+    onClose();
+  };
+
   const content = MODAL_CONFIGS[modal.type as keyof typeof MODAL_CONFIGS];
   if (!content || modal.type === "view") return null;
 
@@ -357,7 +443,7 @@ export default function NotificationActionModals({
 
   return (
     <>
-      <Dialog open={!!modal.type && !showConfirmation} onOpenChange={onClose}>
+      <Dialog open={!!modal.type && !showConfirmation && !showUnsavedConfirmation} onOpenChange={handleCloseAttempt}>
         <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-gray-50 ${colors.primaryBorder} border-2`}>
           <DialogHeader className="pb-6">
             <div className={`flex items-center gap-3 mb-2 p-4 rounded-lg ${colors.primaryBg} ${colors.primaryBorder} border`}>
@@ -380,68 +466,82 @@ export default function NotificationActionModals({
           ) : (
             <div className="space-y-6">
               {/* Title */}
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <label className="text-sm font-semibold text-gray-700">Title <span className="text-red-500">*</span></label>
+                  <div className="p-1.5 rounded-md bg-slate-200">
+                    <MessageSquare className="h-4 w-4 text-slate-700" />
+                  </div>
+                  <label className="text-sm font-bold text-slate-900">Title <span className="text-red-500">*</span></label>
                 </div>
                 <Input
                   value={formData.title}
                   onChange={(e) => handleInputChange("title", e.target.value)}
                   placeholder="Enter an engaging notification title"
-                  className="border-gray-300 focus:border-primary focus:ring-primary"
+                  className="border-gray-300 bg-white focus:border-gray-600 focus:ring-gray-600 font-medium"
                 />
               </div>
 
               {/* Message */}
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <label className="text-sm font-semibold text-gray-700">Message <span className="text-red-500">*</span></label>
+                  <div className="p-1.5 rounded-md bg-slate-200">
+                    <FileText className="h-4 w-4 text-slate-700" />
+                  </div>
+                  <label className="text-sm font-bold text-slate-900">Message <span className="text-red-500">*</span></label>
                 </div>
                 <Textarea
                   value={formData.message}
                   onChange={(e) => handleInputChange("message", e.target.value)}
                   placeholder="Write a clear and compelling message for your audience"
                   rows={4}
-                  className="border-gray-300 focus:border-primary focus:ring-primary resize-none"
+                  className="border-slate-300 bg-white focus:border-slate-600 focus:ring-slate-600 resize-none"
                 />
               </div>
 
               {/* Type and Target Audience */}
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
+                <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                   <div className="flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-primary" />
-                    <label className="text-sm font-semibold text-gray-700">Notification Type</label>
+                    <div className="p-1.5 rounded-md bg-slate-200">
+                      <Tag className="h-4 w-4 text-slate-700" />
+                    </div>
+                    <label className="text-sm font-bold text-slate-900">Notification Type</label>
                   </div>
                   <Select
                     value={formData.type}
                     onValueChange={(value) => handleInputChange("type", value)}
                   >
-                    <SelectTrigger className="border-gray-300 focus:border-primary focus:ring-primary">
+                    <SelectTrigger className="border-slate-300 bg-white focus:border-slate-600 focus:ring-slate-600 resize-none font-medium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {NOTIFICATION_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
+                      {NOTIFICATION_TYPES.map((type) => {
+                        const typeColors = getTypeColors(type.value);
+                        return (
+                          <SelectItem key={type.value} value={type.value}>
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${typeColors.iconBg} border-2 ${typeColors.primaryBorder}`}></span>
+                              <span className="font-medium">{type.label}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-slate-50 to-gray-100 border border-slate-200">
                   <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    <label className="text-sm font-semibold text-gray-700">Target Audience <span className="text-red-500">*</span></label>
+                    <div className="p-1.5 rounded-md bg-slate-200">
+                      <Users className="h-4 w-4 text-slate-700" />
+                    </div>
+                    <label className="text-sm font-bold text-slate-900">Target Audience <span className="text-red-500">*</span></label>
                   </div>
                   <Select
                     value={formData.target_audience}
                     onValueChange={handleTargetAudienceChange}
                   >
-                    <SelectTrigger className="border-gray-300 focus:border-primary focus:ring-primary">
+                    <SelectTrigger className="border-slate-300 bg-white focus:border-slate-600 focus:ring-slate-600 resize-none font-medium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -457,10 +557,12 @@ export default function NotificationActionModals({
 
               {/* Target IDs */}
               {(formData.target_audience === "user" || formData.target_audience === "merchant" || formData.target_audience === "all") && (
-                <div className="space-y-2">
+                <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                   <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    <label className="text-sm font-semibold text-gray-700">
+                    <div className="p-1.5 rounded-md bg-slate-200">
+                      <Users className="h-4 w-4 text-slate-700" />
+                    </div>
+                    <label className="text-sm font-bold text-slate-900">
                       Target {formData.target_audience === "user" ? "Users" : formData.target_audience === "merchant" ? "Merchants" : "Users and Merchants"}<span className="text-red-500"> *</span>
                     </label>
                   </div>
@@ -469,50 +571,72 @@ export default function NotificationActionModals({
                     onChange={(value) => handleInputChange("target_ids", value)}
                     options={getTargetOptions()}
                     placeholder={`Select ${formData.target_audience === "user" ? "users" : formData.target_audience === "merchant" ? "merchants" : "users and merchants"}`}
-                    className="border-gray-300 focus:border-primary focus:ring-primary"
+                    className="border-purple-300 bg-white focus:border-purple-600 focus:ring-purple-600"
                     emptyMessage={loadingOptions ? "Loading..." : "No options found."}
                   />
                 </div>
               )}
 
               {/* Icon */}
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                 <div className="flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-primary" />
-                  <label className="text-sm font-semibold text-gray-700">Icon</label>
+                  <div className="p-1.5 rounded-md bg-slate-300">
+                    <Palette className="h-4 w-4 text-slate-700" />
+                  </div>
+                  <label className="text-sm font-bold text-slate-900">Icon</label>
                 </div>
                 <Select
                   value={formData.icon}
                   onValueChange={(value) => handleInputChange("icon", value)}
                 >
-                  <SelectTrigger className="border-gray-300 focus:border-primary focus:ring-primary">
-                    <SelectValue placeholder="Select an icon" />
+                  <SelectTrigger className="border-gray-300 bg-white focus:border-gray-600 focus:ring-gray-600 font-medium">
+                    {formData.icon ? (
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-medium">
+                          {ICON_OPTIONS.find(opt => opt.value === formData.icon)?.label || "Select an icon"}
+                        </span>
+                        {(() => {
+                          const { Icon: SelectedIcon, color } = getIconDetails(formData.icon);
+                          return <SelectedIcon className={`h-4 w-4 ${color}`} />;
+                        })()}
+                      </div>
+                    ) : (
+                      <SelectValue placeholder="Select an icon" />
+                    )}
                   </SelectTrigger>
                   <SelectContent>
-                    {ICON_OPTIONS.map((icon) => (
-                      <SelectItem key={icon.value} value={icon.value}>
-                        {icon.label}
-                      </SelectItem>
-                    ))}
+                    {ICON_OPTIONS.map((icon) => {
+                      const { Icon: IconComponent, color } = getIconDetails(icon.value);
+                      return (
+                        <SelectItem key={icon.value} value={icon.value}>
+                          <div className="flex items-center justify-between w-full gap-4">
+                            <span className="flex-1 text-left font-medium">{icon.label}</span>
+                            <IconComponent className={`h-4 w-4 flex-shrink-0 ${color}`} />
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Expires At */}
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" />
-                  <label className="text-sm font-semibold text-gray-700">Expires At</label>
+                  <div className="p-1.5 rounded-md bg-slate-200">
+                    <Clock className="h-4 w-4 text-slate-700" />
+                  </div>
+                  <label className="text-sm font-bold text-slate-900">Expires At</label>
                 </div>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`w-full justify-start text-left font-normal border-gray-300 hover:border-primary hover:bg-primary/5 ${
+                      className={`w-full justify-start text-left font-medium border-zinc-300 bg-white hover:border-zinc-600 hover:bg-zinc-50 ${
                         !expiresAt && "text-muted-foreground"
                       }`}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="mr-2 h-4 w-4 text-zinc-700" />
                       {expiresAt ? format(expiresAt, "PPP") : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
@@ -528,11 +652,13 @@ export default function NotificationActionModals({
               </div>
 
               {/* Additional Field */}
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 rounded-lg bbg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    <label className="text-sm font-semibold text-gray-700">Additional Information</label>
+                    <div className="p-1.5 rounded-md bg-slate-200">
+                      <FileText className="h-4 w-4 text-slate-700" />
+                    </div>
+                    <label className="text-sm font-bold text-slate-900">Additional Information</label>
                   </div>
                   {!showAdditionalFields && (
                     <Button
@@ -540,7 +666,7 @@ export default function NotificationActionModals({
                       variant="outline"
                       size="sm"
                       onClick={handleAddAdditionalField}
-                      className="h-8 border-gray-300 hover:border-primary hover:bg-primary/5"
+                      className="h-8 border-stone-400 bg-white hover:border-stone-600 hover:bg-stone-50 font-medium"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Add Additional Info
@@ -549,15 +675,15 @@ export default function NotificationActionModals({
                 </div>
 
                 {showAdditionalFields && (
-                  <div className="space-y-3 p-4 border border-gray-200 rounded-lg bg-gradient-to-br from-gray-50 to-white">
+                  <div className="space-y-3 p-4 border-2 border-stone-300 rounded-lg bg-gradient-to-br from-white to-stone-50">
                     {additionalFields.map((field, index) => (
-                      <div key={index} className="flex gap-3 items-start">
+                      <div key={index} className="flex gap-3 items-start p-3 rounded-md bg-white border border-stone-300 shadow-sm">
                         <div className="flex-1">
                           <Input
                             placeholder="Key (e.g., url, action)"
                             value={field.key}
                             onChange={(e) => handleAdditionalFieldChange(index, 'key', e.target.value)}
-                            className="bg-white border-gray-300 focus:border-primary focus:ring-primary"
+                            className="bg-white border-stone-400 focus:border-stone-600 focus:ring-stone-600 font-medium"
                           />
                         </div>
                         <div className="flex-1">
@@ -565,7 +691,7 @@ export default function NotificationActionModals({
                             placeholder="Value"
                             value={field.value}
                             onChange={(e) => handleAdditionalFieldChange(index, 'value', e.target.value)}
-                            className="bg-white border-gray-300 focus:border-primary focus:ring-primary"
+                            className="bg-white border-stone-400 focus:border-stone-600 focus:ring-stone-600"
                           />
                         </div>
                         <Button
@@ -573,7 +699,7 @@ export default function NotificationActionModals({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveAdditionalField(index)}
-                          className="h-10 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="h-10 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -584,7 +710,7 @@ export default function NotificationActionModals({
                       variant="outline"
                       size="sm"
                       onClick={handleAddAdditionalField}
-                      className="w-full border-gray-300 hover:border-primary hover:bg-primary/5"
+                      className="w-full border-stone-400 bg-white hover:border-stone-600 hover:bg-stone-50 font-medium"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Add Another Field
@@ -595,22 +721,39 @@ export default function NotificationActionModals({
 
               {/* Status (only for edit) */}
               {modal.type === "edit" && (
-                <div className="space-y-2">
+                <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-neutral-50 to-neutral-100 border border-neutral-300">
                   <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4 text-primary" />
-                    <label className="text-sm font-semibold text-gray-700">Status</label>
+                    <div className="p-1.5 rounded-md bg-neutral-200">
+                      <Settings className="h-4 w-4 text-neutral-700" />
+                    </div>
+                    <label className="text-sm font-bold text-neutral-900">Status</label>
                   </div>
                   <Select
                     value={formData.status}
-                    onValueChange={(value) => handleInputChange("status", value)}
+                    onValueChange={handleStatusChange}
                   >
-                    <SelectTrigger className="border-gray-300 focus:border-primary focus:ring-primary">
+                    <SelectTrigger className="border-neutral-300 bg-white focus:border-neutral-600 focus:ring-neutral-600 font-medium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="sent">Sent</SelectItem>
-                      <SelectItem value="unsent">Unsent</SelectItem>
+                      <SelectItem value="draft">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                          <span className="font-medium">Draft</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="sent">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                          <span className="font-medium">Sent</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="unsent">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                          <span className="font-medium">Unsent</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -618,12 +761,16 @@ export default function NotificationActionModals({
             </div>
           )}
 
-          <DialogFooter className="space-x-2">
-            <Button variant="outline" onClick={onClose}>
+          <DialogFooter className="space-x-2 pt-6 border-t border-gray-200">
+            <Button 
+              variant="outline" 
+              onClick={handleCloseAttempt}
+              className="font-semibold border-2 hover:bg-gray-100"
+            >
               Cancel
             </Button>
             <Button
-              className={`bg-gradient-to-r ${colors.gradient}`}
+              className={`bg-gradient-to-r ${colors.gradient} font-semibold shadow-md hover:shadow-lg transition-all duration-200`}
               onClick={modal.type === "delete" ? () => setShowConfirmation(true) : handleSubmit}
             >
               {content.confirmText}
@@ -647,6 +794,46 @@ export default function NotificationActionModals({
             </Button>
             <Button className="bg-red-600 hover:bg-red-700" onClick={handleDelete}>
               Yes, Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unsaved Changes Confirmation */}
+      <Dialog open={showUnsavedConfirmation} onOpenChange={setShowUnsavedConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unsaved Changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes. Are you sure you want to close without saving?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="space-x-2">
+            <Button variant="outline" onClick={() => setShowUnsavedConfirmation(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-red-600 hover:bg-red-700" onClick={confirmClose}>
+              Yes, Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Change Confirmation */}
+      <Dialog open={showStatusConfirmation} onOpenChange={setShowStatusConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Status Change</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to change the status from "{formData.status}" to "{pendingStatusChange}"? This action will update the notification status.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="space-x-2">
+            <Button variant="outline" onClick={cancelStatusChange}>
+              Cancel
+            </Button>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={confirmStatusChange}>
+              Yes, Change Status
             </Button>
           </DialogFooter>
         </DialogContent>
