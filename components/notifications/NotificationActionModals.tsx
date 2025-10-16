@@ -444,7 +444,7 @@ export default function NotificationActionModals({
   return (
     <>
       <Dialog open={!!modal.type && !showConfirmation && !showUnsavedConfirmation} onOpenChange={handleCloseAttempt}>
-        <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-gray-50 ${colors.primaryBorder} border-2`}>
+        <DialogContent className={`max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-gray-50 ${colors.primaryBorder} border-2`}>
           <DialogHeader className="pb-6">
             <div className={`flex items-center gap-3 mb-2 p-4 rounded-lg ${colors.primaryBg} ${colors.primaryBorder} border`}>
               {content.icon && <content.icon className={`h-6 w-6 ${colors.primary} ${colors.iconBg} p-1 rounded-full`} />}
@@ -499,7 +499,7 @@ export default function NotificationActionModals({
               </div>
 
               {/* Type and Target Audience */}
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-md bg-slate-200">
@@ -652,7 +652,7 @@ export default function NotificationActionModals({
               </div>
 
               {/* Additional Field */}
-              <div className="space-y-2 p-4 rounded-lg bbg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
+              <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-md bg-slate-200">

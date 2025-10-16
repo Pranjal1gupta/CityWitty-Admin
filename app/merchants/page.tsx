@@ -55,11 +55,11 @@ export default function MerchantsPage() {
       }
     };
     fetchData();
-    // const interval = setInterval(() => {
-    //   fetchData();
-    // }, 3000);
+    const interval = setInterval(() => {
+      fetchData();
+    }, 3000);
 
-    // return () => clearInterval(interval);
+    return () => clearInterval(interval);
 
   }, [user, pathname]); // refetch when route changes
 

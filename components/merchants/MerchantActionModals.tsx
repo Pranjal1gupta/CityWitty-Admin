@@ -34,10 +34,10 @@ type MerchantLimits = {
 interface MerchantActionModalsProps {
   modal: { type: ModalType; merchant: Merchant | null; newVisibility?: boolean; newStatus?: string; suspensionReason?: string };
   onClose: () => void;
-  onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => void;
-  onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void;
-  onUpdateMerchantLimits: (merchantId: string, limits: MerchantLimits, secretCode: string) => void;
-  onUpdateMerchantStatuses: (merchantId: string, statuses: Partial<MerchantStatuses>) => void;
+  onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => Promise<void>;
+  onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => Promise<void>;
+  onUpdateMerchantLimits: (merchantId: string, limits: MerchantLimits, secretCode: string) => Promise<void>;
+  onUpdateMerchantStatuses: (merchantId: string, statuses: Partial<MerchantStatuses>) => Promise<void>;
 }
 
 // Constants
@@ -130,39 +130,39 @@ const getModalConfig = (type: ModalType, merchantName: string, newVisibility?: b
   };
 };
 
-const handleSimpleConfirm = (modal: MerchantActionModalsProps['modal'], merchant: Merchant, onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => void, onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void, onClose: () => void) => {
+const handleSimpleConfirm = async (modal: MerchantActionModalsProps['modal'], merchant: Merchant, onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => Promise<void>, onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => Promise<void>, onClose: () => void) => {
   switch (modal.type) {
     case "approve":
     case "activate":
-      onUpdateMerchantStatus(merchant._id, "active");
+      await onUpdateMerchantStatus(merchant._id, "active");
       break;
     case "deactivate":
-      onUpdateMerchantStatus(merchant._id, "suspended", modal.suspensionReason);
+      await onUpdateMerchantStatus(merchant._id, "suspended", modal.suspensionReason);
       break;
     case "toggleVisibility":
-      onUpdateMerchantVisibility(merchant._id, !merchant.visibility);
+      await onUpdateMerchantVisibility(merchant._id, !merchant.visibility);
       break;
   }
   onClose();
 };
 
-const handleComplexConfirm = (modal: MerchantActionModalsProps['modal'], merchant: Merchant, limits: MerchantLimits, secretCode: string, statuses: MerchantStatuses, onUpdateMerchantLimits: (merchantId: string, limits: MerchantLimits, secretCode: string) => void, onUpdateMerchantStatuses: (merchantId: string, statuses: Partial<MerchantStatuses>) => void, onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void, onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => void, onClose: () => void) => {
+const handleComplexConfirm = async (modal: MerchantActionModalsProps['modal'], merchant: Merchant, limits: MerchantLimits, secretCode: string, statuses: MerchantStatuses, onUpdateMerchantLimits: (merchantId: string, limits: MerchantLimits, secretCode: string) => Promise<void>, onUpdateMerchantStatuses: (merchantId: string, statuses: Partial<MerchantStatuses>) => Promise<void>, onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => Promise<void>, onUpdateMerchantStatus: (merchantId: string, status: string, reason?: string) => Promise<void>, onClose: () => void) => {
   switch (modal.type) {
     case "adjustLimits":
       if (secretCode !== "SuperSecret123") {
         toast.error("Invalid secret code");
         return;
       }
-      onUpdateMerchantLimits(merchant._id, limits, secretCode);
+      await onUpdateMerchantLimits(merchant._id, limits, secretCode);
       break;
     case "toggleStatuses":
-      onUpdateMerchantStatuses(merchant._id, statuses);
+      await onUpdateMerchantStatuses(merchant._id, statuses);
       break;
     case "confirmVisibilityChange":
-      onUpdateMerchantVisibility(merchant._id, modal.newVisibility!);
+      await onUpdateMerchantVisibility(merchant._id, modal.newVisibility!);
       break;
     case "confirmStatusChange":
-      onUpdateMerchantStatus(merchant._id, modal.newStatus!);
+      await onUpdateMerchantStatus(merchant._id, modal.newStatus!);
       break;
   }
   onClose();
@@ -219,6 +219,8 @@ export default function MerchantActionModals({
 
   const handleConfirmAction = () => handleComplexConfirm(modal, merchant, limits, secretCode, statuses, onUpdateMerchantLimits, onUpdateMerchantStatuses, onUpdateMerchantVisibility, onUpdateMerchantStatus, () => setShowConfirmation(false));
 
+  const handleMainConfirm = () => handleComplexConfirm(modal, merchant, limits, secretCode, statuses, onUpdateMerchantLimits, onUpdateMerchantStatuses, onUpdateMerchantVisibility, onUpdateMerchantStatus, onClose);
+
   const content = getModalConfig(modal.type, merchant.displayName, modal.newVisibility, modal.newStatus);
   if (!content) return null;
 
@@ -249,8 +251,8 @@ export default function MerchantActionModals({
             <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <label className="text-sm font-medium">Listing Limit</label>
               <Input
-                type="number"
-                value={limits.ListingLimit || ""}
+                type="text"
+                value={limits.ListingLimit || 0}
                 onChange={(e) => setLimits((prev: MerchantLimits) => ({ ...prev, ListingLimit: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter listing limit"
                 className="mt-2"
@@ -259,8 +261,8 @@ export default function MerchantActionModals({
             <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <label className="text-sm font-medium">Total Graphics</label>
               <Input
-                type="number"
-                value={limits.totalGraphics || ""}
+                type="text"
+                value={limits.totalGraphics }
                 onChange={(e) => setLimits((prev: MerchantLimits) => ({ ...prev, totalGraphics: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter total graphics"
                 className="mt-2"
@@ -269,8 +271,8 @@ export default function MerchantActionModals({
             <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <label className="text-sm font-medium">Total Reels</label>
               <Input
-                type="number"
-                value={limits.totalReels || ""}
+                type="text"
+                value={limits.totalReels || 0 }
                 onChange={(e) => setLimits((prev: MerchantLimits) => ({ ...prev, totalReels: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter total reels"
                 className="mt-2"
@@ -279,8 +281,8 @@ export default function MerchantActionModals({
             <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <label className="text-sm font-medium">Total Podcast</label>
               <Input
-                type="number"
-                value={limits.totalPodcast || ""}
+                type="text"
+                value={limits.totalPodcast || 0}
                 onChange={(e) => setLimits((prev: MerchantLimits) => ({ ...prev, totalPodcast: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter total podcast"
                 className="mt-2"
@@ -329,7 +331,7 @@ export default function MerchantActionModals({
           </Button>
           <Button
             className={content.confirmClass}
-            onClick={(modal.type === "adjustLimits" || modal.type === "toggleStatuses") ? () => setShowConfirmation(true) : (modal.type === "confirmVisibilityChange" || modal.type === "confirmStatusChange") ? handleConfirmAction : handleConfirm}
+            onClick={(modal.type === "adjustLimits" || modal.type === "toggleStatuses") ? () => setShowConfirmation(true) : (modal.type === "confirmVisibilityChange" || modal.type === "confirmStatusChange") ? handleMainConfirm : handleConfirm}
             disabled={
               (modal.type === "deactivate" && !suspensionReason.trim()) ||
               (modal.type === "adjustLimits" && secretCode !== "SuperSecret123")

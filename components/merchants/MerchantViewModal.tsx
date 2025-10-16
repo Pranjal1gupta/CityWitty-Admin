@@ -86,6 +86,11 @@ export default function MerchantViewModal({
                   )}
                 </div>
                 <div>
+                  <strong>Address:</strong> {merchant.streetAddress},{" "}
+                  {merchant.locality}, {merchant.city}, {merchant.state}{" "}
+                  {merchant.pincode}, {merchant.country}
+                </div>
+                <div>
                   <strong>Status:</strong> {getStatusBadge(merchant.status)}
                 </div>
                 <div>

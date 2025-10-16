@@ -42,19 +42,19 @@ export const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   };
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Ecommerce Store Control</h1>
         <p className="text-gray-600">Manage products, orders, and store operations</p>
       </div>
-      <div className="flex space-x-2">
+      <div className="flex flex-col sm:flex-row items-center gap-2">
         <Badge className="bg-[#FF7A00] text-white animate-pulse">
           {lowStockCount} Low Stock Items
         </Badge>
         <Dialog open={isAddDialogOpen} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
             <Button
-              className="bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00]"
+              className="bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] w-full sm:w-auto"
               onClick={handleAddClick}
             >
               <Plus className="mr-2 h-4 w-4" />
