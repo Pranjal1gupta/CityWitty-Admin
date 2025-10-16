@@ -252,26 +252,13 @@ export default function CareersPage() {
     const matchesSearch =
       !q ||
       jobPost.postName.toLowerCase().includes(q) ||
-      jobPost.locations.some(location => location.toLowerCase().includes(q)) ||
+      jobPost.locations.some((location) =>
+        location.toLowerCase().includes(q)
+      ) ||
       (jobPost.workType && jobPost.workType.toLowerCase().includes(q));
 
     return matchesSearch;
   });
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Selected":
-        return <Badge className="bg-green-100 text-green-800">Selected</Badge>;
-      case "Pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case "Called for Interview":
-        return <Badge className="bg-blue-100 text-blue-800">Interview</Badge>;
-      case "Rejected":
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
 
   // Update status helper: appId is _id
   const handleStatusUpdate = async (appId: string, newStatus: string) => {
@@ -552,6 +539,21 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
   // UI helpers
   const statuses = ["Selected", "Pending", "Called for Interview", "Rejected"];
 
+    const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "Selected":
+        return " !text-green-700";
+      case "Pending":
+        return " !text-yellow-700";
+      case "Called for Interview":
+        return " !text-blue-700";
+      case "Rejected":
+        return " !text-red-700";
+      default:
+        return "";
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -708,8 +710,8 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
               <div className="overflow-x-auto rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow >
-                      <TableHead >Post Name</TableHead>
+                    <TableRow>
+                      <TableHead>Post Name</TableHead>
                       <TableHead>Locations</TableHead>
                       <TableHead>Work Type</TableHead>
                       <TableHead>Salary</TableHead>
@@ -723,7 +725,9 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                     {filteredJobPosts.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8">
-                          {jobPosts.length === 0 ? "No job posts found." : "No job posts match your search."}
+                          {jobPosts.length === 0
+                            ? "No job posts found."
+                            : "No job posts match your search."}
                         </TableCell>
                       </TableRow>
                     )}
@@ -739,7 +743,9 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                             {jobPost.locations
                               .slice(0, 2)
                               .map((location, idx) => (
-                                <p key={idx} className="capitalize">{location}</p>
+                                <p key={idx} className="capitalize">
+                                  {location}
+                                </p>
                               ))}
                             {jobPost.locations.length > 2 && (
                               <Badge variant="secondary" className="text-xs">
@@ -889,6 +895,7 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                       <TableHead>Position</TableHead>
                       <TableHead>Qualification / Exp</TableHead>
                       <TableHead>Applied On</TableHead>
+                      <TableHead>Expected Salary</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -932,49 +939,53 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
                         <TableCell>
                           {new Date(app.createdAt).toLocaleDateString()}
                         </TableCell>
+                        <TableCell className="font-medium">
+                          {app.expectedSalary || "N/A"}
+                        </TableCell>
 
-                        <TableCell>{getStatusBadge(app.status)}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={
+                              app.status === "Called for Interview"
+                                ? "Interview"
+                                : app.status
+                            }
+                            onValueChange={(newStatus) => {
+                              setModal({
+                                type: "statusConfirm",
+                                application: app,
+                                pendingStatus:
+                                  newStatus === "Interview"
+                                    ? "Called for Interview"
+                                    : newStatus,
+                              });
+                            }}
+                            disabled={actionLoadingId === app._id}
+                          >
+                            <SelectTrigger className={`w-28 px-2 py-0.5 text-sm font-semibold border-0 ${getStatusBadgeClass(app.status)}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {statuses.map((s) => (
+                                <SelectItem
+                                  key={s}
+                                  value={
+                                    s === "Called for Interview"
+                                      ? "Interview"
+                                      : s
+                                  }
+                                >
+                                  {s === "Called for Interview"
+                                    ? "Interview"
+                                    : s}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
 
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            <Select
-                              value={
-                                app.status === "Called for Interview"
-                                  ? "Interview"
-                                  : app.status
-                              }
-                              onValueChange={(newStatus) => {
-                                setModal({
-                                  type: "statusConfirm",
-                                  application: app,
-                                  pendingStatus:
-                                    newStatus === "Interview"
-                                      ? "Called for Interview"
-                                      : newStatus,
-                                });
-                              }}
-                              disabled={actionLoadingId === app._id}
-                            >
-                              <SelectTrigger className="w-max">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {statuses.map((s) => (
-                                  <SelectItem
-                                    key={s}
-                                    value={
-                                      s === "Called for Interview"
-                                        ? "Interview"
-                                        : s
-                                    }
-                                  >
-                                    {s === "Called for Interview"
-                                      ? "Interview"
-                                      : s}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
                             <Button
                               variant="outline"
                               size="sm"

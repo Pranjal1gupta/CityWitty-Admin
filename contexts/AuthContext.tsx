@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -16,14 +16,23 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  timeRemaining: number;
+  isWarning: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SESSION_TIMEOUT = 10 * 60; // 10 minutes in seconds
+const WARNING_THRESHOLD = 60; // Show warning at 1 minute remaining
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState(SESSION_TIMEOUT);
+  const [isWarning, setIsWarning] = useState(false);
   const router = useRouter();
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Load user from localStorage on refresh
@@ -33,6 +42,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setIsLoading(false);
   }, []);
+
+  // Initialize session tracking when user logs in
+  useEffect(() => {
+    if (!user) return;
+
+    const resetInactivityTimer = () => {
+      // Clear existing timers
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+
+      // Reset time and warning
+      setTimeRemaining(SESSION_TIMEOUT);
+      setIsWarning(false);
+
+      // Set new inactivity timer
+      inactivityTimerRef.current = setTimeout(() => {
+        handleAutoLogout();
+      }, SESSION_TIMEOUT * 1000);
+
+      // Start countdown
+      let remainingTime = SESSION_TIMEOUT;
+      countdownIntervalRef.current = setInterval(() => {
+        remainingTime -= 1;
+        setTimeRemaining(remainingTime);
+
+        // Show warning when 1 minute remaining
+        if (remainingTime === WARNING_THRESHOLD) {
+          setIsWarning(true);
+          toast.warning("Your session will expire in 1 minute due to inactivity");
+        }
+
+        if (remainingTime <= 0) {
+          clearInterval(countdownIntervalRef.current!);
+        }
+      }, 1000);
+    };
+
+    // Activity event listeners
+    const events = ["mousedown", "keydown", "scroll", "touchstart", "click"];
+
+    const handleActivity = () => {
+      resetInactivityTimer();
+    };
+
+    events.forEach((event) => {
+      document.addEventListener(event, handleActivity);
+    });
+
+    // Initial timer setup
+    resetInactivityTimer();
+
+    return () => {
+      events.forEach((event) => {
+        document.removeEventListener(event, handleActivity);
+      });
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, [user]);
+
+  const handleAutoLogout = () => {
+    setUser(null);
+    localStorage.removeItem("citywitty_admin_user");
+    toast.error("Session expired due to inactivity. Please log in again.");
+    router.push("/login");
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
@@ -68,6 +147,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     setUser(null);
     localStorage.removeItem("citywitty_admin_user");
     toast.success("Logged out successfully");
@@ -75,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, timeRemaining, isWarning }}>
       {children}
     </AuthContext.Provider>
   );

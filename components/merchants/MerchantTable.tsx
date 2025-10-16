@@ -101,19 +101,6 @@ export default function MerchantTable({
     }
   }, [currentPage, totalPages]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case "suspended":
-        return <Badge className="bg-red-100 text-red-800">Suspended</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "active":
