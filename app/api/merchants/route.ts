@@ -10,7 +10,7 @@ export async function GET() {
   try {
     await dbConnect();
 
-    const partners = await Partner.find({}).lean();
+    const partners = await Partner.find({}).sort({ createdAt: -1 }).lean();
 
     // Map partners to merchant data format
     const merchants = partners.map((partner) => ({
