@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -26,6 +26,12 @@ export default function MerchantsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState<Stats>({
+    totalMerchants: 0,
+    activeMerchants: 0,
+    pendingApprovals: 0,
+    suspendedMerchants: 0,
+  });
 
   const pathname = usePathname();
 
@@ -59,6 +65,7 @@ export default function MerchantsPage() {
         const data = await res.json();
         setMerchants(data.merchants);
         setTotalCount(data.totalCount);
+        setStats(data.stats);
       } catch (err) {
         console.error(err);
         toast.error("Error loading merchants data");
@@ -73,13 +80,6 @@ export default function MerchantsPage() {
 
     return () => clearInterval(interval);
   }, [user, pathname, searchTerm, statusFilter, currentPage, rowsPerPage]); // refetch when filters or pagination change
-
-  const stats = useMemo((): Stats => ({
-    totalMerchants: totalCount,
-    activeMerchants: merchants.filter((m) => m.status === "active").length,
-    pendingApprovals: merchants.filter((m) => m.status === "pending").length,
-    suspendedMerchants: merchants.filter((m) => m.status === "suspended").length,
-  }), [merchants, totalCount]);
 
   // Unified merchant status update helper
   const updateMerchantStatus = async (

@@ -16,17 +16,20 @@ export async function GET(request: Request) {
     const page = parseInt(url.searchParams.get('page') || '1', 10);
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
 
-    // Build query
-    let query: any = {};
-    if (status !== 'all') {
-      query.status = status;
-    }
+    // Build base query for search (used for stats)
+    let baseQuery: any = {};
     if (search) {
-      query.$or = [
+      baseQuery.$or = [
         { displayName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
         { category: { $regex: search, $options: 'i' } },
       ];
+    }
+
+    // Build query for pagination (includes status filter)
+    let query: any = { ...baseQuery };
+    if (status !== 'all') {
+      query.status = status;
     }
 
     const totalCount = await Partner.countDocuments(query);
@@ -165,13 +168,12 @@ export async function GET(request: Request) {
       updatedAt: partner.updatedAt ? partner.updatedAt.toISOString() : null,
     }));
 
-    // Calculate stats from full query (without pagination)
-    const allPartners = await Partner.find(query).lean();
+    // Calculate stats from all data (without any filters or pagination)
     const stats = {
-      totalMerchants: allPartners.length,
-      activeMerchants: allPartners.filter(p => p.status === 'active').length,
-      pendingApprovals: allPartners.filter(p => p.status === 'pending').length,
-      suspendedMerchants: allPartners.filter(p => p.status === 'suspended').length,
+      totalMerchants: await Partner.countDocuments({}),
+      activeMerchants: await Partner.countDocuments({ status: 'active' }),
+      pendingApprovals: await Partner.countDocuments({ status: 'pending' }),
+      suspendedMerchants: await Partner.countDocuments({ status: 'suspended' }),
     };
 
     // Send response with no caching headers
