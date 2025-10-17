@@ -11,12 +11,11 @@ export async function PATCH(
 
     const { id } = params;
     const body = await request.json();
-    const { citywittyAssured, isVerified, isCWassured, isPremiumSeller, isTopMerchant, visibility } = body;
+    const { citywittyAssured, isVerified, isPremiumSeller, isTopMerchant, visibility } = body;
 
     const updateFields: any = {};
     if (typeof citywittyAssured === 'boolean') updateFields.citywittyAssured = citywittyAssured;
     if (typeof isVerified === 'boolean') updateFields.isVerified = isVerified;
-    if (typeof isCWassured === 'boolean') updateFields.isCWassured = isCWassured;
     if (typeof isPremiumSeller === 'boolean') updateFields.isPremiumSeller = isPremiumSeller;
     if (typeof isTopMerchant === 'boolean') updateFields.isTopMerchant = isTopMerchant;
     if (typeof visibility === 'boolean') updateFields.visibility = visibility;

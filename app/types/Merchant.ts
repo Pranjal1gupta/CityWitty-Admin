@@ -102,7 +102,6 @@ export interface Merchant {
   joinedSince: string;
   citywittyAssured: boolean;
   isVerified?: boolean;
-  isCWassured?: boolean;
   isPremiumSeller?: boolean;
   isTopMerchant?: boolean;
   ratings: Rating[];
@@ -213,4 +212,4 @@ export interface Stats {
   suspendedMerchants: number;
 }
 
-export type ModalType = "view" | "approve" | "activate" | "deactivate" | "toggleVisibility" | "adjustLimits" | "toggleStatuses" | "confirmVisibilityChange" | "confirmStatusChange" | null;
+export type ModalType = "view" | "approve" | "activate" | "deactivate" | "toggleVisibility" | "adjustLimits" | "toggleStatuses" | "confirmVisibilityChange" | "confirmStatusChange" | "managePurchasedPackage" | null;

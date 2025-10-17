@@ -21,6 +21,11 @@ export default function MerchantsPage() {
   const router = useRouter();
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
   const pathname = usePathname();
 
@@ -43,10 +48,17 @@ export default function MerchantsPage() {
     if (!user) return;
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/merchants", { cache: "no-store" });
+        const params = new URLSearchParams({
+          search: searchTerm,
+          status: statusFilter,
+          page: currentPage.toString(),
+          limit: rowsPerPage.toString(),
+        });
+        const res = await fetch(`/api/merchants?${params}`, { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to fetch merchants");
         const data = await res.json();
         setMerchants(data.merchants);
+        setTotalCount(data.totalCount);
       } catch (err) {
         console.error(err);
         toast.error("Error loading merchants data");
@@ -60,15 +72,14 @@ export default function MerchantsPage() {
     }, 3000);
 
     return () => clearInterval(interval);
-
-  }, [user, pathname]); // refetch when route changes
+  }, [user, pathname, searchTerm, statusFilter, currentPage, rowsPerPage]); // refetch when filters or pagination change
 
   const stats = useMemo((): Stats => ({
-    totalMerchants: merchants.length,
+    totalMerchants: totalCount,
     activeMerchants: merchants.filter((m) => m.status === "active").length,
     pendingApprovals: merchants.filter((m) => m.status === "pending").length,
     suspendedMerchants: merchants.filter((m) => m.status === "suspended").length,
-  }), [merchants]);
+  }), [merchants, totalCount]);
 
   // Unified merchant status update helper
   const updateMerchantStatus = async (
@@ -127,7 +138,7 @@ export default function MerchantsPage() {
   // Unified merchant statuses update helper
   const updateMerchantStatuses = async (
     merchantId: string,
-    statuses: { citywittyAssured?: boolean; isVerified?: boolean; isCWassured?: boolean; isPremiumSeller?: boolean; isTopMerchant?: boolean }
+    statuses: { citywittyAssured?: boolean; isVerified?: boolean; isPremiumSeller?: boolean; isTopMerchant?: boolean }
   ) => {
     try {
       const res = await fetch(`/api/merchants/${merchantId}/statuses`, {
@@ -174,6 +185,31 @@ export default function MerchantsPage() {
     }
   };
 
+  // Unified merchant purchased package update helper
+  const updatePurchasedPackage = async (
+    merchantId: string,
+    packageData: { variantName: string; purchaseDate: string; expiryDate: string; transactionId: string }
+  ) => {
+    try {
+      const res = await fetch(`/api/merchants/${merchantId}/purchased-package`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purchasedPackage: packageData }),
+      });
+      if (!res.ok) throw new Error("Failed to update purchased package");
+      const updatedMerchant = await res.json();
+      setMerchants((prev) => {
+        const updated = prev.map((m) =>
+          m._id === merchantId ? { ...m, ...updatedMerchant } : m
+        );
+        return updated;
+      });
+      toast.success("Purchased package updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Error updating purchased package");
+    }
+  };
+
 
 
   if (isLoading)
@@ -216,6 +252,15 @@ export default function MerchantsPage() {
             onSetModal={setModal}
             onUpdateMerchantStatus={updateMerchantStatus}
             onUpdateMerchantVisibility={updateMerchantVisibility}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            rowsPerPage={rowsPerPage}
+            setRowsPerPage={setRowsPerPage}
+            totalCount={totalCount}
           />
           <MerchantViewModal
             merchant={modal.merchant}
@@ -229,6 +274,7 @@ export default function MerchantsPage() {
             onUpdateMerchantVisibility={updateMerchantVisibility}
             onUpdateMerchantLimits={updateMerchantLimits}
             onUpdateMerchantStatuses={updateMerchantStatuses}
+            onUpdatePurchasedPackage={updatePurchasedPackage}
           />
         </div>
       </DashboardLayout>

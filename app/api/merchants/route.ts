@@ -6,11 +6,31 @@ import Partner from '@/models/partner/partner.schema';
 // Disable ISR / caching
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await dbConnect();
 
-    const partners = await Partner.find({}).sort({ createdAt: -1 }).lean();
+    const url = new URL(request.url);
+    const search = url.searchParams.get('search') || '';
+    const status = url.searchParams.get('status') || 'all';
+    const page = parseInt(url.searchParams.get('page') || '1', 10);
+    const limit = parseInt(url.searchParams.get('limit') || '10', 10);
+
+    // Build query
+    let query: any = {};
+    if (status !== 'all') {
+      query.status = status;
+    }
+    if (search) {
+      query.$or = [
+        { displayName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const totalCount = await Partner.countDocuments(query);
+    const partners = await Partner.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean();
 
     // Map partners to merchant data format
     const merchants = partners.map((partner) => ({
@@ -145,17 +165,18 @@ export async function GET() {
       updatedAt: partner.updatedAt ? partner.updatedAt.toISOString() : null,
     }));
 
-    // Calculate stats
+    // Calculate stats from full query (without pagination)
+    const allPartners = await Partner.find(query).lean();
     const stats = {
-      totalMerchants: partners.length,
-      activeMerchants: partners.filter(p => p.status === 'active').length,
-      pendingApprovals: partners.filter(p => p.status === 'pending').length,
-      suspendedMerchants: partners.filter(p => p.status === 'suspended').length,
+      totalMerchants: allPartners.length,
+      activeMerchants: allPartners.filter(p => p.status === 'active').length,
+      pendingApprovals: allPartners.filter(p => p.status === 'pending').length,
+      suspendedMerchants: allPartners.filter(p => p.status === 'suspended').length,
     };
 
     // Send response with no caching headers
     return NextResponse.json(
-      { merchants, stats },
+      { merchants, stats, totalCount },
       {
         status: 200,
         headers: {

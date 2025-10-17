@@ -32,11 +32,10 @@ import {
 
 import {
   BookUser,
-  ToggleLeft,
-  ToggleRight,
-  CheckCircle,
   XCircle,
   Settings,
+  Award,
+  Package,
 } from "lucide-react";
 import { Merchant, ModalType } from "@/app/types/Merchant";
 
@@ -51,6 +50,15 @@ interface MerchantTableProps {
   }) => void;
   onUpdateMerchantStatus: (merchantId: string, status: string) => void;
   onUpdateMerchantVisibility: (merchantId: string, visibility: boolean) => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  statusFilter: string;
+  setStatusFilter: (filter: string) => void;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  rowsPerPage: number;
+  setRowsPerPage: (rows: number) => void;
+  totalCount: number;
 }
 
 export default function MerchantTable({
@@ -59,47 +67,29 @@ export default function MerchantTable({
   onSetModal,
   onUpdateMerchantStatus,
   onUpdateMerchantVisibility,
+  searchTerm,
+  setSearchTerm,
+  statusFilter,
+  setStatusFilter,
+  currentPage,
+  setCurrentPage,
+  rowsPerPage,
+  setRowsPerPage,
+  totalCount,
 }: MerchantTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  const filteredMerchants = useMemo(() => {
-    return merchants.filter((merchant) => {
-      const matchesSearch =
-        (merchant.displayName ?? "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        (merchant.email ?? "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        (merchant.category ?? "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || merchant.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [merchants, searchTerm, statusFilter]);
-
-  const totalPages = Math.ceil(filteredMerchants.length / rowsPerPage);
-  const paginatedMerchants = filteredMerchants.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
+  const totalPages = Math.ceil(totalCount / rowsPerPage);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, setCurrentPage]);
 
   // Adjust current page if it exceeds total pages
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(totalPages);
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, totalPages, setCurrentPage]);
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -172,7 +162,7 @@ export default function MerchantTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedMerchants.map((merchant) => (
+                  {merchants.map((merchant) => (
                     <TableRow key={merchant._id} className="hover:bg-gray-50">
                       <TableCell>{merchant.merchantId}</TableCell>
                       <TableCell>
@@ -186,7 +176,7 @@ export default function MerchantTable({
                         </div>
                       </TableCell>
                       <TableCell>{merchant.category}</TableCell>
-                      {/* <TableCell> 
+                      {/* <TableCell>
                         {[merchant.streetAddress, merchant.locality, merchant.city, merchant.state, merchant.pincode, merchant.country]
                           .filter(Boolean)
                           .join(", ")}
@@ -255,13 +245,29 @@ export default function MerchantTable({
                                 variant="outline"
                                 size="sm"
                                 onClick={() =>
+                                  onSetModal({ type: "view", merchant })
+                                }
+                              >
+                                <BookUser className="h-4 w-4 text-gray-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View Details</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
                                   onSetModal({
                                     type: "toggleStatuses",
                                     merchant,
                                   })
                                 }
                               >
-                                <CheckCircle className="h-4 w-4 text-purple-600" />
+                                <Award className="h-4 w-4 text-purple-600" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -295,14 +301,17 @@ export default function MerchantTable({
                                 variant="outline"
                                 size="sm"
                                 onClick={() =>
-                                  onSetModal({ type: "view", merchant })
+                                  onSetModal({
+                                    type: "managePurchasedPackage",
+                                    merchant,
+                                  })
                                 }
                               >
-                                <BookUser className="h-4 w-4 text-gray-500" />
+                                <Package className="h-4 w-4 text-orange-600" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>View Details</p>
+                              <p>Manage Package</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -313,7 +322,7 @@ export default function MerchantTable({
               </Table>
             </div>
 
-            {filteredMerchants.length === 0 && (
+            {merchants.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-gray-500">
                   No merchants found matching your criteria.
@@ -322,7 +331,7 @@ export default function MerchantTable({
             )}
 
             {/* Pagination Controls */}
-            {filteredMerchants.length > 0 && (
+            {totalCount > 0 && (
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center items-center gap-4 mt-4">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-700">Rows per page:</span>
@@ -349,17 +358,15 @@ export default function MerchantTable({
                     Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
                     {Math.min(
                       currentPage * rowsPerPage,
-                      filteredMerchants.length
+                      totalCount
                     )}{" "}
-                    of {filteredMerchants.length} entries
+                    of {totalCount} entries
                   </span>
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(prev - 1, 1))
-                      }
+                      onClick={() => setCurrentPage(currentPage - 1)}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -367,9 +374,7 @@ export default function MerchantTable({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                      }
+                      onClick={() => setCurrentPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
                     >
                       Next
