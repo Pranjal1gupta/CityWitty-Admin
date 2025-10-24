@@ -16,6 +16,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Merchant } from "@/app/types/Merchant";
+import { useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { Download, Users } from "lucide-react";
 
 interface MerchantViewModalProps {
   merchant: Merchant | null;
@@ -30,6 +34,8 @@ export default function MerchantViewModal({
 }: MerchantViewModalProps) {
   if (!merchant) return null;
 
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -43,10 +49,325 @@ export default function MerchantViewModal({
     }
   };
 
+  const handleDownloadPDF = async () => {
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    let yPosition = 30;
+
+    // Title
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(`${merchant.displayName} - Merchant Details`, margin, yPosition);
+    yPosition += 15;
+
+    // Helper function to add text with wrapping
+    const addText = (text: string, fontSize = 10, isBold = false) => {
+      pdf.setFontSize(fontSize);
+      pdf.setFont("helvetica", isBold ? "bold" : "normal");
+      const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
+      lines.forEach((line: string) => {
+        if (yPosition > pageHeight - 30) {
+          pdf.addPage();
+          yPosition = 30;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 5;
+      });
+      yPosition += 3;
+    };
+
+    // Helper function to add section header
+    const addSection = (title: string) => {
+      if (yPosition > pageHeight - 50) {
+        pdf.addPage();
+        yPosition = 30;
+      }
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(title, margin, yPosition);
+      yPosition += 10;
+    };
+
+    // Basic Information
+    addSection("Basic Information");
+    addText(`Merchant ID: ${merchant.merchantId}`);
+    addText(`Username: ${merchant.username || "N/A"}`);
+    addText(`Merchant Slug: ${merchant.merchantSlug || "N/A"}`);
+    addText(
+      `Address: ${merchant.streetAddress}, ${merchant.locality}, ${merchant.city}, ${merchant.state} ${merchant.pincode}, ${merchant.country}`
+    );
+    addText(`Status: ${merchant.status}`);
+    addText(`Legal Name: ${merchant.legalName}`);
+    addText(`Display Name: ${merchant.displayName}`);
+    addText(`Category: ${merchant.category}`);
+    addText(`City: ${merchant.city}`);
+    addText(
+      `Joined Since: ${new Date(merchant.joinedSince).toLocaleDateString()}`
+    );
+    addText(`Average Rating: ${merchant.averageRating ?? "N/A"}`);
+    addText(`Visibility: ${merchant.visibility ? "Visible" : "Hidden"}`);
+    addText(`Citywitty Assured: ${merchant.citywittyAssured ? "Yes" : "No"}`);
+    addText(`Verified: ${merchant.isVerified ? "Verified" : "Not Verified"}`);
+    addText(`Premium Seller: ${merchant.isPremiumSeller ? "Yes" : "No"}`);
+    addText(`Top Merchant: ${merchant.isTopMerchant ? "Yes" : "No"}`);
+    addText(`Tags: ${merchant.tags?.join(", ") || "N/A"}`);
+    addText(`Suspension Reason: ${merchant.suspensionReason || "N/A"}`);
+    addText(
+      `Onboarding Agent: ${
+        merchant.onboardingAgent
+          ? `${merchant.onboardingAgent.agentName} (${merchant.onboardingAgent.agentId})`
+          : "N/A"
+      }`
+    );
+
+    // Business Information
+    addSection("Business Information");
+    addText(`Business Type: ${merchant.businessType}`);
+    addText(`Years in Business: ${merchant.yearsInBusiness}`);
+    addText(`Average Monthly Revenue: ${merchant.averageMonthlyRevenue}`);
+    addText(`Discount Offered: ${merchant.discountOffered}`);
+    addText(`Description: ${merchant.description}`);
+    addText(`Custom Offer: ${merchant.customOffer || "N/A"}`);
+    addText(`Ribbon Tag: ${merchant.ribbonTag || "N/A"}`);
+    addText(`Website: ${merchant.website || "N/A"}`);
+    if (merchant.socialLinks) {
+      addText(
+        `Social Links: ${Object.entries(merchant.socialLinks)
+          .map(([key, val]) => `${key}: ${val}`)
+          .join(", ")}`
+      );
+    }
+    addText(`Minimum Order Value: ₹${merchant.minimumOrderValue ?? "N/A"}`);
+    if (merchant.offlineDiscount && merchant.offlineDiscount.length > 0) {
+      addText("Offline Discounts:");
+      merchant.offlineDiscount.forEach((discount, index) => {
+        addText(
+          `  ${index + 1}. Category: ${discount.category}, Title: ${
+            discount.offerTitle
+          }, Description: ${discount.offerDescription}, Discount: ${
+            discount.discountPercent
+          }% up to ₹${discount.discountValue}, Status: ${
+            discount.status
+          }, Valid Upto: ${new Date(discount.validUpto).toLocaleDateString()}`
+        );
+      });
+    }
+
+    // Legal Information
+    addSection("Legal Information");
+    addText(`GST Number: ${merchant.gstNumber}`);
+    addText(`PAN Number: ${merchant.panNumber}`);
+    addText(
+      `Address: ${
+        [
+          merchant.streetAddress,
+          merchant.locality,
+          merchant.city,
+          merchant.state,
+          merchant.pincode,
+          merchant.country,
+        ]
+          .filter(Boolean)
+          .join(", ") || "N/A"
+      }`
+    );
+    addText(`Map Location: ${merchant.mapLocation || "N/A"}`);
+    if (merchant.branchLocations && merchant.branchLocations.length > 0) {
+      addText("Branch Locations:");
+      merchant.branchLocations.forEach((branch, index) => {
+        addText(
+          `  ${index + 1}. Branch Name: ${branch.branchName}, Address: ${
+            branch.streetAddress
+          }, ${branch.locality}, ${branch.city}, ${branch.state} ${
+            branch.pincode
+          }, ${branch.country}, Map Location: ${branch.mapLocation || "N/A"}`
+        );
+      });
+    }
+
+    // Contact Information
+    addSection("Contact Information");
+    addText(
+      `Email: ${merchant.email} (${
+        merchant.emailVerified ? "Verified" : "Not Verified"
+      })`
+    );
+    addText(
+      `Phone: ${merchant.phone} (${
+        merchant.phoneVerified ? "Verified" : "Not Verified"
+      })`
+    );
+    addText(
+      `WhatsApp: ${merchant.whatsapp} ${
+        merchant.isWhatsappSame ? "(Same as phone)" : ""
+      }`
+    );
+    addText(
+      `Business Hours: ${
+        merchant.businessHours
+          ? `${merchant.businessHours.open} - ${merchant.businessHours.close}`
+          : "N/A"
+      }`
+    );
+    addText(
+      `Business Days: ${merchant.businessHours?.days?.join(", ") || "N/A"}`
+    );
+    addText(
+      `Payment Methods: ${merchant.paymentMethodAccepted?.join(", ") || "N/A"}`
+    );
+    addText(`QR Code Link: ${merchant.qrcodeLink || "N/A"}`);
+
+    // Purchase Package Summary
+    addSection("Purchase Package Summary");
+    if (merchant.purchasedPackage) {
+      addText(`Variant Name: ${merchant.purchasedPackage.variantName}`);
+      addText(
+        `Purchase Date: ${new Date(
+          merchant.purchasedPackage.purchaseDate
+        ).toLocaleDateString()}`
+      );
+      addText(
+        `Expiry Date: ${new Date(
+          merchant.purchasedPackage.expiryDate
+        ).toLocaleDateString()}`
+      );
+      addText(`Transaction ID: ${merchant.purchasedPackage.transactionId}`);
+    } else {
+      addText("No package purchased.");
+    }
+
+    // Renewal History
+    addSection("Renewal History");
+    if (merchant.renewal) {
+      addText(`Renewed: ${merchant.renewal.isRenewed ? "Yes" : "No"}`);
+      addText(
+        `Renewal Date: ${
+          merchant.renewal.renewalDate
+            ? new Date(merchant.renewal.renewalDate).toLocaleDateString()
+            : "N/A"
+        }`
+      );
+      addText(
+        `Renewal Expiry: ${
+          merchant.renewal.renewalExpiry
+            ? new Date(merchant.renewal.renewalExpiry).toLocaleDateString()
+            : "N/A"
+        }`
+      );
+    } else {
+      addText("No renewals.");
+    }
+
+    // Banking Details
+    addSection("Banking Details");
+    if (merchant.bankDetails) {
+      addText(`Bank Name: ${merchant.bankDetails.bankName || "N/A"}`);
+      addText(
+        `Account Holder Name: ${
+          merchant.bankDetails.accountHolderName || "N/A"
+        }`
+      );
+      addText(`Account Number: ${merchant.bankDetails.accountNumber || "N/A"}`);
+      addText(`IFSC Code: ${merchant.bankDetails.ifscCode || "N/A"}`);
+      addText(`Branch Name: ${merchant.bankDetails.branchName || "N/A"}`);
+      addText(`UPI ID: ${merchant.bankDetails.upiId || "N/A"}`);
+    } else {
+      addText("Not provided.");
+    }
+
+    // Product & Listing Limits
+    addSection("Product & Listing Limits");
+    addText(`Listing Limit: ${merchant.ListingLimit ?? "N/A"}`);
+    addText(`Added Listings: ${merchant.Addedlistings ?? "N/A"}`);
+    if (merchant.products && merchant.products.length > 0) {
+      addText("Products:");
+      merchant.products.forEach((product, index) => {
+        addText(
+          `  ${index + 1}. Name: ${product.productName}, Category: ${
+            product.productCategory
+          }, Original Price: ₹${product.originalPrice}, Discounted Price: ₹${
+            product.discountedPrice || "N/A"
+          }, Description: ${product.productDescription || "N/A"}`
+        );
+        if (product.productVariants && product.productVariants.length > 0) {
+          addText("    Variants:");
+          product.productVariants.forEach((variant) => {
+            addText(
+              `      - ${variant.name}: ₹${variant.price}, Stock: ${variant.stock}`
+            );
+          });
+        }
+      });
+    } else {
+      addText("No products listed.");
+    }
+
+    // Digital Support
+    addSection("Digital Support");
+    addText(`Total Earnings: ₹${merchant.totalEarnings ?? "N/A"}`);
+    addText(`Website Status: ${merchant.isWebsite ? "Enabled" : "Disabled"}`);
+    addText(`Graphics: ${merchant.totalGraphics ?? 0} total`);
+    if (merchant.ds_graphics && merchant.ds_graphics.length > 0) {
+      merchant.ds_graphics.forEach((graphic) => {
+        addText(
+          `  - ID: ${graphic.graphicId}, Status: ${graphic.status}, Subject: ${graphic.subject}`
+        );
+      });
+    }
+    addText(`Reels: ${merchant.totalReels ?? 0} total`);
+    if (merchant.ds_reel && merchant.ds_reel.length > 0) {
+      merchant.ds_reel.forEach((reel) => {
+        addText(
+          `  - ID: ${reel.reelId}, Status: ${reel.status}, Subject: ${reel.subject}`
+        );
+      });
+    }
+    addText(
+      `Podcasts: ${merchant.totalPodcast ?? 0} total, ${
+        merchant.completedPodcast ?? 0
+      } completed`
+    );
+    if (merchant.podcastLog && merchant.podcastLog.length > 0) {
+      merchant.podcastLog.forEach((podcast) => {
+        addText(`  - ${podcast.title}: Status ${podcast.status}`);
+      });
+    }
+    if (merchant.ds_weblog && merchant.ds_weblog.length > 0) {
+      addText("Website Logs:");
+      merchant.ds_weblog.forEach((weblog) => {
+        addText(
+          `  - ID: ${weblog.weblog_id}, Status: ${weblog.status}, Description: ${weblog.description}`
+        );
+      });
+    } else {
+      addText("No website logs.");
+    }
+
+    // Reviews
+    addSection("Reviews");
+    if (merchant.ratings && merchant.ratings.length > 0) {
+      merchant.ratings.forEach((rating, index) => {
+        addText(
+          `${index + 1}. User: ${rating.user}, Rating: ${
+            rating.rating
+          }/5, Review: ${rating.review || "N/A"}, Reply: ${
+            rating.reply || "N/A"
+          }, Date: ${new Date(rating.createdAt || "").toLocaleDateString()}`
+        );
+      });
+    } else {
+      addText("No reviews.");
+    }
+
+    pdf.save(`${merchant.displayName}_details.pdf`);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-h-[80vh] overflow-y-auto max-w-4xl w-full">
-        <DialogHeader>
+        {/* <DialogHeader>
           <DialogTitle>Merchant Details</DialogTitle>
           <DialogDescription>
             Complete information for{" "}
@@ -54,9 +375,28 @@ export default function MerchantViewModal({
               {merchant.displayName}
             </strong>
           </DialogDescription>
+        </DialogHeader> */}
+        <DialogHeader className="pb-6">
+          {/* Header Title + Icon */}
+          <div
+            className={`flex items-center gap-3 mb-2 p-4 rounded-lg bg-blue-50 border-blue-200 border`}
+          >
+            <Users className="h-6 w-6 text-blue-600 bg-blue-100 p-1 rounded-full" />  
+            <DialogTitle className={`text-xl font-bold bg-blue-50 text-blue-600`}>
+              Merchant Details
+            </DialogTitle>
+          </div>
+
+          {/* Description */}
+          <DialogDescription className="text-gray-600 leading-relaxed">
+            Complete information for{" "}
+            <strong className="text-black uppercase">
+              {merchant.displayName}
+            </strong>
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div ref={contentRef} className="space-y-6">
           {/* Basic Information */}
           <Card>
             <CardHeader>
@@ -791,6 +1131,10 @@ export default function MerchantViewModal({
         </div>
 
         <DialogFooter>
+          <Button variant="outline" onClick={handleDownloadPDF}>
+            <Download className="w-4 h-4 mr-2" />
+            Download PDF
+          </Button>
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

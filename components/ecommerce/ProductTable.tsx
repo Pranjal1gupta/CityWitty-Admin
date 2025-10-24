@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Eye, Edit, Image } from "lucide-react";
 import { Product } from "@/app/types/ecommerce";
+import ProductViewModal from "./ProductViewModal";
 
 interface ProductTableProps {
   products: Product[];
@@ -38,6 +39,20 @@ export const ProductTable = ({
   onEditProduct,
   onUpdateStatus,
 }: ProductTableProps) => {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  const handleViewProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setIsViewModalOpen(true);
+    onViewProduct(product);
+  };
+
+  const handleCloseModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedProduct(null);
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchesSearch =
@@ -84,6 +99,7 @@ export const ProductTable = ({
   };
 
   return (
+    <>
     <div className="rounded-md border">
       <Table>
         <TableHeader>
@@ -159,7 +175,7 @@ export const ProductTable = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onViewProduct(product)}
+                    onClick={() => handleViewProduct(product)}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -185,5 +201,11 @@ export const ProductTable = ({
         </div>
       )}
     </div>
+    <ProductViewModal
+      product={selectedProduct}
+      isOpen={isViewModalOpen}
+      onClose={handleCloseModal}
+    />
+    </>
   );
 };

@@ -55,6 +55,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout, timeRemaining, isWarning } = useAuth();
   const pathname = usePathname();
 
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const [notificationCounts, setNotificationCounts] = useState({
     merchants: 0,
     cards: 0,
@@ -186,7 +192,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
               </div>
             </div>
-            <div className="ml-4 flex items-center md:ml-6">
+            <div className="ml-4 flex items-center md:ml-6 gap-2">
+              {/* Session Timer - Mobile View */}
+              <div className="md:hidden flex items-center">
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold ${
+                  isWarning 
+                    ? 'bg-red-50 text-red-600' 
+                    : 'bg-gray-50 text-gray-600'
+                }`}>
+                  <Clock className={`h-3.5 w-3.5 ${isWarning ? 'text-red-500' : 'text-gray-500'}`} />
+                  <span>{formatTime(timeRemaining)}</span>
+                </div>
+              </div>
+
               <button className="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4AA8FF] relative">
                 <Bell className="h-6 w-6" />
                 <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center bg-red-500 text-white text-xs">
@@ -244,12 +262,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   function Sidebar() {
-    const formatTime = (seconds: number) => {
-      const minutes = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${minutes}:${secs.toString().padStart(2, '0')}`;
-    };
-
     return (
       <div className="flex flex-col h-0 flex-1 border-r border-gray-200 bg-white">
         <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">

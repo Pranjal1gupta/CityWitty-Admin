@@ -36,6 +36,7 @@ import {
   Settings,
   Award,
   Package,
+  MapPin,
 } from "lucide-react";
 import { Merchant, ModalType } from "@/app/types/Merchant";
 
@@ -108,6 +109,27 @@ export default function MerchantTable({
     return visibility ? "!text-green-700" : "!text-red-700";
   };
 
+  const getFullAddress = (merchant: Merchant) => {
+    return [
+      merchant.streetAddress,
+      merchant.locality,
+      merchant.city,
+      merchant.state,
+      merchant.pincode,
+      merchant.country,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  };
+
+  const getTruncatedAddress = (address: string, wordLimit: number = 4) => {
+    const words = address.split(" ");
+    if (words.length > wordLimit) {
+      return words.slice(0, wordLimit).join(" ") + "...";
+    }
+    return address;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -116,7 +138,7 @@ export default function MerchantTable({
           Manage all merchant profiles and registrations
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 sm:px-4">
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Input
@@ -146,14 +168,14 @@ export default function MerchantTable({
           </div>
         ) : (
           <>
-            <div className="rounded-md border">
-              <Table>
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Merchant ID</TableHead>
                     <TableHead>Merchant</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Address</TableHead>
+                    <TableHead className="text-center">Address</TableHead>
                     <TableHead>Average Ratings</TableHead>
                     {/* <TableHead>Joining Date</TableHead> */}
                     <TableHead>Current Status</TableHead>
@@ -182,14 +204,17 @@ export default function MerchantTable({
                           .join(", ")}
                       </TableCell>*/}
                       <TableCell>
-                        {[
-                          merchant.streetAddress,
-                          merchant.city,
-                          // merchant.state,
-                          // merchant.pincode,
-                        ]
-                          .filter(Boolean)
-                          .join(", ")}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help text-sm flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-red-500 flex-shrink-0" />
+                              {getTruncatedAddress(getFullAddress(merchant))}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">{getFullAddress(merchant)}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
 
                       <TableCell>{merchant.averageRating ?? "N/A"}</TableCell>

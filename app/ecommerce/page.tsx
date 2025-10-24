@@ -10,6 +10,7 @@ import { ProductFilters } from "@/components/ecommerce/ProductFilters";
 import { ProductStats } from "@/components/ecommerce/ProductStats";
 import { ProductTable } from "@/components/ecommerce/ProductTable";
 import { AddProductDialog } from "@/components/ecommerce/AddProductDialog";
+import ProductViewModal from "@/components/ecommerce/ProductViewModal";
 import {
   Card,
   CardContent,
@@ -81,6 +82,8 @@ export default function EcommercePage() {
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showMissingFieldsDialog, setShowMissingFieldsDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [selectedProductForView, setSelectedProductForView] = useState<Product | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   // Calculate stats
   const totalProducts = products.length;
@@ -297,8 +300,8 @@ export default function EcommercePage() {
   };
 
   const handleViewProduct = (product: Product) => {
-    // For now, just log or show a toast. Can be expanded to show a view modal.
-    toast.info(`Viewing product: ${product.name}`);
+    setSelectedProductForView(product);
+    setIsViewModalOpen(true);
   };
 
   const handleUpdateStatus = async (productId: string, status: string) => {
@@ -517,6 +520,15 @@ export default function EcommercePage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* <ProductViewModal
+          product={selectedProductForView}
+          isOpen={isViewModalOpen}
+          onClose={() => {
+            setIsViewModalOpen(false);
+            setSelectedProductForView(null);
+          }}
+        /> */}
       </div>
   );
 }
