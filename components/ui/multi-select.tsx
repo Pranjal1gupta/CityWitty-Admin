@@ -38,6 +38,7 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
+  const [showAllSelected, setShowAllSelected] = React.useState(false);
 
   const handleSelect = React.useCallback(
     (optionValue: string) => {
@@ -76,13 +77,7 @@ export function MultiSelect({
     [inputValue, handleSelect]
   );
 
-  // Filter options based on input
-  const filteredOptions = React.useMemo(() => {
-    if (!inputValue) return options;
-    return options.filter((option) =>
-      option.label.toLowerCase().includes(inputValue.toLowerCase())
-    );
-  }, [inputValue, options]);
+  // Note: Filtering is now handled by the Command component using searchValue
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -130,10 +125,10 @@ export function MultiSelect({
                     Select All
                   </CommandItem>
                 )}
-                {filteredOptions.map((option) => (
+                {options.map((option) => (
                   <CommandItem
                     key={option.value}
-                    value={option.value}
+                    value={option.label}
                     onSelect={() => handleSelect(option.value)}
                   >
                     <Check
@@ -153,7 +148,7 @@ export function MultiSelect({
 
       {value.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {value.slice(0, 10).map((selectedValue) => {
+          {(showAllSelected ? value : value.slice(0, 4)).map((selectedValue) => {
             const option = options.find((opt) => opt.value === selectedValue);
             return (
               <Badge
@@ -167,13 +162,22 @@ export function MultiSelect({
               </Badge>
             );
           })}
-          {value.length > 10 && (
+          {value.length > 4 && !showAllSelected && (
             <Badge
               variant="secondary"
               className="cursor-pointer hover:bg-gray-300 pr-1"
-              onClick={() => setOpen(true)}
+              onClick={() => setShowAllSelected(true)}
             >
-              Show more...
+              +{value.length - 4} more
+            </Badge>
+          )}
+          {showAllSelected && value.length > 4 && (
+            <Badge
+              variant="secondary"
+              className="cursor-pointer hover:bg-gray-300 pr-1"
+              onClick={() => setShowAllSelected(false)}
+            >
+              Show less
             </Badge>
           )}
         </div>

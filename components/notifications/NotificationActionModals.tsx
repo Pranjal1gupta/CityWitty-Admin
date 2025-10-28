@@ -130,7 +130,7 @@ const TARGET_AUDIENCES = [
   { value: "user", label: "Users" },
   { value: "merchant", label: "Merchants" },
   { value: "franchise", label: "Franchisees" },
-  { value: "all", label: "All" },
+  // { value: "all", label: "All" },
 ];
 
 const ICON_OPTIONS = [
@@ -184,7 +184,6 @@ export default function NotificationActionModals({
 }: NotificationActionModalsProps) {
   const [formData, setFormData] = useState<FormDataType>(initializeNotificationData(null));
   const [expiresAt, setExpiresAt] = useState<Date | undefined>(undefined);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [showUnsavedConfirmation, setShowUnsavedConfirmation] = useState(false);
   const [showStatusConfirmation, setShowStatusConfirmation] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
@@ -237,7 +236,6 @@ export default function NotificationActionModals({
         setShowAdditionalFields(false);
       }
     }
-    setShowConfirmation(false);
     setShowUnsavedConfirmation(false);
   }, [modal.type, modal.notification]);
 
@@ -443,7 +441,7 @@ export default function NotificationActionModals({
 
   return (
     <>
-      <Dialog open={!!modal.type && !showConfirmation && !showUnsavedConfirmation} onOpenChange={handleCloseAttempt}>
+      <Dialog open={!!modal.type && !showUnsavedConfirmation} onOpenChange={handleCloseAttempt}>
         <DialogContent className={`max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-gray-50 ${colors.primaryBorder} border-2`}>
           <DialogHeader className="pb-6">
             <div className={`flex items-center gap-3 mb-2 p-4 rounded-lg ${colors.primaryBg} ${colors.primaryBorder} border`}>
@@ -465,6 +463,45 @@ export default function NotificationActionModals({
             </div>
           ) : (
             <div className="space-y-6">
+              {/* Status (only for edit) */}
+              {modal.type === "edit" && (
+                <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-neutral-50 to-neutral-100 border border-neutral-300">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-neutral-200">
+                      <Settings className="h-4 w-4 text-neutral-700" />
+                    </div>
+                    <label className="text-sm font-bold text-neutral-900">Status</label>
+                  </div>
+                  <Select
+                    value={formData.status}
+                    onValueChange={handleStatusChange}
+                  >
+                    <SelectTrigger className="border-neutral-300 bg-white focus:border-neutral-600 focus:ring-neutral-600 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                          <span className="font-medium">Draft</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="sent">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                          <span className="font-medium">Sent</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="unsent">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                          <span className="font-medium">Unsent</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               {/* Title */}
               <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
                 <div className="flex items-center gap-2">
@@ -717,47 +754,7 @@ export default function NotificationActionModals({
                     </Button>
                   </div>
                 )}
-              </div>
-
-              {/* Status (only for edit) */}
-              {modal.type === "edit" && (
-                <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-neutral-50 to-neutral-100 border border-neutral-300">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-neutral-200">
-                      <Settings className="h-4 w-4 text-neutral-700" />
-                    </div>
-                    <label className="text-sm font-bold text-neutral-900">Status</label>
-                  </div>
-                  <Select
-                    value={formData.status}
-                    onValueChange={handleStatusChange}
-                  >
-                    <SelectTrigger className="border-neutral-300 bg-white focus:border-neutral-600 focus:ring-neutral-600 font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-                          <span className="font-medium">Draft</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="sent">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                          <span className="font-medium">Sent</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="unsent">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                          <span className="font-medium">Unsent</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              </div> 
             </div>
           )}
 
@@ -771,29 +768,9 @@ export default function NotificationActionModals({
             </Button>
             <Button
               className={`bg-gradient-to-r ${colors.gradient} font-semibold shadow-md hover:shadow-lg transition-all duration-200`}
-              onClick={modal.type === "delete" ? () => setShowConfirmation(true) : handleSubmit}
+              onClick={modal.type === "delete" ? handleDelete : handleSubmit}
             >
               {content.confirmText}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation */}
-      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this notification? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="space-x-2">
-            <Button variant="outline" onClick={() => setShowConfirmation(false)}>
-              Cancel
-            </Button>
-            <Button className="bg-red-600 hover:bg-red-700" onClick={handleDelete}>
-              Yes, Delete
             </Button>
           </DialogFooter>
         </DialogContent>
