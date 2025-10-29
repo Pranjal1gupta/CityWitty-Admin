@@ -177,7 +177,7 @@ export default function MerchantTable({
                     <TableHead>Merchant</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-center">Address</TableHead>
-                    <TableHead>Average Ratings</TableHead>
+                    {/* <TableHead>Average Ratings</TableHead> */}
                     {/* <TableHead>Joining Date</TableHead> */}
                     <TableHead>Current Status</TableHead>
                     <TableHead>Visibility</TableHead>
@@ -218,7 +218,7 @@ export default function MerchantTable({
                         </Tooltip>
                       </TableCell>
 
-                      <TableCell>{merchant.averageRating ?? "N/A"}</TableCell>
+                      {/* <TableCell>{merchant.averageRating ?? "N/A"}</TableCell> */}
                       {/* <TableCell>
                         {new Date(merchant.joinedSince).toLocaleDateString()}
                       </TableCell> */}
