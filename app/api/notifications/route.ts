@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       target_audience,
       target_ids,
       icon,
+      link,
       expires_at,
       additional_field,
     } = body;
@@ -101,6 +102,7 @@ export async function POST(request: NextRequest) {
       target_audience,
       target_ids: target_ids || [],
       icon: icon || "",
+      link: link || "",
       expires_at: expires_at ? new Date(expires_at) : null,
       is_read: isReadArray, // Automatically populated from target_ids
     };

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, AlertTriangle, Info, Zap, Tag, EyeOff } from "lucide-react";
+import { Bell, AlertTriangle, Info, Zap, Tag, EyeOff, MessageSquare } from "lucide-react";
 import type { NotificationStats } from "@/app/types/Notification";
 
 interface NotificationStatsProps {
@@ -19,6 +19,8 @@ export default function NotificationStats({ stats }: NotificationStatsProps) {
         return <Tag className="h-4 w-4 text-green-600" />;
       case "warning":
         return <AlertTriangle className="h-4 w-4 text-orange-600" />;
+      case "pending actions":
+        return <MessageSquare className="h-4 w-4 text-indigo-600" />;
       default:
         return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
@@ -36,6 +38,8 @@ export default function NotificationStats({ stats }: NotificationStatsProps) {
         return "text-green-600";
       case "warning":
         return "text-orange-600";
+      case "pending actions":
+        return "text-indigo-600";
       default:
         return "text-muted-foreground";
     }

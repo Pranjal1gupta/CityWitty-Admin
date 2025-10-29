@@ -9,11 +9,12 @@ export interface Notification {
   _id: string;
   title: string;
   message: string;
-  type: "info" | "alert" | "update" | "promotion" | "warning";
+  type: "info" | "alert" | "update" | "promotion" | "warning" | "pending actions";
   status: "draft" | "sent" | "unsent";
   target_audience: "user" | "merchant" | "franchise" | "all";
   target_ids?: string[];
   icon?: string;
+  link?: string;
   is_read: IReadStatus[];
   additional_field?: Record<string, any>;
   expires_at?: Date;

@@ -53,6 +53,11 @@ type PurchasedPackage = {
   transactionId: string;
 };
 
+type OnboardingAgent = {
+  agentId: string;
+  agentName: string;
+};
+
 interface MerchantActionModalsProps {
   modal: {
     type: ModalType;
@@ -84,6 +89,10 @@ interface MerchantActionModalsProps {
     merchantId: string,
     packageData: PurchasedPackage
   ) => Promise<void>;
+  onUpdateOnboardingAgent: (
+    merchantId: string,
+    agentData: OnboardingAgent
+  ) => Promise<void>;
 }
 
 // State reducer type
@@ -93,6 +102,7 @@ type ModalState = {
   secretCode: string;
   statuses: MerchantStatuses;
   purchasedPackage: PurchasedPackage;
+  onboardingAgent: OnboardingAgent;
   showConfirmation: boolean;
 };
 
@@ -102,6 +112,7 @@ type ModalAction =
   | { type: "SET_SECRET_CODE"; payload: string }
   | { type: "SET_STATUSES"; payload: Partial<MerchantStatuses> }
   | { type: "SET_PURCHASED_PACKAGE"; payload: Partial<PurchasedPackage> }
+  | { type: "SET_ONBOARDING_AGENT"; payload: Partial<OnboardingAgent> }
   | { type: "SET_SHOW_CONFIRMATION"; payload: boolean }
   | {
       type: "RESET";
@@ -109,7 +120,8 @@ type ModalAction =
     }
   | { type: "INITIALIZE_LIMITS"; payload: MerchantLimits }
   | { type: "INITIALIZE_STATUSES"; payload: MerchantStatuses }
-  | { type: "INITIALIZE_PURCHASED_PACKAGE"; payload: PurchasedPackage };
+  | { type: "INITIALIZE_PURCHASED_PACKAGE"; payload: PurchasedPackage }
+  | { type: "INITIALIZE_ONBOARDING_AGENT"; payload: OnboardingAgent };
 
 // Constants
 const MODAL_CONFIGS = {
@@ -178,6 +190,13 @@ const MODAL_CONFIGS = {
     confirmText: "Update Package",
     confirmClass: "bg-green-600 hover:bg-green-700",
   },
+  addOnboardingAgent: {
+    title: "Add Onboarding Agent",
+    description: (name: string, visibility?: boolean, status?: string) =>
+      `Assign an onboarding agent to ${name}.`,
+    confirmText: "Save Agent",
+    confirmClass: "bg-green-600 hover:bg-green-700",
+  },
 } as const;
 
 const STATUS_ITEMS = [
@@ -209,6 +228,11 @@ const DEFAULT_PURCHASED_PACKAGE: PurchasedPackage = {
   transactionId: "",
 };
 
+const DEFAULT_ONBOARDING_AGENT: OnboardingAgent = {
+  agentId: "",
+  agentName: "",
+};
+
 // Helper functions
 const initializeLimits = (merchant: Merchant): MerchantLimits => ({
   ListingLimit: merchant.ListingLimit || 0,
@@ -230,6 +254,11 @@ const initializePurchasedPackage = (merchant: Merchant): PurchasedPackage => ({
   purchaseDate: merchant.purchasedPackage?.purchaseDate || "",
   expiryDate: merchant.purchasedPackage?.expiryDate || "",
   transactionId: merchant.purchasedPackage?.transactionId || "",
+});
+
+const initializeOnboardingAgent = (merchant: Merchant): OnboardingAgent => ({
+  agentId: merchant.onboardingAgent?.agentId || "",
+  agentName: merchant.onboardingAgent?.agentName || "",
 });
 
 const getModalConfig = (
@@ -270,6 +299,11 @@ const modalStateReducer = (
         ...state,
         purchasedPackage: { ...state.purchasedPackage, ...action.payload },
       };
+    case "SET_ONBOARDING_AGENT":
+      return {
+        ...state,
+        onboardingAgent: { ...state.onboardingAgent, ...action.payload },
+      };
     case "SET_SHOW_CONFIRMATION":
       return { ...state, showConfirmation: action.payload };
     case "RESET":
@@ -287,6 +321,8 @@ const modalStateReducer = (
       return { ...state, statuses: action.payload };
     case "INITIALIZE_PURCHASED_PACKAGE":
       return { ...state, purchasedPackage: action.payload };
+    case "INITIALIZE_ONBOARDING_AGENT":
+      return { ...state, onboardingAgent: action.payload };
     default:
       return state;
   }
@@ -565,6 +601,67 @@ const ManagePurchasedPackageForm = memo(
 );
 ManagePurchasedPackageForm.displayName = "ManagePurchasedPackageForm";
 
+// Memoized sub-component for onboarding agent input field
+const AgentInputField = memo(
+  ({
+    label,
+    value,
+    onChange,
+    placeholder,
+  }: {
+    label: string;
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+  }) => (
+    <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+      <label className="text-sm font-medium">{label}</label>
+      <Input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="mt-2"
+      />
+    </div>
+  )
+);
+AgentInputField.displayName = "AgentInputField";
+
+// Memoized sub-component for add onboarding agent form
+const AddOnboardingAgentForm = memo(
+  ({
+    agentData,
+    onAgentChange,
+  }: {
+    agentData: OnboardingAgent;
+    onAgentChange: (key: keyof OnboardingAgent, value: string) => void;
+  }) => (
+    <div className="space-y-6 max-h-[400px] overflow-y-auto">
+      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+        <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-4">
+          Onboarding Agent Details
+        </h3>
+        <div className="space-y-4">
+          <AgentInputField
+            label="Agent ID"
+            value={agentData.agentId}
+            onChange={(val) => onAgentChange("agentId", val)}
+            placeholder="Enter agent ID"
+          />
+          <AgentInputField
+            label="Agent Name"
+            value={agentData.agentName}
+            onChange={(val) => onAgentChange("agentName", val)}
+            placeholder="Enter agent name"
+          />
+        </div>
+      </div>
+    </div>
+  )
+);
+AddOnboardingAgentForm.displayName = "AddOnboardingAgentForm";
+
 function MerchantActionModals({
   modal,
   onClose,
@@ -573,6 +670,7 @@ function MerchantActionModals({
   onUpdateMerchantLimits,
   onUpdateMerchantStatuses,
   onUpdatePurchasedPackage,
+  onUpdateOnboardingAgent,
 }: MerchantActionModalsProps) {
   // All hooks must be called before any early returns
   const [state, dispatch] = useReducer(modalStateReducer, {
@@ -581,6 +679,7 @@ function MerchantActionModals({
     secretCode: "",
     statuses: DEFAULT_STATUSES,
     purchasedPackage: DEFAULT_PURCHASED_PACKAGE,
+    onboardingAgent: DEFAULT_ONBOARDING_AGENT,
     showConfirmation: false,
   });
 
@@ -607,6 +706,12 @@ function MerchantActionModals({
       dispatch({
         type: "INITIALIZE_PURCHASED_PACKAGE",
         payload: initializePurchasedPackage(modal.merchant),
+      });
+    }
+    if (modal.type === "addOnboardingAgent" && modal.merchant) {
+      dispatch({
+        type: "INITIALIZE_ONBOARDING_AGENT",
+        payload: initializeOnboardingAgent(modal.merchant),
       });
     }
     dispatch({ type: "SET_SHOW_CONFIRMATION", payload: false });
@@ -687,6 +792,12 @@ function MerchantActionModals({
             state.purchasedPackage
           );
           break;
+        case "addOnboardingAgent":
+          await onUpdateOnboardingAgent(
+            modal.merchant._id,
+            state.onboardingAgent
+          );
+          break;
       }
       onClose();
     } catch (error) {
@@ -699,6 +810,7 @@ function MerchantActionModals({
     state.secretCode,
     state.statuses,
     state.purchasedPackage,
+    state.onboardingAgent,
     state.suspensionReason,
     modal.newVisibility,
     modal.newStatus,
@@ -707,6 +819,7 @@ function MerchantActionModals({
     onUpdateMerchantVisibility,
     onUpdateMerchantStatus,
     onUpdatePurchasedPackage,
+    onUpdateOnboardingAgent,
     onClose,
   ]);
 
@@ -723,7 +836,8 @@ function MerchantActionModals({
     if (
       modal.type === "adjustLimits" ||
       modal.type === "toggleStatuses" ||
-      modal.type === "managePurchasedPackage"
+      modal.type === "managePurchasedPackage" ||
+      modal.type === "addOnboardingAgent"
     ) {
       dispatch({ type: "SET_SHOW_CONFIRMATION", payload: true });
     } else if (
@@ -763,6 +877,13 @@ function MerchantActionModals({
   const handlePackageChange = useCallback(
     (key: keyof PurchasedPackage, value: string) => {
       dispatch({ type: "SET_PURCHASED_PACKAGE", payload: { [key]: value } });
+    },
+    []
+  );
+
+  const handleAgentChange = useCallback(
+    (key: keyof OnboardingAgent, value: string) => {
+      dispatch({ type: "SET_ONBOARDING_AGENT", payload: { [key]: value } });
     },
     []
   );
@@ -826,6 +947,12 @@ function MerchantActionModals({
               onPackageChange={handlePackageChange}
             />
           )}
+          {modal.type === "addOnboardingAgent" && (
+            <AddOnboardingAgentForm
+              agentData={state.onboardingAgent}
+              onAgentChange={handleAgentChange}
+            />
+          )}
           <DialogFooter className="space-x-2">
             <Button variant="outline" onClick={onClose}>
               Cancel
@@ -857,6 +984,8 @@ function MerchantActionModals({
                 ? "update the statuses"
                 : modal.type === "managePurchasedPackage"
                 ? "update the purchased package"
+                : modal.type === "addOnboardingAgent"
+                ? "add the onboarding agent"
                 : "change the visibility"}{" "}
               for {merchant.displayName}?
             </DialogDescription>

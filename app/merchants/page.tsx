@@ -210,6 +210,31 @@ export default function MerchantsPage() {
     }
   };
 
+  // Unified merchant onboarding agent update helper
+  const updateOnboardingAgent = async (
+    merchantId: string,
+    agentData: { agentId: string; agentName: string }
+  ) => {
+    try {
+      const res = await fetch(`/api/merchants/${merchantId}/onboarding-agent`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ onboardingAgent: agentData }),
+      });
+      if (!res.ok) throw new Error("Failed to update onboarding agent");
+      const updatedMerchant = await res.json();
+      setMerchants((prev) => {
+        const updated = prev.map((m) =>
+          m._id === merchantId ? { ...m, ...updatedMerchant } : m
+        );
+        return updated;
+      });
+      toast.success("Onboarding agent updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Error updating onboarding agent");
+    }
+  };
+
 
 
   if (isLoading)
@@ -275,6 +300,7 @@ export default function MerchantsPage() {
             onUpdateMerchantLimits={updateMerchantLimits}
             onUpdateMerchantStatuses={updateMerchantStatuses}
             onUpdatePurchasedPackage={updatePurchasedPackage}
+            onUpdateOnboardingAgent={updateOnboardingAgent}
           />
         </div>
       </DashboardLayout>

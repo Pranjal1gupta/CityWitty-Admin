@@ -82,6 +82,15 @@ const getTypeColors = (type: string) => {
         gradient: "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
         iconBg: "bg-orange-100",
       };
+    case "pending actions":
+      return {
+        primary: "text-indigo-600",
+        primaryBg: "bg-indigo-50",
+        primaryBorder: "border-indigo-200",
+        primaryFocus: "focus:border-indigo-500 focus:ring-indigo-500",
+        gradient: "from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700",
+        iconBg: "bg-indigo-100",
+      };
     default:
       return {
         primary: "text-gray-600",
@@ -124,6 +133,7 @@ const NOTIFICATION_TYPES = [
   { value: "update", label: "Update" },
   { value: "promotion", label: "Promotion" },
   { value: "warning", label: "Warning" },
+  { value: "pending actions", label: "Pending Actions" },
 ];
 
 const TARGET_AUDIENCES = [
@@ -139,6 +149,7 @@ const ICON_OPTIONS = [
   { value: "update", label: "Update" },
   { value: "promotion", label: "Promotion" },
   { value: "warning", label: "Warning" },
+  { value: "pending actions", label: "Pending Actions" },
 ];
 
 // Helper function to get icon component and color based on icon type
@@ -154,6 +165,8 @@ const getIconDetails = (iconType: string) => {
       return { Icon: Zap, color: "text-purple-500" };
     case "warning":
       return { Icon: TriangleAlert, color: "text-orange-500" };
+    case "pending actions":
+      return { Icon: MessageSquare, color: "text-indigo-500" };
     default:
       return { Icon: Bell, color: "text-gray-500" };
   }
@@ -169,6 +182,7 @@ const initializeNotificationData = (notification: Notification | null) => ({
   target_audience: notification?.target_audience || "all",
   target_ids: notification?.target_ids || [],
   icon: notification?.icon || "",
+  link: notification?.link || "",
   expires_at: notification?.expires_at || undefined,
   additional_field: notification?.additional_field || undefined,
 });
@@ -367,6 +381,7 @@ export default function NotificationActionModals({
       target_audience: formData.target_audience,
       target_ids: formData.target_ids || [],
       icon: formData.icon || "",
+      link: formData.link || "",
       expires_at: expiresAt || undefined,
     };
 
@@ -655,6 +670,22 @@ export default function NotificationActionModals({
                     })}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Link */}
+              <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-slate-300">
+                    <FileText className="h-4 w-4 text-slate-700" />
+                  </div>
+                  <label className="text-sm font-bold text-slate-900">Link / URL</label>
+                </div>
+                <Input
+                  value={formData.link}
+                  onChange={(e) => handleInputChange("link", e.target.value)}
+                  placeholder="Enter a URL (e.g., https://example.com)"
+                  className="border-gray-300 bg-white focus:border-gray-600 focus:ring-gray-600 font-medium"
+                />
               </div>
 
               {/* Expires At */}

@@ -44,6 +44,7 @@ export async function PUT(
       target_audience,
       target_ids,
       icon,
+      link,
       expires_at,
       additional_field,
     } = body;
@@ -57,6 +58,7 @@ export async function PUT(
     if (target_audience !== undefined) updateData.target_audience = target_audience;
     if (target_ids !== undefined) updateData.target_ids = target_ids;
     if (icon !== undefined) updateData.icon = icon;
+    if (link !== undefined) updateData.link = link;
     if (expires_at !== undefined) updateData.expires_at = expires_at ? new Date(expires_at) : null;
     if (additional_field !== undefined) {
       // Convert object to Map for Mongoose schema

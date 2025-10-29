@@ -53,6 +53,7 @@ import {
   Users,
   Clock,
   FileText,
+  MessageSquare,
 } from "lucide-react";
 import type { Notification, ModalType } from "@/app/types/Notification";
 
@@ -156,6 +157,8 @@ export default function NotificationTable({
         return <Tag className="h-4 w-4 text-green-600" />;
       case "warning":
         return <AlertTriangle className="h-4 w-4 text-orange-600" />;
+      case "pending actions":
+        return <MessageSquare className="h-4 w-4 text-indigo-600" />;
       default:
         return <Info className="h-4 w-4 text-muted-foreground" />;
     }
@@ -270,6 +273,7 @@ export default function NotificationTable({
               <SelectItem value="update">Update</SelectItem>
               <SelectItem value="promotion">Promotion</SelectItem>
               <SelectItem value="warning">Warning</SelectItem>
+              <SelectItem value="pending actions">Pending Actions</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>

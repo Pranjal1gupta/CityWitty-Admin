@@ -20,6 +20,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  MessageSquare,
 } from "lucide-react";
 import type { Notification } from "@/app/types/Notification";
 
@@ -48,6 +49,8 @@ export default function NotificationViewModal({
         return <Tag className="h-5 w-5 text-green-600" />;
       case "warning":
         return <AlertTriangle className="h-5 w-5 text-orange-600" />;
+      case "pending actions":
+        return <MessageSquare className="h-5 w-5 text-indigo-600" />;
       default:
         return <Info className="h-5 w-5 text-muted-foreground" />;
     }
