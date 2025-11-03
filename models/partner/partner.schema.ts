@@ -1,7 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IPartner } from './partner.interface';
-import { IProduct } from "./product/product.interface";
-import { IPartnerRating } from "./partnerRating.interface";
 import { PartnerRatingSchema } from './partnerRating.schema';
 import { DsGraphicSchema } from './ds_graphic.schema';
 import { DsReelSchema } from './ds_reel.schema';

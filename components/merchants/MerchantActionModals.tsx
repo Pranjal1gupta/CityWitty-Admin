@@ -58,6 +58,39 @@ type OnboardingAgent = {
   agentName: string;
 };
 
+type DigitalSupportData = {
+  ds_graphics: Array<{
+    graphicId: string;
+    requestDate: string;
+    completionDate?: string;
+    status: "completed" | "pending";
+    requestCategory: string;
+    content: string;
+    subject: string;
+    isSchedules?: boolean;
+  }>;
+  ds_reel: Array<{
+    reelId: string;
+    requestDate: string;
+    completionDate?: string;
+    status: "completed" | "pending";
+    content: string;
+    subject: string;
+  }>;
+  ds_weblog: Array<{
+    weblog_id: string;
+    status: "completed" | "pending";
+    completionDate?: string;
+    description: string;
+  }>;
+  podcastLog: Array<{
+    title: string;
+    status: "scheduled" | "completed" | "pending";
+    scheduleDate: string;
+    completeDate?: string;
+  }>;
+};
+
 interface MerchantActionModalsProps {
   modal: {
     type: ModalType;
@@ -93,6 +126,10 @@ interface MerchantActionModalsProps {
     merchantId: string,
     agentData: OnboardingAgent
   ) => Promise<void>;
+  onUpdateDigitalSupport?: (
+    merchantId: string,
+    digitalSupportData: DigitalSupportData
+  ) => Promise<void>;
 }
 
 // State reducer type
@@ -103,6 +140,7 @@ type ModalState = {
   statuses: MerchantStatuses;
   purchasedPackage: PurchasedPackage;
   onboardingAgent: OnboardingAgent;
+  digitalSupportData: DigitalSupportData;
   showConfirmation: boolean;
 };
 
@@ -113,6 +151,7 @@ type ModalAction =
   | { type: "SET_STATUSES"; payload: Partial<MerchantStatuses> }
   | { type: "SET_PURCHASED_PACKAGE"; payload: Partial<PurchasedPackage> }
   | { type: "SET_ONBOARDING_AGENT"; payload: Partial<OnboardingAgent> }
+  | { type: "SET_DIGITAL_SUPPORT"; payload: Partial<DigitalSupportData> }
   | { type: "SET_SHOW_CONFIRMATION"; payload: boolean }
   | {
       type: "RESET";
@@ -121,7 +160,8 @@ type ModalAction =
   | { type: "INITIALIZE_LIMITS"; payload: MerchantLimits }
   | { type: "INITIALIZE_STATUSES"; payload: MerchantStatuses }
   | { type: "INITIALIZE_PURCHASED_PACKAGE"; payload: PurchasedPackage }
-  | { type: "INITIALIZE_ONBOARDING_AGENT"; payload: OnboardingAgent };
+  | { type: "INITIALIZE_ONBOARDING_AGENT"; payload: OnboardingAgent }
+  | { type: "INITIALIZE_DIGITAL_SUPPORT"; payload: DigitalSupportData };
 
 // Constants
 const MODAL_CONFIGS = {
@@ -197,6 +237,13 @@ const MODAL_CONFIGS = {
     confirmText: "Save Agent",
     confirmClass: "bg-green-600 hover:bg-green-700",
   },
+  manageDigitalSupport: {
+    title: "Add Digital Support Assets",
+    description: (name: string, visibility?: boolean, status?: string) =>
+      `Add new digital support assets for ${name}: Graphics, Reels, Podcasts, and Weblogs.`,
+    confirmText: "Save Assets",
+    confirmClass: "bg-blue-600 hover:bg-blue-700",
+  },
 } as const;
 
 const STATUS_ITEMS = [
@@ -233,6 +280,13 @@ const DEFAULT_ONBOARDING_AGENT: OnboardingAgent = {
   agentName: "",
 };
 
+const DEFAULT_DIGITAL_SUPPORT_DATA: DigitalSupportData = {
+  ds_graphics: [],
+  ds_reel: [],
+  ds_weblog: [],
+  podcastLog: [],
+};
+
 // Helper functions
 const initializeLimits = (merchant: Merchant): MerchantLimits => ({
   ListingLimit: merchant.ListingLimit || 0,
@@ -259,6 +313,39 @@ const initializePurchasedPackage = (merchant: Merchant): PurchasedPackage => ({
 const initializeOnboardingAgent = (merchant: Merchant): OnboardingAgent => ({
   agentId: merchant.onboardingAgent?.agentId || "",
   agentName: merchant.onboardingAgent?.agentName || "",
+});
+
+const initializeDigitalSupportData = (merchant: Merchant): DigitalSupportData => ({
+  ds_graphics: (merchant.ds_graphics || []) as Array<{
+    graphicId: string;
+    requestDate: string;
+    completionDate?: string;
+    status: "completed" | "pending";
+    requestCategory: string;
+    content: string;
+    subject: string;
+    isSchedules?: boolean;
+  }>,
+  ds_reel: (merchant.ds_reel || []) as Array<{
+    reelId: string;
+    requestDate: string;
+    completionDate?: string;
+    status: "completed" | "pending";
+    content: string;
+    subject: string;
+  }>,
+  ds_weblog: (merchant.ds_weblog || []) as Array<{
+    weblog_id: string;
+    status: "completed" | "pending";
+    completionDate?: string;
+    description: string;
+  }>,
+  podcastLog: (merchant.podcastLog || []) as Array<{
+    title: string;
+    status: "scheduled" | "completed" | "pending";
+    scheduleDate: string;
+    completeDate?: string;
+  }>,
 });
 
 const getModalConfig = (
@@ -304,6 +391,11 @@ const modalStateReducer = (
         ...state,
         onboardingAgent: { ...state.onboardingAgent, ...action.payload },
       };
+    case "SET_DIGITAL_SUPPORT":
+      return {
+        ...state,
+        digitalSupportData: { ...state.digitalSupportData, ...action.payload },
+      };
     case "SET_SHOW_CONFIRMATION":
       return { ...state, showConfirmation: action.payload };
     case "RESET":
@@ -323,6 +415,8 @@ const modalStateReducer = (
       return { ...state, purchasedPackage: action.payload };
     case "INITIALIZE_ONBOARDING_AGENT":
       return { ...state, onboardingAgent: action.payload };
+    case "INITIALIZE_DIGITAL_SUPPORT":
+      return { ...state, digitalSupportData: action.payload };
     default:
       return state;
   }
@@ -662,6 +756,529 @@ const AddOnboardingAgentForm = memo(
 );
 AddOnboardingAgentForm.displayName = "AddOnboardingAgentForm";
 
+// Digital Support Form Component with Tabs - Add New Assets
+const DigitalSupportForm = memo(
+  ({
+    digitalData,
+    onDigitalChange,
+    merchantId,
+  }: {
+    digitalData: DigitalSupportData;
+    onDigitalChange: (field: keyof DigitalSupportData, value: any) => void;
+    merchantId?: string;
+  }) => {
+    const [activeTab, setActiveTab] = React.useState<"graphics" | "reels" | "podcasts" | "weblogs">("graphics");
+    
+    // Graphics form state
+    const [graphicsForm, setGraphicsForm] = React.useState({
+      graphicId: "",
+      requestCategory: "",
+      content: "",
+      subject: "",
+      isSchedules: false,
+    });
+
+    // Reels form state
+    const [reelsForm, setReelsForm] = React.useState({
+      reelId: "",
+      content: "",
+      subject: "",
+    });
+
+    // Podcasts form state
+    const [podcastsForm, setPodcastsForm] = React.useState({
+      title: "",
+      scheduleDate: "",
+    });
+
+    // Weblogs form state
+    const [weblogsForm, setWeblogsForm] = React.useState({
+      weblog_id: "",
+      description: "",
+    });
+
+    const addGraphic = () => {
+      if (!graphicsForm.graphicId || !graphicsForm.subject) {
+        toast.error("Please fill in Graphic ID and Subject");
+        return;
+      }
+      const newGraphic = {
+        ...graphicsForm,
+        requestDate: new Date().toISOString(),
+        status: "pending" as const,
+      };
+      onDigitalChange("ds_graphics", [...digitalData.ds_graphics, newGraphic]);
+      setGraphicsForm({ graphicId: "", requestCategory: "", content: "", subject: "", isSchedules: false });
+      toast.success("Graphic added successfully");
+    };
+
+    const addReel = () => {
+      if (!reelsForm.reelId || !reelsForm.subject) {
+        toast.error("Please fill in Reel ID and Subject");
+        return;
+      }
+      const newReel = {
+        ...reelsForm,
+        requestDate: new Date().toISOString(),
+        status: "pending" as const,
+      };
+      onDigitalChange("ds_reel", [...digitalData.ds_reel, newReel]);
+      setReelsForm({ reelId: "", content: "", subject: "" });
+      toast.success("Reel added successfully");
+    };
+
+    const addPodcast = () => {
+      if (!podcastsForm.title || !podcastsForm.scheduleDate) {
+        toast.error("Please fill in Title and Schedule Date");
+        return;
+      }
+      const newPodcast = {
+        ...podcastsForm,
+        scheduleDate: new Date(podcastsForm.scheduleDate).toISOString(),
+        status: "pending" as const,
+      };
+      onDigitalChange("podcastLog", [...digitalData.podcastLog, newPodcast]);
+      setPodcastsForm({ title: "", scheduleDate: "" });
+      toast.success("Podcast added successfully");
+    };
+
+    const addWeblog = () => {
+      if (!weblogsForm.weblog_id || !weblogsForm.description) {
+        toast.error("Please fill in Weblog ID and Description");
+        return;
+      }
+      const newWeblog = {
+        ...weblogsForm,
+        status: "pending" as const,
+      };
+      onDigitalChange("ds_weblog", [...digitalData.ds_weblog, newWeblog]);
+      setWeblogsForm({ weblog_id: "", description: "" });
+      toast.success("Weblog added successfully");
+    };
+
+    const removeGraphic = async (idx: number) => {
+      const graphic = digitalData.ds_graphics[idx];
+      
+      // Remove from UI immediately
+      onDigitalChange("ds_graphics", digitalData.ds_graphics.filter((_, i) => i !== idx));
+      toast.success("Graphic removed");
+      
+      // Delete from database if item has graphicId and merchantId exists
+      if (graphic.graphicId && merchantId) {
+        try {
+          const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "graphic", itemId: graphic.graphicId }),
+          });
+          if (!res.ok) {
+            throw new Error("Failed to delete graphic from database");
+          }
+        } catch (error) {
+          console.error("Error deleting graphic:", error);
+          toast.error("Failed to delete graphic from database");
+        }
+      }
+    };
+
+    const removeReel = async (idx: number) => {
+      const reel = digitalData.ds_reel[idx];
+      
+      // Remove from UI immediately
+      onDigitalChange("ds_reel", digitalData.ds_reel.filter((_, i) => i !== idx));
+      toast.success("Reel removed");
+      
+      // Delete from database if item has reelId and merchantId exists
+      if (reel.reelId && merchantId) {
+        try {
+          const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "reel", itemId: reel.reelId }),
+          });
+          if (!res.ok) {
+            throw new Error("Failed to delete reel from database");
+          }
+        } catch (error) {
+          console.error("Error deleting reel:", error);
+          toast.error("Failed to delete reel from database");
+        }
+      }
+    };
+
+    const removePodcast = async (idx: number) => {
+      const podcast = digitalData.podcastLog[idx];
+      
+      // Remove from UI immediately
+      onDigitalChange("podcastLog", digitalData.podcastLog.filter((_, i) => i !== idx));
+      toast.success("Podcast removed");
+      
+      // Delete from database if item has title and merchantId exists
+      if (podcast.title && merchantId) {
+        try {
+          const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "podcast", itemId: podcast.title }),
+          });
+          if (!res.ok) {
+            throw new Error("Failed to delete podcast from database");
+          }
+        } catch (error) {
+          console.error("Error deleting podcast:", error);
+          toast.error("Failed to delete podcast from database");
+        }
+      }
+    };
+
+    const removeWeblog = async (idx: number) => {
+      const weblog = digitalData.ds_weblog[idx];
+      
+      // Remove from UI immediately
+      onDigitalChange("ds_weblog", digitalData.ds_weblog.filter((_, i) => i !== idx));
+      toast.success("Weblog removed");
+      
+      // Delete from database if item has weblog_id and merchantId exists
+      if (weblog.weblog_id && merchantId) {
+        try {
+          const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "weblog", itemId: weblog.weblog_id }),
+          });
+          if (!res.ok) {
+            throw new Error("Failed to delete weblog from database");
+          }
+        } catch (error) {
+          console.error("Error deleting weblog:", error);
+          toast.error("Failed to delete weblog from database");
+        }
+      }
+    };
+
+    const renderGraphicsSection = () => (
+      <div className="space-y-4">
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-4">Add New Graphic</h4>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium">Graphic ID *</label>
+              <Input
+                value={graphicsForm.graphicId}
+                onChange={(e) => setGraphicsForm({ ...graphicsForm, graphicId: e.target.value })}
+                placeholder="e.g., GR001"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Subject *</label>
+              <Input
+                value={graphicsForm.subject}
+                onChange={(e) => setGraphicsForm({ ...graphicsForm, subject: e.target.value })}
+                placeholder="e.g., Product Banner"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Category</label>
+              <Input
+                value={graphicsForm.requestCategory}
+                onChange={(e) => setGraphicsForm({ ...graphicsForm, requestCategory: e.target.value })}
+                placeholder="e.g., Social Media"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Content</label>
+              <Textarea
+                value={graphicsForm.content}
+                onChange={(e) => setGraphicsForm({ ...graphicsForm, content: e.target.value })}
+                placeholder="Describe the graphic content"
+                className="mt-1 resize-none"
+                rows={2}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={graphicsForm.isSchedules}
+                onCheckedChange={(checked) => setGraphicsForm({ ...graphicsForm, isSchedules: checked })}
+              />
+              <label className="text-xs font-medium">Scheduled</label>
+            </div>
+            <Button onClick={addGraphic} className="w-full bg-blue-600 hover:bg-blue-700">
+              Add Graphic
+            </Button>
+          </div>
+        </div>
+
+        {digitalData.ds_graphics.length > 0 && (
+          <div className="space-y-2">
+            <h5 className="font-semibold text-sm">Added Graphics ({digitalData.ds_graphics.length})</h5>
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              {digitalData.ds_graphics.map((graphic, idx) => (
+                <div key={idx} className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{graphic.subject}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">ID: {graphic.graphicId}</p>
+                    <Badge variant="secondary" className="mt-1">{graphic.status}</Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeGraphic(idx)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
+    const renderReelsSection = () => (
+      <div className="space-y-4">
+        <div className="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
+          <h4 className="font-semibold text-sm text-purple-900 dark:text-purple-100 mb-4">Add New Reel</h4>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium">Reel ID *</label>
+              <Input
+                value={reelsForm.reelId}
+                onChange={(e) => setReelsForm({ ...reelsForm, reelId: e.target.value })}
+                placeholder="e.g., RE001"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Subject *</label>
+              <Input
+                value={reelsForm.subject}
+                onChange={(e) => setReelsForm({ ...reelsForm, subject: e.target.value })}
+                placeholder="e.g., Product Showcase"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Content</label>
+              <Textarea
+                value={reelsForm.content}
+                onChange={(e) => setReelsForm({ ...reelsForm, content: e.target.value })}
+                placeholder="Describe the reel content"
+                className="mt-1 resize-none"
+                rows={2}
+              />
+            </div>
+            <Button onClick={addReel} className="w-full bg-purple-600 hover:bg-purple-700">
+              Add Reel
+            </Button>
+          </div>
+        </div>
+
+        {digitalData.ds_reel.length > 0 && (
+          <div className="space-y-2">
+            <h5 className="font-semibold text-sm">Added Reels ({digitalData.ds_reel.length})</h5>
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              {digitalData.ds_reel.map((reel, idx) => (
+                <div key={idx} className="p-3 border rounded-lg bg-purple-50 dark:bg-purple-900/20 flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{reel.subject}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">ID: {reel.reelId}</p>
+                    <Badge variant="secondary" className="mt-1">{reel.status}</Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeReel(idx)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
+    const renderPodcastsSection = () => (
+      <div className="space-y-4">
+        <div className="p-4 bg-orange-50 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
+          <h4 className="font-semibold text-sm text-orange-900 dark:text-orange-100 mb-4">Add New Podcast</h4>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium">Title *</label>
+              <Input
+                value={podcastsForm.title}
+                onChange={(e) => setPodcastsForm({ ...podcastsForm, title: e.target.value })}
+                placeholder="e.g., Episode 1: Getting Started"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Schedule Date *</label>
+              <Input
+                type="date"
+                value={podcastsForm.scheduleDate}
+                onChange={(e) => setPodcastsForm({ ...podcastsForm, scheduleDate: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <Button onClick={addPodcast} className="w-full bg-orange-600 hover:bg-orange-700">
+              Add Podcast
+            </Button>
+          </div>
+        </div>
+
+        {digitalData.podcastLog.length > 0 && (
+          <div className="space-y-2">
+            <h5 className="font-semibold text-sm">Added Podcasts ({digitalData.podcastLog.length})</h5>
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              {digitalData.podcastLog.map((podcast, idx) => (
+                <div key={idx} className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-900/20 flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{podcast.title}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Scheduled: {new Date(podcast.scheduleDate).toLocaleDateString()}
+                    </p>
+                    <Badge variant="secondary" className="mt-1">{podcast.status}</Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removePodcast(idx)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
+    const renderWeblogsSection = () => (
+      <div className="space-y-4">
+        <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
+          <h4 className="font-semibold text-sm text-green-900 dark:text-green-100 mb-4">Add New Weblog</h4>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium">Weblog ID *</label>
+              <Input
+                value={weblogsForm.weblog_id}
+                onChange={(e) => setWeblogsForm({ ...weblogsForm, weblog_id: e.target.value })}
+                placeholder="e.g., WB001"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Description *</label>
+              <Textarea
+                value={weblogsForm.description}
+                onChange={(e) => setWeblogsForm({ ...weblogsForm, description: e.target.value })}
+                placeholder="Enter weblog description"
+                className="mt-1 resize-none"
+                rows={3}
+              />
+            </div>
+            <Button onClick={addWeblog} className="w-full bg-green-600 hover:bg-green-700">
+              Add Weblog
+            </Button>
+          </div>
+        </div>
+
+        {digitalData.ds_weblog.length > 0 && (
+          <div className="space-y-2">
+            <h5 className="font-semibold text-sm">Added Weblogs ({digitalData.ds_weblog.length})</h5>
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              {digitalData.ds_weblog.map((weblog, idx) => (
+                <div key={idx} className="p-3 border rounded-lg bg-green-50 dark:bg-green-900/20 flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{weblog.weblog_id}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{weblog.description}</p>
+                    <Badge variant="secondary" className="mt-1">{weblog.status}</Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeWeblog(idx)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
+    return (
+      <div className="space-y-4 max-h-[600px] overflow-y-auto">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant={activeTab === "graphics" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("graphics")}
+            className="text-xs"
+          >
+            📊 Graphics ({digitalData.ds_graphics.length})
+          </Button>
+          <Button
+            variant={activeTab === "reels" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("reels")}
+            className="text-xs"
+          >
+            🎬 Reels ({digitalData.ds_reel.length})
+          </Button>
+          <Button
+            variant={activeTab === "podcasts" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("podcasts")}
+            className="text-xs"
+          >
+            🎙️ Podcasts ({digitalData.podcastLog.length})
+          </Button>
+          <Button
+            variant={activeTab === "weblogs" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("weblogs")}
+            className="text-xs"
+          >
+            📝 Weblogs ({digitalData.ds_weblog.length})
+          </Button>
+        </div>
+
+        <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+          {activeTab === "graphics" && renderGraphicsSection()}
+          {activeTab === "reels" && renderReelsSection()}
+          {activeTab === "podcasts" && renderPodcastsSection()}
+          {activeTab === "weblogs" && renderWeblogsSection()}
+        </div>
+
+        <div className="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+          <p className="font-semibold mb-1">📌 Summary:</p>
+          <ul className="space-y-1">
+            <li>• Graphics: {digitalData.ds_graphics.length} items</li>
+            <li>• Reels: {digitalData.ds_reel.length} items</li>
+            <li>• Podcasts: {digitalData.podcastLog.length} items</li>
+            <li>• Weblogs: {digitalData.ds_weblog.length} items</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+);
+DigitalSupportForm.displayName = "DigitalSupportForm";
+
+
 function MerchantActionModals({
   modal,
   onClose,
@@ -671,6 +1288,7 @@ function MerchantActionModals({
   onUpdateMerchantStatuses,
   onUpdatePurchasedPackage,
   onUpdateOnboardingAgent,
+  onUpdateDigitalSupport,
 }: MerchantActionModalsProps) {
   // All hooks must be called before any early returns
   const [state, dispatch] = useReducer(modalStateReducer, {
@@ -680,8 +1298,16 @@ function MerchantActionModals({
     statuses: DEFAULT_STATUSES,
     purchasedPackage: DEFAULT_PURCHASED_PACKAGE,
     onboardingAgent: DEFAULT_ONBOARDING_AGENT,
+    digitalSupportData: DEFAULT_DIGITAL_SUPPORT_DATA,
     showConfirmation: false,
   });
+
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  // Reset submitting state when modal type changes
+  useEffect(() => {
+    setIsSubmitting(false);
+  }, [modal.type]);
 
   useEffect(() => {
     if (
@@ -712,6 +1338,12 @@ function MerchantActionModals({
       dispatch({
         type: "INITIALIZE_ONBOARDING_AGENT",
         payload: initializeOnboardingAgent(modal.merchant),
+      });
+    }
+    if (modal.type === "manageDigitalSupport" && modal.merchant) {
+      dispatch({
+        type: "INITIALIZE_DIGITAL_SUPPORT",
+        payload: initializeDigitalSupportData(modal.merchant),
       });
     }
     dispatch({ type: "SET_SHOW_CONFIRMATION", payload: false });
@@ -756,12 +1388,14 @@ function MerchantActionModals({
   ]);
 
   const handleComplexConfirm = useCallback(async () => {
-    if (!modal.merchant) return;
+    if (!modal.merchant || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       switch (modal.type) {
         case "adjustLimits":
           if (state.secretCode !== "SuperSecret123") {
             toast.error("Invalid secret code");
+            setIsSubmitting(false);
             return;
           }
           await onUpdateMerchantLimits(
@@ -798,10 +1432,20 @@ function MerchantActionModals({
             state.onboardingAgent
           );
           break;
+        case "manageDigitalSupport":
+          if (onUpdateDigitalSupport) {
+            await onUpdateDigitalSupport(
+              modal.merchant._id,
+              state.digitalSupportData
+            );
+          }
+          break;
       }
+      setIsSubmitting(false);
       onClose();
     } catch (error) {
       console.error("Error in handleComplexConfirm:", error);
+      setIsSubmitting(false);
     }
   }, [
     modal.type,
@@ -811,6 +1455,7 @@ function MerchantActionModals({
     state.statuses,
     state.purchasedPackage,
     state.onboardingAgent,
+    state.digitalSupportData,
     state.suspensionReason,
     modal.newVisibility,
     modal.newStatus,
@@ -820,7 +1465,9 @@ function MerchantActionModals({
     onUpdateMerchantStatus,
     onUpdatePurchasedPackage,
     onUpdateOnboardingAgent,
+    onUpdateDigitalSupport,
     onClose,
+    isSubmitting,
   ]);
 
   const handleConfirmAction = useCallback(async () => {
@@ -832,12 +1479,15 @@ function MerchantActionModals({
     await handleComplexConfirm();
   }, [handleComplexConfirm]);
 
+
+
   const handleConfirmClick = useCallback(() => {
     if (
       modal.type === "adjustLimits" ||
       modal.type === "toggleStatuses" ||
       modal.type === "managePurchasedPackage" ||
-      modal.type === "addOnboardingAgent"
+      modal.type === "addOnboardingAgent" ||
+      modal.type === "manageDigitalSupport"
     ) {
       dispatch({ type: "SET_SHOW_CONFIRMATION", payload: true });
     } else if (
@@ -884,6 +1534,13 @@ function MerchantActionModals({
   const handleAgentChange = useCallback(
     (key: keyof OnboardingAgent, value: string) => {
       dispatch({ type: "SET_ONBOARDING_AGENT", payload: { [key]: value } });
+    },
+    []
+  );
+
+  const handleDigitalSupportChange = useCallback(
+    (field: keyof DigitalSupportData, value: any) => {
+      dispatch({ type: "SET_DIGITAL_SUPPORT", payload: { [field]: value } });
     },
     []
   );
@@ -953,6 +1610,13 @@ function MerchantActionModals({
               onAgentChange={handleAgentChange}
             />
           )}
+          {modal.type === "manageDigitalSupport" && (
+            <DigitalSupportForm
+              digitalData={state.digitalSupportData}
+              onDigitalChange={handleDigitalSupportChange}
+              merchantId={modal.merchant?._id}
+            />
+          )}
           <DialogFooter className="space-x-2">
             <Button variant="outline" onClick={onClose}>
               Cancel
@@ -960,9 +1624,9 @@ function MerchantActionModals({
             <Button
               className={content.confirmClass}
               onClick={handleConfirmClick}
-              disabled={isConfirmDisabled}
+              disabled={isConfirmDisabled || isSubmitting}
             >
-              {content.confirmText}
+              {isSubmitting ? "Submitting..." : content.confirmText}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -986,6 +1650,8 @@ function MerchantActionModals({
                 ? "update the purchased package"
                 : modal.type === "addOnboardingAgent"
                 ? "add the onboarding agent"
+                : modal.type === "manageDigitalSupport"
+                ? "add the digital support assets"
                 : "change the visibility"}{" "}
               for {merchant.displayName}?
             </DialogDescription>
@@ -1002,8 +1668,9 @@ function MerchantActionModals({
             <Button
               className="bg-green-600 hover:bg-green-700 mt-1"
               onClick={handleConfirmAction}
+              disabled={isSubmitting}
             >
-              Yes, Update
+              {isSubmitting ? "Updating..." : "Yes, Update"}
             </Button>
           </DialogFooter>
         </DialogContent>

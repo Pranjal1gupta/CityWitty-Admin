@@ -50,9 +50,7 @@ export default function MerchantsPage() {
     if (!isLoading && !user) router.push("/login");
   }, [user, isLoading, router]);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchData = async () => {
+  const fetchData = async () => {
       try {
         const params = new URLSearchParams({
           search: searchTerm,
@@ -73,6 +71,9 @@ export default function MerchantsPage() {
         setDataLoading(false);
       }
     };
+
+  useEffect(() => {
+    if (!user) return;
     fetchData();
     const interval = setInterval(() => {
       fetchData();
@@ -235,6 +236,37 @@ export default function MerchantsPage() {
     }
   };
 
+  // Unified merchant digital support update helper
+  const updateDigitalSupport = async (
+    merchantId: string,
+    digitalSupportData: {
+      ds_graphics?: any[];
+      ds_reel?: any[];
+      ds_weblog?: any[];
+      podcastLog?: any[];
+    }
+  ) => {
+    try {
+      const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ digitalSupportData }),
+      });
+      if (!res.ok) throw new Error("Failed to update digital support assets");
+      const response = await res.json();
+      const updatedMerchant = response.data || response;
+      setMerchants((prev) => {
+        const updated = prev.map((m) =>
+          m._id === merchantId ? { ...m, ...updatedMerchant } : m
+        );
+        return updated;
+      });
+      toast.success("Digital support assets added successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Error adding digital support assets");
+    }
+  };
+
 
 
   if (isLoading)
@@ -257,7 +289,7 @@ export default function MerchantsPage() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <Badge className="bg-[#FF7A00] text-white animate-pulse w-fit">
+            <Badge className="bg-[#ff1e00] text-white w-fit">
               {stats.pendingApprovals} Pending Approvals
             </Badge>
             <Button
@@ -301,6 +333,7 @@ export default function MerchantsPage() {
             onUpdateMerchantStatuses={updateMerchantStatuses}
             onUpdatePurchasedPackage={updatePurchasedPackage}
             onUpdateOnboardingAgent={updateOnboardingAgent}
+            onUpdateDigitalSupport={updateDigitalSupport}
           />
         </div>
       </DashboardLayout>

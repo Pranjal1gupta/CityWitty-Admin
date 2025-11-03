@@ -38,6 +38,8 @@ import {
   Package,
   MapPin,
   UserPlus,
+  Eye,
+  Zap,
 } from "lucide-react";
 import { Merchant, ModalType } from "@/app/types/Merchant";
 
@@ -360,6 +362,27 @@ export default function MerchantTable({
                               <p>Add Onboarding Agent</p>
                             </TooltipContent>
                           </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  onSetModal({
+                                    type: "manageDigitalSupport",
+                                    merchant,
+                                  })
+                                }
+                              >
+                                <Zap className="h-4 w-4 text-blue-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Digital Support (Graphics, Reels, Podcasts, Weblogs)</p>
+                            </TooltipContent>
+                          </Tooltip>
+
                         </div>
                       </TableCell>
                     </TableRow>

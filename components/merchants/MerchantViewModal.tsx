@@ -49,319 +49,466 @@ export default function MerchantViewModal({
     }
   };
 
-  const handleDownloadPDF = async () => {
-    const pdf = new jsPDF("p", "mm", "a4");
+  const handleDownloadPDF = () => {
+    // Enhanced PDF generation with complete merchant details
+    const pdf = new jsPDF("p", "mm", "a4") as any;
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 20;
-    let yPosition = 30;
+    let y = 10;
+    let pageCount = 1;
 
-    // Title
-    pdf.setFontSize(18);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(`${merchant.displayName} - Merchant Details`, margin, yPosition);
-    yPosition += 15;
+    // --- Helper functions ---
+    const addPageHeader = () => {
+      pdf.setFillColor(187, 222, 251); // Light blue
+      pdf.rect(0, 0, pageWidth, 40, "F");
 
-    // Helper function to add text with wrapping
-    const addText = (text: string, fontSize = 10, isBold = false) => {
-      pdf.setFontSize(fontSize);
-      pdf.setFont("helvetica", isBold ? "bold" : "normal");
-      const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
-      lines.forEach((line: string) => {
-        if (yPosition > pageHeight - 30) {
-          pdf.addPage();
-          yPosition = 30;
-        }
-        pdf.text(line, margin, yPosition);
-        yPosition += 5;
-      });
-      yPosition += 3;
+      pdf.setDrawColor(25, 118, 210);
+      pdf.setLineWidth(1);
+      pdf.rect(0, 0, pageWidth, 40);
+
+      pdf.addImage(
+        "https://partner.citywitty.com/logo2.png",
+        "PNG",
+        10,
+        5,
+        60,
+        20
+      );
+
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(0, 0, 0);
+      pdf.text("Merchant Details Report", 20, 35);
+
+      pdf.setFontSize(8);
+      pdf.text(
+        `Generated on: ${new Date().toISOString().split("T")[0]}`,
+        pageWidth - 60,
+        20
+      );
+
+      pdf.setDrawColor(25, 118, 210);
+      pdf.setLineWidth(0.5);
+      pdf.line(0, 42, pageWidth, 42);
     };
 
-    // Helper function to add section header
-    const addSection = (title: string) => {
-      if (yPosition > pageHeight - 50) {
-        pdf.addPage();
-        yPosition = 30;
+    const addPageFooter = () => {
+      pdf.setFillColor(248, 249, 250);
+      pdf.rect(0, pageHeight - 25, pageWidth, 25, "F");
+
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(117, 117, 117);
+      pdf.text(
+        "This report was generated from CityWitty Merchant Hub.",
+        20,
+        pageHeight - 18
+      );
+      pdf.text(
+        "This is a system-generated file and doesn't require a signature.",
+        20,
+        pageHeight - 12
+      );
+      pdf.text("For support, contact: support@citywitty.com", 20, pageHeight - 6);
+
+      pdf.text(`Page ${pageCount}`, pageWidth - 30, pageHeight - 8);
+    };
+
+    const addNewPage = () => {
+      addPageFooter();
+      pdf.addPage();
+      pageCount++;
+      addPageHeader();
+      y = 50;
+    };
+
+    const checkPageSpace = (requiredSpace: number = 30) => {
+      if (y > pageHeight - requiredSpace) {
+        addNewPage();
       }
+    };
+
+    const addSectionHeader = (title: string) => {
+      checkPageSpace(35);
+      pdf.setFillColor(248, 249, 250);
+      pdf.rect(15, y - 3, pageWidth - 30, 12, "F");
+      pdf.setDrawColor(25, 118, 210);
+      pdf.rect(15, y - 3, pageWidth - 30, 12);
+
       pdf.setFontSize(14);
       pdf.setFont("helvetica", "bold");
-      pdf.text(title, margin, yPosition);
-      yPosition += 10;
+      pdf.setTextColor(25, 118, 210);
+      pdf.text(title, 20, y + 4);
+      y += 18;
     };
 
-    // Basic Information
-    addSection("Basic Information");
-    addText(`Merchant ID: ${merchant.merchantId}`);
-    addText(`Username: ${merchant.username || "N/A"}`);
-    addText(`Merchant Slug: ${merchant.merchantSlug || "N/A"}`);
-    addText(
-      `Address: ${merchant.streetAddress}, ${merchant.locality}, ${merchant.city}, ${merchant.state} ${merchant.pincode}, ${merchant.country}`
-    );
-    addText(`Status: ${merchant.status}`);
-    addText(`Legal Name: ${merchant.legalName}`);
-    addText(`Display Name: ${merchant.displayName}`);
-    addText(`Category: ${merchant.category}`);
-    addText(`City: ${merchant.city}`);
-    addText(
-      `Joined Since: ${new Date(merchant.joinedSince).toLocaleDateString()}`
-    );
-    addText(`Average Rating: ${merchant.averageRating ?? "N/A"}`);
-    addText(`Visibility: ${merchant.visibility ? "Visible" : "Hidden"}`);
-    addText(`Citywitty Assured: ${merchant.citywittyAssured ? "Yes" : "No"}`);
-    addText(`Verified: ${merchant.isVerified ? "Verified" : "Not Verified"}`);
-    addText(`Premium Seller: ${merchant.isPremiumSeller ? "Yes" : "No"}`);
-    addText(`Top Merchant: ${merchant.isTopMerchant ? "Yes" : "No"}`);
-    addText(`Tags: ${merchant.tags?.join(", ") || "N/A"}`);
-    addText(`Suspension Reason: ${merchant.suspensionReason || "N/A"}`);
-    addText(
-      `Onboarding Agent: ${
-        merchant.onboardingAgent
-          ? `${merchant.onboardingAgent.agentName} (${merchant.onboardingAgent.agentId})`
-          : "N/A"
-      }`
-    );
+    const addField = (label: string, value: any, isImportant = false) => {
+      checkPageSpace(15);
 
-    // Business Information
-    addSection("Business Information");
-    addText(`Business Type: ${merchant.businessType}`);
-    addText(`Years in Business: ${merchant.yearsInBusiness}`);
-    addText(`Average Monthly Revenue: ${merchant.averageMonthlyRevenue}`);
-    addText(`Discount Offered: ${merchant.discountOffered}`);
-    addText(`Description: ${merchant.description}`);
-    addText(`Custom Offer: ${merchant.customOffer || "N/A"}`);
-    addText(`Ribbon Tag: ${merchant.ribbonTag || "N/A"}`);
-    addText(`Website: ${merchant.website || "N/A"}`);
-    if (merchant.socialLinks) {
-      addText(
-        `Social Links: ${Object.entries(merchant.socialLinks)
-          .map(([key, val]) => `${key}: ${val}`)
-          .join(", ")}`
-      );
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(69, 90, 100);
+      pdf.text(`${label}:`, 20, y);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(...(isImportant ? [25, 118, 210] : [33, 33, 33]));
+
+      let displayValue = value || "N/A";
+      if (Array.isArray(value)) displayValue = value.length > 0 ? value.join(", ") : "N/A";
+      const safeValue = String(displayValue).replace(/[^\x00-\x7F]/g, "");
+      const splitText = pdf.splitTextToSize(safeValue, pageWidth - 80);
+      splitText.forEach((line: string, i: number) => {
+        checkPageSpace(15);
+        pdf.text(line, 80, y + i * 6);
+      });
+
+      y += Math.max(8, splitText.length * 6);
+    };
+
+    const addDivider = () => {
+      checkPageSpace(10);
+      pdf.setDrawColor(224, 224, 224);
+      pdf.setLineWidth(0.3);
+      pdf.line(20, y, pageWidth - 20, y);
+      y += 8;
+    };
+
+    const addSubsection = (title: string) => {
+      checkPageSpace(12);
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(56, 142, 142);
+      pdf.text(title, 20, y);
+      y += 8;
+    };
+
+    // --- Initial Header ---
+    addPageHeader();
+    y = 50;
+
+    // --- Merchant ID Badge ---
+    for (let i = 0; i < 15; i++) {
+      const ratio = i / 15;
+      const r = Math.round(129 + (56 - 129) * ratio);
+      const g = Math.round(199 + (142 - 199) * ratio);
+      const b = Math.round(132 + (60 - 132) * ratio);
+      pdf.setFillColor(r, g, b);
+      pdf.rect(15, y - 5 + i, 60, 1, "F");
     }
-    addText(`Minimum Order Value: ₹${merchant.minimumOrderValue ?? "N/A"}`);
+
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(`ID: ${merchant.merchantId || "N/A"}`, 25, y + 3);
+    pdf.setTextColor(0, 0, 0);
+    y += 25;
+
+    // --- Basic Information ---
+    addSectionHeader("Basic Information");
+    addField("Legal Name", merchant.legalName, true);
+    addField("Display Name", merchant.displayName, true);
+    addField("Username", merchant.username);
+    addField("Merchant Slug", merchant.merchantSlug);
+    addField("Category", merchant.category);
+    addField("Status", merchant.status);
+    addField("Average Rating", merchant.averageRating ? `${merchant.averageRating}/5` : "N/A");
+    addField("Premium Seller", merchant.isPremiumSeller ? "Yes" : "No");
+    addField("Top Merchant", merchant.isTopMerchant ? "Yes" : "No");
+    addField("CityWitty Assured", merchant.citywittyAssured ? "Yes" : "No");
+    addField("Verified", merchant.isVerified ? "Yes" : "No");
+    addField("Visibility", merchant.visibility ? "Visible" : "Hidden");
+    addField(
+      "Joined Since",
+      new Date(merchant.joinedSince).toLocaleDateString()
+    );
+    addField("Tags", merchant.tags?.join(", ") || "N/A");
+    addField("Suspension Reason", merchant.suspensionReason || "N/A");
+    addField(
+      "Onboarding Agent",
+      merchant.onboardingAgent
+        ? `${merchant.onboardingAgent.agentName} (${merchant.onboardingAgent.agentId})`
+        : "N/A"
+    );
+    addDivider();
+
+    addField(
+      "Address",
+      `${merchant.streetAddress}, ${merchant.locality}, ${merchant.city}, ${merchant.state} ${merchant.pincode}, ${merchant.country}`
+    );
+    y += 10;
+
+    // --- Business Information ---
+    addSectionHeader("Business Information");
+    addField("Business Type", merchant.businessType);
+    addField("Years in Business", merchant.yearsInBusiness);
+    addField("Monthly Revenue", merchant.averageMonthlyRevenue);
+    addField("Discount Offered", merchant.discountOffered);
+    addField("Description", merchant.description);
+    addField("Custom Offer", merchant.customOffer || "N/A");
+    addField("Ribbon Tag", merchant.ribbonTag || "N/A");
+    addField("Minimum Order Value", merchant.minimumOrderValue ? `₹${merchant.minimumOrderValue}` : "N/A");
+    addField("Website", merchant.website || "N/A");
+    addField("Total Earnings", merchant.totalEarnings ? `₹${merchant.totalEarnings}` : "N/A");
+    addDivider();
+
+    // Offline Discount Details
     if (merchant.offlineDiscount && merchant.offlineDiscount.length > 0) {
-      addText("Offline Discounts:");
+      addSubsection("Offline Discount Details");
       merchant.offlineDiscount.forEach((discount, index) => {
-        addText(
-          `  ${index + 1}. Category: ${discount.category}, Title: ${
-            discount.offerTitle
-          }, Description: ${discount.offerDescription}, Discount: ${
-            discount.discountPercent
-          }% up to ₹${discount.discountValue}, Status: ${
-            discount.status
-          }, Valid Upto: ${new Date(discount.validUpto).toLocaleDateString()}`
-        );
-      });
-    }
+        checkPageSpace(20);
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(56, 142, 142);
+        pdf.text(`Discount ${index + 1}:`, 20, y);
+        y += 6;
 
-    // Legal Information
-    addSection("Legal Information");
-    addText(`GST Number: ${merchant.gstNumber}`);
-    addText(`PAN Number: ${merchant.panNumber}`);
-    addText(
-      `Address: ${
-        [
-          merchant.streetAddress,
-          merchant.locality,
-          merchant.city,
-          merchant.state,
-          merchant.pincode,
-          merchant.country,
-        ]
-          .filter(Boolean)
-          .join(", ") || "N/A"
-      }`
-    );
-    addText(`Map Location: ${merchant.mapLocation || "N/A"}`);
-    if (merchant.branchLocations && merchant.branchLocations.length > 0) {
-      addText("Branch Locations:");
-      merchant.branchLocations.forEach((branch, index) => {
-        addText(
-          `  ${index + 1}. Branch Name: ${branch.branchName}, Address: ${
-            branch.streetAddress
-          }, ${branch.locality}, ${branch.city}, ${branch.state} ${
-            branch.pincode
-          }, ${branch.country}, Map Location: ${branch.mapLocation || "N/A"}`
-        );
-      });
-    }
-
-    // Contact Information
-    addSection("Contact Information");
-    addText(
-      `Email: ${merchant.email} (${
-        merchant.emailVerified ? "Verified" : "Not Verified"
-      })`
-    );
-    addText(
-      `Phone: ${merchant.phone} (${
-        merchant.phoneVerified ? "Verified" : "Not Verified"
-      })`
-    );
-    addText(
-      `WhatsApp: ${merchant.whatsapp} ${
-        merchant.isWhatsappSame ? "(Same as phone)" : ""
-      }`
-    );
-    addText(
-      `Business Hours: ${
-        merchant.businessHours
-          ? `${merchant.businessHours.open} - ${merchant.businessHours.close}`
-          : "N/A"
-      }`
-    );
-    addText(
-      `Business Days: ${merchant.businessHours?.days?.join(", ") || "N/A"}`
-    );
-    addText(
-      `Payment Methods: ${merchant.paymentMethodAccepted?.join(", ") || "N/A"}`
-    );
-    addText(`QR Code Link: ${merchant.qrcodeLink || "N/A"}`);
-
-    // Purchase Package Summary
-    addSection("Purchase Package Summary");
-    if (merchant.purchasedPackage) {
-      addText(`Variant Name: ${merchant.purchasedPackage.variantName}`);
-      addText(
-        `Purchase Date: ${new Date(
-          merchant.purchasedPackage.purchaseDate
-        ).toLocaleDateString()}`
-      );
-      addText(
-        `Expiry Date: ${new Date(
-          merchant.purchasedPackage.expiryDate
-        ).toLocaleDateString()}`
-      );
-      addText(`Transaction ID: ${merchant.purchasedPackage.transactionId}`);
-    } else {
-      addText("No package purchased.");
-    }
-
-    // Renewal History
-    addSection("Renewal History");
-    if (merchant.renewal) {
-      addText(`Renewed: ${merchant.renewal.isRenewed ? "Yes" : "No"}`);
-      addText(
-        `Renewal Date: ${
-          merchant.renewal.renewalDate
-            ? new Date(merchant.renewal.renewalDate).toLocaleDateString()
-            : "N/A"
-        }`
-      );
-      addText(
-        `Renewal Expiry: ${
-          merchant.renewal.renewalExpiry
-            ? new Date(merchant.renewal.renewalExpiry).toLocaleDateString()
-            : "N/A"
-        }`
-      );
-    } else {
-      addText("No renewals.");
-    }
-
-    // Banking Details
-    addSection("Banking Details");
-    if (merchant.bankDetails) {
-      addText(`Bank Name: ${merchant.bankDetails.bankName || "N/A"}`);
-      addText(
-        `Account Holder Name: ${
-          merchant.bankDetails.accountHolderName || "N/A"
-        }`
-      );
-      addText(`Account Number: ${merchant.bankDetails.accountNumber || "N/A"}`);
-      addText(`IFSC Code: ${merchant.bankDetails.ifscCode || "N/A"}`);
-      addText(`Branch Name: ${merchant.bankDetails.branchName || "N/A"}`);
-      addText(`UPI ID: ${merchant.bankDetails.upiId || "N/A"}`);
-    } else {
-      addText("Not provided.");
-    }
-
-    // Product & Listing Limits
-    addSection("Product & Listing Limits");
-    addText(`Listing Limit: ${merchant.ListingLimit ?? "N/A"}`);
-    addText(`Added Listings: ${merchant.Addedlistings ?? "N/A"}`);
-    if (merchant.products && merchant.products.length > 0) {
-      addText("Products:");
-      merchant.products.forEach((product, index) => {
-        addText(
-          `  ${index + 1}. Name: ${product.productName}, Category: ${
-            product.productCategory
-          }, Original Price: ₹${product.originalPrice}, Discounted Price: ₹${
-            product.discountedPrice || "N/A"
-          }, Description: ${product.productDescription || "N/A"}`
-        );
-        if (product.productVariants && product.productVariants.length > 0) {
-          addText("    Variants:");
-          product.productVariants.forEach((variant) => {
-            addText(
-              `      - ${variant.name}: ₹${variant.price}, Stock: ${variant.stock}`
-            );
-          });
+        addField("Category", discount.category);
+        addField("Offer Title", discount.offerTitle);
+        addField("Offer Description", discount.offerDescription);
+        addField("Discount Value", `₹${discount.discountValue}`);
+        addField("Discount Percent", `${discount.discountPercent}%`);
+        addField("Status", discount.status);
+        addField("Valid Upto", new Date(discount.validUpto).toLocaleDateString());
+        
+        if (index < merchant.offlineDiscount!.length - 1) {
+          addDivider();
         }
       });
-    } else {
-      addText("No products listed.");
+      y += 10;
     }
 
-    // Digital Support
-    addSection("Digital Support");
-    addText(`Total Earnings: ₹${merchant.totalEarnings ?? "N/A"}`);
-    addText(`Website Status: ${merchant.isWebsite ? "Enabled" : "Disabled"}`);
-    addText(`Graphics: ${merchant.totalGraphics ?? 0} total`);
-    if (merchant.ds_graphics && merchant.ds_graphics.length > 0) {
-      merchant.ds_graphics.forEach((graphic) => {
-        addText(
-          `  - ID: ${graphic.graphicId}, Status: ${graphic.status}, Subject: ${graphic.subject}`
-        );
+    // Social Links
+    if (merchant.socialLinks && Object.keys(merchant.socialLinks).length > 0) {
+      addSubsection("Social Links");
+      Object.entries(merchant.socialLinks).forEach(([key, val]) => {
+        if (val) addField(key, val);
       });
+      y += 10;
     }
-    addText(`Reels: ${merchant.totalReels ?? 0} total`);
-    if (merchant.ds_reel && merchant.ds_reel.length > 0) {
-      merchant.ds_reel.forEach((reel) => {
-        addText(
-          `  - ID: ${reel.reelId}, Status: ${reel.status}, Subject: ${reel.subject}`
-        );
+
+    // --- Legal Information ---
+    addSectionHeader("Legal Information");
+    addField("GST Number", merchant.gstNumber);
+    addField("PAN Number", merchant.panNumber);
+    addField("Map Location", merchant.mapLocation || "N/A");
+    addDivider();
+
+    // Branch Locations
+    if (merchant.branchLocations && merchant.branchLocations.length > 0) {
+      addSubsection("Branch Locations");
+      merchant.branchLocations!.forEach((branch, index) => {
+        checkPageSpace(20);
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(56, 142, 142);
+        pdf.text(`Branch ${index + 1}: ${branch.branchName}`, 20, y);
+        y += 6;
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(33, 33, 33);
+        addField("Address", `${branch.streetAddress}, ${branch.locality}, ${branch.city}, ${branch.state} ${branch.pincode}, ${branch.country}`);
+        addField("Map Location", branch.mapLocation || "N/A");
+        if (index < merchant.branchLocations!.length - 1) {
+          addDivider();
+        }
       });
+      y += 10;
     }
-    addText(
-      `Podcasts: ${merchant.totalPodcast ?? 0} total, ${
-        merchant.completedPodcast ?? 0
-      } completed`
+
+    // --- Contact Information ---
+    addSectionHeader("Contact Information");
+    addField("Email", merchant.email);
+    addField("Phone", merchant.phone);
+    addField("WhatsApp", merchant.whatsapp);
+    addField(
+      "Business Hours",
+      merchant.businessHours
+        ? `${merchant.businessHours.open} - ${merchant.businessHours.close}`
+        : "N/A"
     );
-    if (merchant.podcastLog && merchant.podcastLog.length > 0) {
-      merchant.podcastLog.forEach((podcast) => {
-        addText(`  - ${podcast.title}: Status ${podcast.status}`);
-      });
+    addField("Business Days", merchant.businessHours?.days?.join(", "));
+    addField("Payment Methods", merchant.paymentMethodAccepted?.join(", "));
+    y += 10;
+
+    // --- Purchase Package ---
+    addSectionHeader("Purchase Package Summary");
+    if (merchant.purchasedPackage) {
+      addField("Variant Name", merchant.purchasedPackage.variantName);
+      addField(
+        "Purchase Date",
+        new Date(merchant.purchasedPackage.purchaseDate).toLocaleDateString()
+      );
+      addField(
+        "Expiry Date",
+        new Date(merchant.purchasedPackage.expiryDate).toLocaleDateString()
+      );
+      addField("Transaction ID", merchant.purchasedPackage.transactionId);
+    } else addField("Package", "No package purchased.");
+
+    // --- Banking Details ---
+    addSectionHeader("Banking Details");
+    if (merchant.bankDetails) {
+      addField("Bank Name", merchant.bankDetails.bankName);
+      addField("Account Holder", merchant.bankDetails.accountHolderName);
+      addField("Account Number", merchant.bankDetails.accountNumber);
+      addField("IFSC Code", merchant.bankDetails.ifscCode);
+      addField("UPI ID", merchant.bankDetails.upiId);
+    } else addField("Bank Info", "Not Provided.");
+
+    // --- Renewal History ---
+    addSectionHeader("Renewal History");
+    if (merchant.renewal) {
+      addField("Is Renewed", merchant.renewal.isRenewed ? "Yes" : "No");
+      if (merchant.renewal.renewalDate) {
+        addField("Renewal Date", new Date(merchant.renewal.renewalDate).toLocaleDateString());
+      }
+      if (merchant.renewal.renewalExpiry) {
+        addField("Renewal Expiry", new Date(merchant.renewal.renewalExpiry).toLocaleDateString());
+      }
+    } else {
+      addField("Renewal Status", "No renewal data available");
     }
+    addDivider();
+
+    // --- Product and Listing Limits ---
+    addSectionHeader("Product and Listing Limits");
+    addField("Listing Limit", merchant.ListingLimit || "N/A");
+    addField("Added Listings", merchant.Addedlistings || "0");
+    addField("Remaining Listings", merchant.ListingLimit && merchant.Addedlistings ? merchant.ListingLimit - merchant.Addedlistings : "N/A");
+    addField("Total Graphics", merchant.totalGraphics || "0");
+    addField("Total Reels", merchant.totalReels || "0");
+    addField("Has Website", merchant.isWebsite ? "Yes" : "No");
+    addDivider();
+
+    // --- Digital Support ---
+    addSectionHeader("Digital Support");
+    let hasSupportData = false;
+    
+    if (merchant.ds_graphics && merchant.ds_graphics.length > 0) {
+      hasSupportData = true;
+      addSubsection("Graphics Requests");
+      merchant.ds_graphics.forEach((graphic, index) => {
+        checkPageSpace(15);
+        addField(`Request ${index + 1}`, graphic.requestCategory);
+        addField("Status", graphic.status);
+        addField("Request Date", new Date(graphic.requestDate).toLocaleDateString());
+        if (graphic.completionDate) {
+          addField("Completion Date", new Date(graphic.completionDate).toLocaleDateString());
+        }
+        if (index < merchant.ds_graphics!.length - 1) {
+          addDivider();
+        }
+      });
+      y += 8;
+    }
+
+    if (merchant.ds_reel && merchant.ds_reel.length > 0) {
+      hasSupportData = true;
+      addSubsection("Reel Requests");
+      merchant.ds_reel.forEach((reel, index) => {
+        checkPageSpace(15);
+        addField(`Reel ${index + 1}`, reel.subject);
+        addField("Status", reel.status);
+        addField("Request Date", new Date(reel.requestDate).toLocaleDateString());
+        if (reel.completionDate) {
+          addField("Completion Date", new Date(reel.completionDate).toLocaleDateString());
+        }
+        if (index < merchant.ds_reel!.length - 1) {
+          addDivider();
+        }
+      });
+      y += 8;
+    }
+
     if (merchant.ds_weblog && merchant.ds_weblog.length > 0) {
-      addText("Website Logs:");
-      merchant.ds_weblog.forEach((weblog) => {
-        addText(
-          `  - ID: ${weblog.weblog_id}, Status: ${weblog.status}, Description: ${weblog.description}`
-        );
+      hasSupportData = true;
+      addSubsection("Weblog Requests");
+      merchant.ds_weblog.forEach((weblog, index) => {
+        checkPageSpace(15);
+        addField(`Weblog ${index + 1}`, weblog.description);
+        addField("Status", weblog.status);
+        if (weblog.completionDate) {
+          addField("Completion Date", new Date(weblog.completionDate).toLocaleDateString());
+        }
+        if (index < merchant.ds_weblog!.length - 1) {
+          addDivider();
+        }
       });
-    } else {
-      addText("No website logs.");
+      y += 8;
     }
 
-    // Reviews
-    addSection("Reviews");
+    if (!hasSupportData) {
+      addField("Support Data", "No support requests available");
+    }
+    addDivider();
+
+    // --- Reviews ---
+    addSectionHeader("Reviews");
     if (merchant.ratings && merchant.ratings.length > 0) {
-      merchant.ratings.forEach((rating, index) => {
-        addText(
-          `${index + 1}. User: ${rating.user}, Rating: ${
-            rating.rating
-          }/5, Review: ${rating.review || "N/A"}, Reply: ${
-            rating.reply || "N/A"
-          }, Date: ${new Date(rating.createdAt || "").toLocaleDateString()}`
-        );
-      });
-    } else {
-      addText("No reviews.");
-    }
+      addField("Total Reviews", merchant.ratings.length);
+      addField("Average Rating", merchant.averageRating ? `${merchant.averageRating}/5` : "N/A");
+      y += 8;
+      
+      merchant.ratings.slice(0, 5).forEach((rating, index) => {
+        checkPageSpace(20);
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(56, 142, 142);
+        pdf.text(`Review ${index + 1}:`, 20, y);
+        y += 6;
 
-    pdf.save(`${merchant.displayName}_details.pdf`);
+        addField("Rating", `${rating.rating}/5 Stars`);
+        addField("Reviewer", rating.user);
+        if (rating.review) {
+          addField("Review", rating.review);
+        }
+        if (rating.reply) {
+          addField("Reply", rating.reply);
+        }
+        if (rating.createdAt) {
+          addField("Date", new Date(rating.createdAt).toLocaleDateString());
+        }
+        
+        if (index < Math.min(4, merchant.ratings!.length - 1)) {
+          addDivider();
+        }
+      });
+
+      if (merchant.ratings.length > 5) {
+        y += 8;
+        addField("Total Reviews", `${merchant.ratings.length} (Showing first 5)`);
+      }
+    } else {
+      addField("Reviews", "No reviews available");
+    }
+    addDivider();
+
+    // --- Footer ---
+    if (y > pageHeight - 40) {
+      pdf.addPage();
+      y = 20;
+    }
+    pdf.setFillColor(248, 249, 250);
+    pdf.rect(0, pageHeight - 25, pageWidth, 25, "F");
+
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(117, 117, 117);
+    pdf.text(
+      "This report was generated from CityWitty Merchant Hub.",
+      20,
+      pageHeight - 18
+    );
+    pdf.text(
+      "This is a system-generated file and doesn’t require a signature.",
+      20,
+      pageHeight - 12
+    );
+    pdf.text("For support, contact: support@citywitty.com", 20, pageHeight - 6);
+
+    pdf.text(`Page 1 of 1`, pageWidth - 30, pageHeight - 8);
+
+    pdf.save(`${merchant.displayName || "CityWitty_Merchant"}_Details.pdf`);
   };
 
   return (
@@ -381,8 +528,10 @@ export default function MerchantViewModal({
           <div
             className={`flex items-center gap-3 mb-2 p-4 rounded-lg bg-blue-50 border-blue-200 border`}
           >
-            <Users className="h-6 w-6 text-blue-600 bg-blue-100 p-1 rounded-full" />  
-            <DialogTitle className={`text-xl font-bold bg-blue-50 text-blue-600`}>
+            <Users className="h-6 w-6 text-blue-600 bg-blue-100 p-1 rounded-full" />
+            <DialogTitle
+              className={`text-xl font-bold bg-blue-50 text-blue-600`}
+            >
               Merchant Details
             </DialogTitle>
           </div>
