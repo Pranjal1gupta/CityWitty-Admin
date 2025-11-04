@@ -315,7 +315,9 @@ const initializeOnboardingAgent = (merchant: Merchant): OnboardingAgent => ({
   agentName: merchant.onboardingAgent?.agentName || "",
 });
 
-const initializeDigitalSupportData = (merchant: Merchant): DigitalSupportData => ({
+const initializeDigitalSupportData = (
+  merchant: Merchant
+): DigitalSupportData => ({
   ds_graphics: (merchant.ds_graphics || []) as Array<{
     graphicId: string;
     requestDate: string;
@@ -762,13 +764,17 @@ const DigitalSupportForm = memo(
     digitalData,
     onDigitalChange,
     merchantId,
+    limits,
   }: {
     digitalData: DigitalSupportData;
     onDigitalChange: (field: keyof DigitalSupportData, value: any) => void;
     merchantId?: string;
+    limits?: MerchantLimits;
   }) => {
-    const [activeTab, setActiveTab] = React.useState<"graphics" | "reels" | "podcasts" | "weblogs">("graphics");
-    
+    const [activeTab, setActiveTab] = React.useState<
+      "graphics" | "reels" | "podcasts" | "weblogs"
+    >("graphics");
+
     // Graphics form state
     const [graphicsForm, setGraphicsForm] = React.useState({
       graphicId: "",
@@ -797,18 +803,43 @@ const DigitalSupportForm = memo(
       description: "",
     });
 
+    // Generate unique ID with format: 3-letter prefix + 5 random alphanumeric
+    const generateUniqueId = (prefix: string): string => {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let randomPart = "";
+      for (let i = 0; i < 10; i++) {
+        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return `${prefix}${"-"}${randomPart}`;
+    };
+
     const addGraphic = () => {
       if (!graphicsForm.graphicId || !graphicsForm.subject) {
         toast.error("Please fill in Graphic ID and Subject");
         return;
       }
+
+      // Check if adding would exceed the limit
+      if (limits && digitalData.ds_graphics.length >= limits.totalGraphics) {
+        toast.error(
+          `Graphics limit reached. Maximum: ${limits.totalGraphics}, Current: ${digitalData.ds_graphics.length}`
+        );
+        return;
+      }
+
       const newGraphic = {
         ...graphicsForm,
         requestDate: new Date().toISOString(),
         status: "pending" as const,
       };
       onDigitalChange("ds_graphics", [...digitalData.ds_graphics, newGraphic]);
-      setGraphicsForm({ graphicId: "", requestCategory: "", content: "", subject: "", isSchedules: false });
+      setGraphicsForm({
+        graphicId: "",
+        requestCategory: "",
+        content: "",
+        subject: "",
+        isSchedules: false,
+      });
       toast.success("Graphic added successfully");
     };
 
@@ -817,6 +848,15 @@ const DigitalSupportForm = memo(
         toast.error("Please fill in Reel ID and Subject");
         return;
       }
+
+      // Check if adding would exceed the limit
+      if (limits && digitalData.ds_reel.length >= limits.totalReels) {
+        toast.error(
+          `Reels limit reached. Maximum: ${limits.totalReels}, Current: ${digitalData.ds_reel.length}`
+        );
+        return;
+      }
+
       const newReel = {
         ...reelsForm,
         requestDate: new Date().toISOString(),
@@ -832,6 +872,15 @@ const DigitalSupportForm = memo(
         toast.error("Please fill in Title and Schedule Date");
         return;
       }
+
+      // Check if adding would exceed the limit
+      if (limits && digitalData.podcastLog.length >= limits.totalPodcast) {
+        toast.error(
+          `Podcasts limit reached. Maximum: ${limits.totalPodcast}, Current: ${digitalData.podcastLog.length}`
+        );
+        return;
+      }
+
       const newPodcast = {
         ...podcastsForm,
         scheduleDate: new Date(podcastsForm.scheduleDate).toISOString(),
@@ -858,19 +907,28 @@ const DigitalSupportForm = memo(
 
     const removeGraphic = async (idx: number) => {
       const graphic = digitalData.ds_graphics[idx];
-      
+
       // Remove from UI immediately
-      onDigitalChange("ds_graphics", digitalData.ds_graphics.filter((_, i) => i !== idx));
+      onDigitalChange(
+        "ds_graphics",
+        digitalData.ds_graphics.filter((_, i) => i !== idx)
+      );
       toast.success("Graphic removed");
-      
+
       // Delete from database if item has graphicId and merchantId exists
       if (graphic.graphicId && merchantId) {
         try {
-          const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "graphic", itemId: graphic.graphicId }),
-          });
+          const res = await fetch(
+            `/api/merchants/${merchantId}/digital-support`,
+            {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "graphic",
+                itemId: graphic.graphicId,
+              }),
+            }
+          );
           if (!res.ok) {
             throw new Error("Failed to delete graphic from database");
           }
@@ -883,19 +941,25 @@ const DigitalSupportForm = memo(
 
     const removeReel = async (idx: number) => {
       const reel = digitalData.ds_reel[idx];
-      
+
       // Remove from UI immediately
-      onDigitalChange("ds_reel", digitalData.ds_reel.filter((_, i) => i !== idx));
+      onDigitalChange(
+        "ds_reel",
+        digitalData.ds_reel.filter((_, i) => i !== idx)
+      );
       toast.success("Reel removed");
-      
+
       // Delete from database if item has reelId and merchantId exists
       if (reel.reelId && merchantId) {
         try {
-          const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "reel", itemId: reel.reelId }),
-          });
+          const res = await fetch(
+            `/api/merchants/${merchantId}/digital-support`,
+            {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: "reel", itemId: reel.reelId }),
+            }
+          );
           if (!res.ok) {
             throw new Error("Failed to delete reel from database");
           }
@@ -908,19 +972,25 @@ const DigitalSupportForm = memo(
 
     const removePodcast = async (idx: number) => {
       const podcast = digitalData.podcastLog[idx];
-      
+
       // Remove from UI immediately
-      onDigitalChange("podcastLog", digitalData.podcastLog.filter((_, i) => i !== idx));
+      onDigitalChange(
+        "podcastLog",
+        digitalData.podcastLog.filter((_, i) => i !== idx)
+      );
       toast.success("Podcast removed");
-      
+
       // Delete from database if item has title and merchantId exists
       if (podcast.title && merchantId) {
         try {
-          const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "podcast", itemId: podcast.title }),
-          });
+          const res = await fetch(
+            `/api/merchants/${merchantId}/digital-support`,
+            {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: "podcast", itemId: podcast.title }),
+            }
+          );
           if (!res.ok) {
             throw new Error("Failed to delete podcast from database");
           }
@@ -933,19 +1003,28 @@ const DigitalSupportForm = memo(
 
     const removeWeblog = async (idx: number) => {
       const weblog = digitalData.ds_weblog[idx];
-      
+
       // Remove from UI immediately
-      onDigitalChange("ds_weblog", digitalData.ds_weblog.filter((_, i) => i !== idx));
+      onDigitalChange(
+        "ds_weblog",
+        digitalData.ds_weblog.filter((_, i) => i !== idx)
+      );
       toast.success("Weblog removed");
-      
+
       // Delete from database if item has weblog_id and merchantId exists
       if (weblog.weblog_id && merchantId) {
         try {
-          const res = await fetch(`/api/merchants/${merchantId}/digital-support`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "weblog", itemId: weblog.weblog_id }),
-          });
+          const res = await fetch(
+            `/api/merchants/${merchantId}/digital-support`,
+            {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "weblog",
+                itemId: weblog.weblog_id,
+              }),
+            }
+          );
           if (!res.ok) {
             throw new Error("Failed to delete weblog from database");
           }
@@ -956,25 +1035,242 @@ const DigitalSupportForm = memo(
       }
     };
 
+    const updateGraphicStatus = async (idx: number, newStatus: "completed" | "pending") => {
+      const graphic = digitalData.ds_graphics[idx];
+
+      // Update UI immediately
+      const updatedGraphics = [...digitalData.ds_graphics];
+      updatedGraphics[idx] = {
+        ...graphic,
+        status: newStatus,
+        completionDate: newStatus === "completed" ? new Date().toISOString() : undefined,
+      };
+      onDigitalChange("ds_graphics", updatedGraphics);
+      toast.success(`Graphic status updated to ${newStatus}`);
+
+      // Update in database if item has graphicId and merchantId exists
+      if (graphic.graphicId && merchantId) {
+        try {
+          const res = await fetch(
+            `/api/merchants/${merchantId}/digital-support`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "graphic",
+                itemId: graphic.graphicId,
+                status: newStatus,
+                completionDate:
+                  newStatus === "completed"
+                    ? new Date().toISOString()
+                    : undefined,
+              }),
+            }
+          );
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            console.error("API Error Response:", res.status, errorData);
+            throw new Error(errorData.error || "Failed to update graphic status in database");
+          }
+        } catch (error) {
+          console.error("Error updating graphic status:", error);
+          toast.error(error instanceof Error ? error.message : "Failed to update graphic status in database");
+        }
+      }
+    };
+
+    const updateReelStatus = async (idx: number, newStatus: "completed" | "pending") => {
+      const reel = digitalData.ds_reel[idx];
+
+      // Update UI immediately
+      const updatedReels = [...digitalData.ds_reel];
+      updatedReels[idx] = {
+        ...reel,
+        status: newStatus,
+        completionDate: newStatus === "completed" ? new Date().toISOString() : undefined,
+      };
+      onDigitalChange("ds_reel", updatedReels);
+      toast.success(`Reel status updated to ${newStatus}`);
+
+      // Update in database if item has reelId and merchantId exists
+      if (reel.reelId && merchantId) {
+        try {
+          const res = await fetch(
+            `/api/merchants/${merchantId}/digital-support`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "reel",
+                itemId: reel.reelId,
+                status: newStatus,
+                completionDate:
+                  newStatus === "completed"
+                    ? new Date().toISOString()
+                    : undefined,
+              }),
+            }
+          );
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            console.error("API Error Response:", res.status, errorData);
+            throw new Error(errorData.error || "Failed to update reel status in database");
+          }
+        } catch (error) {
+          console.error("Error updating reel status:", error);
+          toast.error(error instanceof Error ? error.message : "Failed to update reel status in database");
+        }
+      }
+    };
+
+    const updatePodcastStatus = async (
+      idx: number,
+      newStatus: "scheduled" | "completed" | "pending"
+    ) => {
+      const podcast = digitalData.podcastLog[idx];
+
+      // Update UI immediately
+      const updatedPodcasts = [...digitalData.podcastLog];
+      updatedPodcasts[idx] = {
+        ...podcast,
+        status: newStatus,
+        completeDate:
+          newStatus === "completed" ? new Date().toISOString() : undefined,
+      };
+      onDigitalChange("podcastLog", updatedPodcasts);
+      toast.success(`Podcast status updated to ${newStatus}`);
+
+      // Update in database if item has title and merchantId exists
+      if (podcast.title && merchantId) {
+        try {
+          const res = await fetch(
+            `/api/merchants/${merchantId}/digital-support`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "podcast",
+                itemId: podcast.title,
+                status: newStatus,
+                completeDate:
+                  newStatus === "completed"
+                    ? new Date().toISOString()
+                    : undefined,
+              }),
+            }
+          );
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            console.error("API Error Response:", res.status, errorData);
+            throw new Error(errorData.error || "Failed to update podcast status in database");
+          }
+        } catch (error) {
+          console.error("Error updating podcast status:", error);
+          toast.error(error instanceof Error ? error.message : "Failed to update podcast status in database");
+        }
+      }
+    };
+
+    const updateWeblogStatus = async (idx: number, newStatus: "completed" | "pending") => {
+      const weblog = digitalData.ds_weblog[idx];
+
+      // Update UI immediately
+      const updatedWeblogs = [...digitalData.ds_weblog];
+      updatedWeblogs[idx] = {
+        ...weblog,
+        status: newStatus,
+        completionDate: newStatus === "completed" ? new Date().toISOString() : undefined,
+      };
+      onDigitalChange("ds_weblog", updatedWeblogs);
+      toast.success(`Weblog status updated to ${newStatus}`);
+
+      // Update in database if item has weblog_id and merchantId exists
+      if (weblog.weblog_id && merchantId) {
+        try {
+          const res = await fetch(
+            `/api/merchants/${merchantId}/digital-support`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "weblog",
+                itemId: weblog.weblog_id,
+                status: newStatus,
+                completionDate:
+                  newStatus === "completed"
+                    ? new Date().toISOString()
+                    : undefined,
+              }),
+            }
+          );
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            console.error("API Error Response:", res.status, errorData);
+            throw new Error(errorData.error || "Failed to update weblog status in database");
+          }
+        } catch (error) {
+          console.error("Error updating weblog status:", error);
+          toast.error(error instanceof Error ? error.message : "Failed to update weblog status in database");
+        }
+      }
+    };
+
     const renderGraphicsSection = () => (
       <div className="space-y-4">
         <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-4">Add New Graphic</h4>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+              Add New Graphic
+            </h4>
+            {limits && (
+              <span
+                className={`text-xs font-medium px-2 py-1 rounded ${
+                  digitalData.ds_graphics.length >= limits.totalGraphics
+                    ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                    : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+                }`}
+              >
+                {digitalData.ds_graphics.length}/{limits.totalGraphics}
+              </span>
+            )}
+          </div>
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium">Graphic ID *</label>
-              <Input
-                value={graphicsForm.graphicId}
-                onChange={(e) => setGraphicsForm({ ...graphicsForm, graphicId: e.target.value })}
-                placeholder="e.g., GR001"
-                className="mt-1"
-              />
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={graphicsForm.graphicId}
+                  onChange={(e) =>
+                    setGraphicsForm({
+                      ...graphicsForm,
+                      graphicId: e.target.value,
+                    })
+                  }
+                  placeholder="e.g., GRAXYZ123"
+                  className="flex-1"
+                  readOnly={true}
+                />
+                <Button
+                  type="button"
+                  onClick={() =>
+                    setGraphicsForm({
+                      ...graphicsForm,
+                      graphicId: generateUniqueId("GRA"),
+                    })
+                  }
+                  className="bg-green-600 hover:bg-green-700 px-4"
+                >
+                  Generate
+                </Button>
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium">Subject *</label>
               <Input
                 value={graphicsForm.subject}
-                onChange={(e) => setGraphicsForm({ ...graphicsForm, subject: e.target.value })}
+                onChange={(e) =>
+                  setGraphicsForm({ ...graphicsForm, subject: e.target.value })
+                }
                 placeholder="e.g., Product Banner"
                 className="mt-1"
               />
@@ -983,7 +1279,12 @@ const DigitalSupportForm = memo(
               <label className="text-xs font-medium">Category</label>
               <Input
                 value={graphicsForm.requestCategory}
-                onChange={(e) => setGraphicsForm({ ...graphicsForm, requestCategory: e.target.value })}
+                onChange={(e) =>
+                  setGraphicsForm({
+                    ...graphicsForm,
+                    requestCategory: e.target.value,
+                  })
+                }
                 placeholder="e.g., Social Media"
                 className="mt-1"
               />
@@ -992,7 +1293,9 @@ const DigitalSupportForm = memo(
               <label className="text-xs font-medium">Content</label>
               <Textarea
                 value={graphicsForm.content}
-                onChange={(e) => setGraphicsForm({ ...graphicsForm, content: e.target.value })}
+                onChange={(e) =>
+                  setGraphicsForm({ ...graphicsForm, content: e.target.value })
+                }
                 placeholder="Describe the graphic content"
                 className="mt-1 resize-none"
                 rows={2}
@@ -1001,11 +1304,16 @@ const DigitalSupportForm = memo(
             <div className="flex items-center space-x-2">
               <Switch
                 checked={graphicsForm.isSchedules}
-                onCheckedChange={(checked) => setGraphicsForm({ ...graphicsForm, isSchedules: checked })}
+                onCheckedChange={(checked) =>
+                  setGraphicsForm({ ...graphicsForm, isSchedules: checked })
+                }
               />
               <label className="text-xs font-medium">Scheduled</label>
             </div>
-            <Button onClick={addGraphic} className="w-full bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={addGraphic}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
               Add Graphic
             </Button>
           </div>
@@ -1013,14 +1321,37 @@ const DigitalSupportForm = memo(
 
         {digitalData.ds_graphics.length > 0 && (
           <div className="space-y-2">
-            <h5 className="font-semibold text-sm">Added Graphics ({digitalData.ds_graphics.length})</h5>
+            <h5 className="font-semibold text-sm">
+              Added Graphics ({digitalData.ds_graphics.length})
+            </h5>
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {digitalData.ds_graphics.map((graphic, idx) => (
-                <div key={idx} className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start">
+                <div
+                  key={idx}
+                  className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
+                >
                   <div className="flex-1">
                     <p className="font-medium text-sm">{graphic.subject}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">ID: {graphic.graphicId}</p>
-                    <Badge variant="secondary" className="mt-1">{graphic.status}</Badge>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      ID: {graphic.graphicId}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <label className="text-xs font-medium">Status:</label>
+                      <Select
+                        value={graphic.status}
+                        onValueChange={(value) =>
+                          updateGraphicStatus(idx, value as "completed" | "pending")
+                        }
+                      >
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
@@ -1040,23 +1371,57 @@ const DigitalSupportForm = memo(
 
     const renderReelsSection = () => (
       <div className="space-y-4">
-        <div className="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
-          <h4 className="font-semibold text-sm text-purple-900 dark:text-purple-100 mb-4">Add New Reel</h4>
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+              Add New Reel
+            </h4>
+            {limits && (
+              <span
+                className={`text-xs font-medium px-2 py-1 rounded ${
+                  digitalData.ds_reel.length >= limits.totalReels
+                    ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                    : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+                }`}
+              >
+                {digitalData.ds_reel.length}/{limits.totalReels}
+              </span>
+            )}
+          </div>
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium">Reel ID *</label>
-              <Input
-                value={reelsForm.reelId}
-                onChange={(e) => setReelsForm({ ...reelsForm, reelId: e.target.value })}
-                placeholder="e.g., RE001"
-                className="mt-1"
-              />
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={reelsForm.reelId}
+                  onChange={(e) =>
+                    setReelsForm({ ...reelsForm, reelId: e.target.value })
+                  }
+                  placeholder="e.g., REEXYZ123"
+                  className="flex-1"
+                  readOnly={true}
+                />
+                <Button
+                  type="button"
+                  onClick={() =>
+                    setReelsForm({
+                      ...reelsForm,
+                      reelId: generateUniqueId("REE"),
+                    })
+                  }
+                  className="bg-green-600 hover:bg-green-700 px-4"
+                >
+                  Generate
+                </Button>
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium">Subject *</label>
               <Input
                 value={reelsForm.subject}
-                onChange={(e) => setReelsForm({ ...reelsForm, subject: e.target.value })}
+                onChange={(e) =>
+                  setReelsForm({ ...reelsForm, subject: e.target.value })
+                }
                 placeholder="e.g., Product Showcase"
                 className="mt-1"
               />
@@ -1065,13 +1430,18 @@ const DigitalSupportForm = memo(
               <label className="text-xs font-medium">Content</label>
               <Textarea
                 value={reelsForm.content}
-                onChange={(e) => setReelsForm({ ...reelsForm, content: e.target.value })}
+                onChange={(e) =>
+                  setReelsForm({ ...reelsForm, content: e.target.value })
+                }
                 placeholder="Describe the reel content"
                 className="mt-1 resize-none"
                 rows={2}
               />
             </div>
-            <Button onClick={addReel} className="w-full bg-purple-600 hover:bg-purple-700">
+            <Button
+              onClick={addReel}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
               Add Reel
             </Button>
           </div>
@@ -1079,14 +1449,37 @@ const DigitalSupportForm = memo(
 
         {digitalData.ds_reel.length > 0 && (
           <div className="space-y-2">
-            <h5 className="font-semibold text-sm">Added Reels ({digitalData.ds_reel.length})</h5>
+            <h5 className="font-semibold text-sm">
+              Added Reels ({digitalData.ds_reel.length})
+            </h5>
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {digitalData.ds_reel.map((reel, idx) => (
-                <div key={idx} className="p-3 border rounded-lg bg-purple-50 dark:bg-purple-900/20 flex justify-between items-start">
+                <div
+                  key={idx}
+                  className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
+                >
                   <div className="flex-1">
                     <p className="font-medium text-sm">{reel.subject}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">ID: {reel.reelId}</p>
-                    <Badge variant="secondary" className="mt-1">{reel.status}</Badge>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      ID: {reel.reelId}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <label className="text-xs font-medium">Status:</label>
+                      <Select
+                        value={reel.status}
+                        onValueChange={(value) =>
+                          updateReelStatus(idx, value as "completed" | "pending")
+                        }
+                      >
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
@@ -1106,14 +1499,31 @@ const DigitalSupportForm = memo(
 
     const renderPodcastsSection = () => (
       <div className="space-y-4">
-        <div className="p-4 bg-orange-50 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
-          <h4 className="font-semibold text-sm text-orange-900 dark:text-orange-100 mb-4">Add New Podcast</h4>
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+              Add New Podcast
+            </h4>
+            {limits && (
+              <span
+                className={`text-xs font-medium px-2 py-1 rounded ${
+                  digitalData.podcastLog.length >= limits.totalPodcast
+                    ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                    : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+                }`}
+              >
+                {digitalData.podcastLog.length}/{limits.totalPodcast}
+              </span>
+            )}
+          </div>
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium">Title *</label>
               <Input
                 value={podcastsForm.title}
-                onChange={(e) => setPodcastsForm({ ...podcastsForm, title: e.target.value })}
+                onChange={(e) =>
+                  setPodcastsForm({ ...podcastsForm, title: e.target.value })
+                }
                 placeholder="e.g., Episode 1: Getting Started"
                 className="mt-1"
               />
@@ -1123,11 +1533,19 @@ const DigitalSupportForm = memo(
               <Input
                 type="date"
                 value={podcastsForm.scheduleDate}
-                onChange={(e) => setPodcastsForm({ ...podcastsForm, scheduleDate: e.target.value })}
+                onChange={(e) =>
+                  setPodcastsForm({
+                    ...podcastsForm,
+                    scheduleDate: e.target.value,
+                  })
+                }
                 className="mt-1"
               />
             </div>
-            <Button onClick={addPodcast} className="w-full bg-orange-600 hover:bg-orange-700">
+            <Button
+              onClick={addPodcast}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
               Add Podcast
             </Button>
           </div>
@@ -1135,16 +1553,24 @@ const DigitalSupportForm = memo(
 
         {digitalData.podcastLog.length > 0 && (
           <div className="space-y-2">
-            <h5 className="font-semibold text-sm">Added Podcasts ({digitalData.podcastLog.length})</h5>
+            <h5 className="font-semibold text-sm">
+              Added Podcasts ({digitalData.podcastLog.length})
+            </h5>
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {digitalData.podcastLog.map((podcast, idx) => (
-                <div key={idx} className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-900/20 flex justify-between items-start">
+                <div
+                  key={idx}
+                  className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
+                >
                   <div className="flex-1">
                     <p className="font-medium text-sm">{podcast.title}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Scheduled: {new Date(podcast.scheduleDate).toLocaleDateString()}
+                      Scheduled:{" "}
+                      {new Date(podcast.scheduleDate).toLocaleDateString()}
                     </p>
-                    <Badge variant="secondary" className="mt-1">{podcast.status}</Badge>
+                    <Badge variant="secondary" className="mt-1">
+                      {podcast.status}
+                    </Badge>
                   </div>
                   <Button
                     variant="ghost"
@@ -1164,29 +1590,56 @@ const DigitalSupportForm = memo(
 
     const renderWeblogsSection = () => (
       <div className="space-y-4">
-        <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
-          <h4 className="font-semibold text-sm text-green-900 dark:text-green-100 mb-4">Add New Weblog</h4>
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-4">
+            Add New Weblog
+          </h4>
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium">Weblog ID *</label>
-              <Input
-                value={weblogsForm.weblog_id}
-                onChange={(e) => setWeblogsForm({ ...weblogsForm, weblog_id: e.target.value })}
-                placeholder="e.g., WB001"
-                className="mt-1"
-              />
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={weblogsForm.weblog_id}
+                  onChange={(e) =>
+                    setWeblogsForm({ ...weblogsForm, weblog_id: e.target.value })
+                  }
+                  placeholder="e.g., WEBXYZ123"
+                  className="flex-1"
+                  readOnly={true}
+                />
+                <Button
+                  type="button"
+                  onClick={() =>
+                    setWeblogsForm({
+                      ...weblogsForm,
+                      weblog_id: generateUniqueId("WEB"),
+                    })
+                  }
+                  className="bg-green-600 hover:bg-green-700 px-4"
+                >
+                  Generate
+                </Button>
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium">Description *</label>
               <Textarea
                 value={weblogsForm.description}
-                onChange={(e) => setWeblogsForm({ ...weblogsForm, description: e.target.value })}
+                onChange={(e) =>
+                  setWeblogsForm({
+                    ...weblogsForm,
+                    description: e.target.value,
+                  })
+                }
                 placeholder="Enter weblog description"
                 className="mt-1 resize-none"
                 rows={3}
               />
             </div>
-            <Button onClick={addWeblog} className="w-full bg-green-600 hover:bg-green-700">
+            <Button
+              onClick={addWeblog}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
               Add Weblog
             </Button>
           </div>
@@ -1194,14 +1647,23 @@ const DigitalSupportForm = memo(
 
         {digitalData.ds_weblog.length > 0 && (
           <div className="space-y-2">
-            <h5 className="font-semibold text-sm">Added Weblogs ({digitalData.ds_weblog.length})</h5>
+            <h5 className="font-semibold text-sm">
+              Added Weblogs ({digitalData.ds_weblog.length})
+            </h5>
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {digitalData.ds_weblog.map((weblog, idx) => (
-                <div key={idx} className="p-3 border rounded-lg bg-green-50 dark:bg-green-900/20 flex justify-between items-start">
+                <div
+                  key={idx}
+                  className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
+                >
                   <div className="flex-1">
                     <p className="font-medium text-sm">{weblog.weblog_id}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{weblog.description}</p>
-                    <Badge variant="secondary" className="mt-1">{weblog.status}</Badge>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                      {weblog.description}
+                    </p>
+                    <Badge variant="secondary" className="mt-1">
+                      {weblog.status}
+                    </Badge>
                   </div>
                   <Button
                     variant="ghost"
@@ -1256,28 +1718,62 @@ const DigitalSupportForm = memo(
           </Button>
         </div>
 
-        <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+        <div className="">
           {activeTab === "graphics" && renderGraphicsSection()}
           {activeTab === "reels" && renderReelsSection()}
           {activeTab === "podcasts" && renderPodcastsSection()}
           {activeTab === "weblogs" && renderWeblogsSection()}
         </div>
 
-        <div className="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-          <p className="font-semibold mb-1">📌 Summary:</p>
-          <ul className="space-y-1">
-            <li>• Graphics: {digitalData.ds_graphics.length} items</li>
-            <li>• Reels: {digitalData.ds_reel.length} items</li>
-            <li>• Podcasts: {digitalData.podcastLog.length} items</li>
-            <li>• Weblogs: {digitalData.ds_weblog.length} items</li>
-          </ul>
+        <div className="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg space-y-3">
+          <div>
+            <p className="font-semibold mb-2">📊 Merchant Overview:</p>
+            <ul className="space-y-1 ml-2 text-xs">
+              <li>
+                • Listing Limit:{" "}
+                <span className="font-medium text-blue-700 dark:text-blue-300">
+                  {limits?.ListingLimit ?? 0}
+                </span>
+              </li>
+              <li>
+                • Graphics Limit:{" "}
+                <span className="font-medium text-blue-700 dark:text-blue-300">
+                  {digitalData.ds_graphics.length}/{limits?.totalGraphics ?? 0}
+                </span>{" "}
+              </li>
+              <li>
+                • Reels Limit:{" "}
+                <span className="font-medium text-blue-700 dark:text-blue-300">
+                  {digitalData.ds_reel.length}/{limits?.totalReels ?? 0}
+                </span>
+                
+              </li>
+              <li>
+                • Podcasts Limit:{" "}
+                <span className="font-medium text-blue-700 dark:text-blue-300">
+                  {digitalData.podcastLog.length}/{limits?.totalPodcast ?? 0}
+                </span>
+              </li>
+              <li>
+                • Weblogs:{" "}
+                <span className="font-medium text-blue-700 dark:text-blue-300">
+                  {digitalData.ds_weblog.length}
+                </span>
+              </li>
+              <li>
+                • Website:{" "}
+                <span className="font-medium text-blue-700 dark:text-blue-300">
+                  {limits?.isWebsite ? "Enabled" : "Disabled"}
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     );
   }
 );
 DigitalSupportForm.displayName = "DigitalSupportForm";
-
 
 function MerchantActionModals({
   modal,
@@ -1344,6 +1840,10 @@ function MerchantActionModals({
       dispatch({
         type: "INITIALIZE_DIGITAL_SUPPORT",
         payload: initializeDigitalSupportData(modal.merchant),
+      });
+      dispatch({
+        type: "INITIALIZE_LIMITS",
+        payload: initializeLimits(modal.merchant),
       });
     }
     dispatch({ type: "SET_SHOW_CONFIRMATION", payload: false });
@@ -1479,8 +1979,6 @@ function MerchantActionModals({
     await handleComplexConfirm();
   }, [handleComplexConfirm]);
 
-
-
   const handleConfirmClick = useCallback(() => {
     if (
       modal.type === "adjustLimits" ||
@@ -1615,6 +2113,7 @@ function MerchantActionModals({
               digitalData={state.digitalSupportData}
               onDigitalChange={handleDigitalSupportChange}
               merchantId={modal.merchant?._id}
+              limits={state.limits}
             />
           )}
           <DialogFooter className="space-x-2">
