@@ -8,6 +8,7 @@ import React, {
   useReducer,
   memo,
 } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -488,51 +489,66 @@ const AdjustLimitsForm = memo(
     secretCode: string;
     onLimitsChange: (key: keyof MerchantLimits, value: any) => void;
     onSecretCodeChange: (value: string) => void;
-  }) => (
-    <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto">
-      <LimitInputField
-        label="Listing Limit"
-        value={limits.ListingLimit}
-        onChange={(val) => onLimitsChange("ListingLimit", val)}
-        placeholder="Enter listing limit"
-      />
-      <LimitInputField
-        label="Total Graphics"
-        value={limits.totalGraphics}
-        onChange={(val) => onLimitsChange("totalGraphics", val)}
-        placeholder="Enter total graphics"
-      />
-      <LimitInputField
-        label="Total Reels"
-        value={limits.totalReels}
-        onChange={(val) => onLimitsChange("totalReels", val)}
-        placeholder="Enter total reels"
-      />
-      <LimitInputField
-        label="Total Podcast"
-        value={limits.totalPodcast}
-        onChange={(val) => onLimitsChange("totalPodcast", val)}
-        placeholder="Enter total podcast"
-      />
-      <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
-        <label className="text-sm font-medium">Is Website</label>
-        <Switch
-          checked={limits.isWebsite}
-          onCheckedChange={(checked) => onLimitsChange("isWebsite", checked)}
+  }) => {
+    const [showSecretCode, setShowSecretCode] = useState(false);
+
+    return (
+      <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto">
+        <LimitInputField
+          label="Listing Limit"
+          value={limits.ListingLimit}
+          onChange={(val) => onLimitsChange("ListingLimit", val)}
+          placeholder="Enter listing limit"
         />
-      </div>
-      <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-        <label className="text-sm font-medium">Secret Code</label>
-        <Input
-          type="password"
-          value={secretCode}
-          onChange={(e) => onSecretCodeChange(e.target.value)}
-          placeholder="Enter secret code"
-          className="mt-2"
+        <LimitInputField
+          label="Total Graphics"
+          value={limits.totalGraphics}
+          onChange={(val) => onLimitsChange("totalGraphics", val)}
+          placeholder="Enter total graphics"
         />
+        <LimitInputField
+          label="Total Reels"
+          value={limits.totalReels}
+          onChange={(val) => onLimitsChange("totalReels", val)}
+          placeholder="Enter total reels"
+        />
+        <LimitInputField
+          label="Total Podcast"
+          value={limits.totalPodcast}
+          onChange={(val) => onLimitsChange("totalPodcast", val)}
+          placeholder="Enter total podcast"
+        />
+        <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
+          <label className="text-sm font-medium">Is Website</label>
+          <Switch
+            checked={limits.isWebsite}
+            onCheckedChange={(checked) => onLimitsChange("isWebsite", checked)}
+          />
+        </div>
+        <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+          <label className="text-sm font-medium">Secret Code</label>
+          <div className="relative mt-2">
+            <Input
+              type={showSecretCode ? "text" : "password"}
+              value={secretCode}
+              onChange={(e) => onSecretCodeChange(e.target.value)}
+              placeholder="Enter secret code"
+              className="pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+              onClick={() => setShowSecretCode(!showSecretCode)}
+            >
+              {showSecretCode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
-  )
+    );
+  }
 );
 AdjustLimitsForm.displayName = "AdjustLimitsForm";
 
@@ -775,9 +791,19 @@ const DigitalSupportForm = memo(
       "graphics" | "reels" | "podcasts" | "weblogs"
     >("graphics");
 
+    // Generate unique ID with format: 3-letter prefix + 7 random alphanumeric
+    const generateUniqueId = (prefix: string): string => {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let randomPart = "";
+      for (let i = 0; i < 10; i++) {
+        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return `${prefix}${"-"}${randomPart}`;
+    };
+
     // Graphics form state
     const [graphicsForm, setGraphicsForm] = React.useState({
-      graphicId: "",
+      graphicId: generateUniqueId("GRA"),
       requestCategory: "",
       content: "",
       subject: "",
@@ -786,7 +812,7 @@ const DigitalSupportForm = memo(
 
     // Reels form state
     const [reelsForm, setReelsForm] = React.useState({
-      reelId: "",
+      reelId: generateUniqueId("REE"),
       content: "",
       subject: "",
     });
@@ -799,23 +825,13 @@ const DigitalSupportForm = memo(
 
     // Weblogs form state
     const [weblogsForm, setWeblogsForm] = React.useState({
-      weblog_id: "",
+      weblog_id: generateUniqueId("WEB"),
       description: "",
     });
 
-    // Generate unique ID with format: 3-letter prefix + 5 random alphanumeric
-    const generateUniqueId = (prefix: string): string => {
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let randomPart = "";
-      for (let i = 0; i < 10; i++) {
-        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return `${prefix}${"-"}${randomPart}`;
-    };
-
     const addGraphic = () => {
       if (!graphicsForm.graphicId || !graphicsForm.subject) {
-        toast.error("Please fill in Graphic ID and Subject");
+        toast.error("Please fill in Subject");
         return;
       }
 
@@ -834,7 +850,7 @@ const DigitalSupportForm = memo(
       };
       onDigitalChange("ds_graphics", [...digitalData.ds_graphics, newGraphic]);
       setGraphicsForm({
-        graphicId: "",
+        graphicId: generateUniqueId("GRA"),
         requestCategory: "",
         content: "",
         subject: "",
@@ -845,7 +861,7 @@ const DigitalSupportForm = memo(
 
     const addReel = () => {
       if (!reelsForm.reelId || !reelsForm.subject) {
-        toast.error("Please fill in Reel ID and Subject");
+        toast.error("Please fill in Subject");
         return;
       }
 
@@ -863,7 +879,7 @@ const DigitalSupportForm = memo(
         status: "pending" as const,
       };
       onDigitalChange("ds_reel", [...digitalData.ds_reel, newReel]);
-      setReelsForm({ reelId: "", content: "", subject: "" });
+      setReelsForm({ reelId: generateUniqueId("REE"), content: "", subject: "" });
       toast.success("Reel added successfully");
     };
 
@@ -893,7 +909,7 @@ const DigitalSupportForm = memo(
 
     const addWeblog = () => {
       if (!weblogsForm.weblog_id || !weblogsForm.description) {
-        toast.error("Please fill in Weblog ID and Description");
+        toast.error("Please fill in Description");
         return;
       }
       const newWeblog = {
@@ -901,7 +917,7 @@ const DigitalSupportForm = memo(
         status: "pending" as const,
       };
       onDigitalChange("ds_weblog", [...digitalData.ds_weblog, newWeblog]);
-      setWeblogsForm({ weblog_id: "", description: "" });
+      setWeblogsForm({ weblog_id: generateUniqueId("WEB"), description: "" });
       toast.success("Weblog added successfully");
     };
 
@@ -1237,32 +1253,18 @@ const DigitalSupportForm = memo(
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium">Graphic ID *</label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  value={graphicsForm.graphicId}
-                  onChange={(e) =>
-                    setGraphicsForm({
-                      ...graphicsForm,
-                      graphicId: e.target.value,
-                    })
-                  }
-                  placeholder="e.g., GRAXYZ123"
-                  className="flex-1"
-                  readOnly={true}
-                />
-                <Button
-                  type="button"
-                  onClick={() =>
-                    setGraphicsForm({
-                      ...graphicsForm,
-                      graphicId: generateUniqueId("GRA"),
-                    })
-                  }
-                  className="bg-green-600 hover:bg-green-700 px-4"
-                >
-                  Generate
-                </Button>
-              </div>
+              <Input
+                value={graphicsForm.graphicId}
+                onChange={(e) =>
+                  setGraphicsForm({
+                    ...graphicsForm,
+                    graphicId: e.target.value,
+                  })
+                }
+                placeholder="Auto-generated ID"
+                className="mt-1"
+                readOnly={true}
+              />
             </div>
             <div>
               <label className="text-xs font-medium">Subject *</label>
@@ -1391,29 +1393,15 @@ const DigitalSupportForm = memo(
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium">Reel ID *</label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  value={reelsForm.reelId}
-                  onChange={(e) =>
-                    setReelsForm({ ...reelsForm, reelId: e.target.value })
-                  }
-                  placeholder="e.g., REEXYZ123"
-                  className="flex-1"
-                  readOnly={true}
-                />
-                <Button
-                  type="button"
-                  onClick={() =>
-                    setReelsForm({
-                      ...reelsForm,
-                      reelId: generateUniqueId("REE"),
-                    })
-                  }
-                  className="bg-green-600 hover:bg-green-700 px-4"
-                >
-                  Generate
-                </Button>
-              </div>
+              <Input
+                value={reelsForm.reelId}
+                onChange={(e) =>
+                  setReelsForm({ ...reelsForm, reelId: e.target.value })
+                }
+                placeholder="Auto-generated ID"
+                className="mt-1"
+                readOnly={true}
+              />
             </div>
             <div>
               <label className="text-xs font-medium">Subject *</label>
@@ -1597,29 +1585,15 @@ const DigitalSupportForm = memo(
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium">Weblog ID *</label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  value={weblogsForm.weblog_id}
-                  onChange={(e) =>
-                    setWeblogsForm({ ...weblogsForm, weblog_id: e.target.value })
-                  }
-                  placeholder="e.g., WEBXYZ123"
-                  className="flex-1"
-                  readOnly={true}
-                />
-                <Button
-                  type="button"
-                  onClick={() =>
-                    setWeblogsForm({
-                      ...weblogsForm,
-                      weblog_id: generateUniqueId("WEB"),
-                    })
-                  }
-                  className="bg-green-600 hover:bg-green-700 px-4"
-                >
-                  Generate
-                </Button>
-              </div>
+              <Input
+                value={weblogsForm.weblog_id}
+                onChange={(e) =>
+                  setWeblogsForm({ ...weblogsForm, weblog_id: e.target.value })
+                }
+                placeholder="Auto-generated ID"
+                className="mt-1"
+                readOnly={true}
+              />
             </div>
             <div>
               <label className="text-xs font-medium">Description *</label>
@@ -1718,16 +1692,9 @@ const DigitalSupportForm = memo(
           </Button>
         </div>
 
-        <div className="">
-          {activeTab === "graphics" && renderGraphicsSection()}
-          {activeTab === "reels" && renderReelsSection()}
-          {activeTab === "podcasts" && renderPodcastsSection()}
-          {activeTab === "weblogs" && renderWeblogsSection()}
-        </div>
-
         <div className="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg space-y-3">
           <div>
-            <p className="font-semibold mb-2">📊 Merchant Overview:</p>
+            <p className="font-semibold mb-2">📊 Merchant Digital Support Overview:</p>
             <ul className="space-y-1 ml-2 text-xs">
               <li>
                 • Listing Limit:{" "}
@@ -1769,6 +1736,14 @@ const DigitalSupportForm = memo(
             </ul>
           </div>
         </div>
+
+        <div className="">
+          {activeTab === "graphics" && renderGraphicsSection()}
+          {activeTab === "reels" && renderReelsSection()}
+          {activeTab === "podcasts" && renderPodcastsSection()}
+          {activeTab === "weblogs" && renderWeblogsSection()}
+        </div>
+        
       </div>
     );
   }

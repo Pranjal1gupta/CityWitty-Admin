@@ -41,6 +41,7 @@ import {
   Eye,
   Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Merchant, ModalType } from "@/app/types/Merchant";
 
 interface MerchantTableProps {
@@ -368,12 +369,23 @@ export default function MerchantTable({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() =>
+                                onClick={() => {
+                                  // Validate that listing limits are set
+                                  if (
+                                    !merchant.ListingLimit ||
+                                    !merchant.totalGraphics ||
+                                    !merchant.totalReels
+                                  ) {
+                                    toast.error(
+                                      "Please update listing limits first to enter Digital Support"
+                                    );
+                                    return;
+                                  }
                                   onSetModal({
                                     type: "manageDigitalSupport",
                                     merchant,
-                                  })
-                                }
+                                  });
+                                }}
                               >
                                 <Zap className="h-4 w-4 text-blue-500" />
                               </Button>

@@ -74,6 +74,7 @@ export default function MerchantsPage() {
 
   useEffect(() => {
     if (!user) return;
+    setDataLoading(true);
     fetchData();
     const interval = setInterval(() => {
       fetchData();
