@@ -19,6 +19,8 @@ import {
   ChevronDown,
   Briefcase,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+
 import { useAuth } from "@/contexts/AuthContext";
 
 const navigation = [
@@ -50,10 +53,27 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+// Helper function to safely get sidebar state from localStorage
+const getSidebarState = () => {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("sidebarCollapsed");
+    return saved !== null ? JSON.parse(saved) : true;
+  }
+  return true;
+};
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(getSidebarState());
   const { user, logout, timeRemaining, isWarning } = useAuth();
   const pathname = usePathname();
+
+  // Save sidebar state whenever it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidebarCollapsed", JSON.stringify(sidebarCollapsed));
+    }
+  }, [sidebarCollapsed]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -161,14 +181,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <X className="h-6 w-6 text-white" />
               </button>
             </div>
-            <Sidebar />
+            <Sidebar collapsed={false} onToggleCollapse={() => {}} />
           </div>
         </div>
       )}
 
       <div className="hidden md:flex md:flex-shrink-0">
-        <div className="flex flex-col w-64">
-          <Sidebar />
+        <div className={`flex flex-col transition-all duration-300 ease-in-out ${
+          sidebarCollapsed ? "w-20" : "w-64"
+        }`}>
+          <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
         </div>
       </div>
 
@@ -252,7 +274,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <main className="flex-1 relative overflow-y-auto focus:outline-none">
           <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+            <div className={`transition-all duration-300 ${
+              sidebarCollapsed 
+                ? 'px-2 sm:px-3 md:px-4' 
+                : 'max-w-7xl mx-auto px-4 sm:px-6 md:px-8'
+            }`}>
               {children}
             </div>
           </div>
@@ -261,64 +287,111 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </div>
   );
 
-  function Sidebar() {
+  function Sidebar({ collapsed, onToggleCollapse }: { collapsed: boolean; onToggleCollapse: () => void }) {
     return (
-      <div className="flex flex-col h-0 flex-1 border-r border-gray-200 bg-white">
+      <div className="flex flex-col h-0 flex-1 border-r border-gray-200 bg-white transition-all duration-300 ease-in-out">
         <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center flex-shrink-0 px-4">
-            <div className="w-8 h-8 bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">CW</span>
+          <div className={`flex items-center flex-shrink-0 px-4 transition-all duration-300 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm">CW</span>
+              </div>
+              {!collapsed && (
+                <div className="ml-2 flex items-center overflow-hidden">
+                  <span className="text-xl font-bold text-blue-500 whitespace-nowrap">City</span>
+                  <span className="text-xl font-bold text-orange-500 whitespace-nowrap">Witty</span>
+                </div>
+              )}
             </div>
-            <span className="ml-2 text-xl font-bold text-blue-500">City</span>
-            <span className="text-xl font-bold text-orange-500">Witty</span>
+            {!collapsed && (
+              <button
+                onClick={onToggleCollapse}
+                className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                title="Collapse sidebar"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-600" />
+              </button>
+            )}
           </div>
-          <nav className="mt-5 flex-1 px-2 space-y-1">
+          
+          {collapsed && (
+            <button
+              onClick={onToggleCollapse}
+              className="mx-2 p-2 hover:bg-gray-100 rounded-md transition-colors mt-2"
+              title="Expand sidebar"
+            >
+              <ChevronRight className="h-5 w-5 text-gray-600 mx-auto" />
+            </button>
+          )}
+
+          <nav className={`mt-5 flex-1 px-2 space-y-1 transition-all duration-300 ${collapsed ? 'px-1' : 'px-2'}`}>
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               const notificationCount = getNotificationCount(item.name);
 
-              return (
+              const linkContent = (
                 <Link
                   key={item.name}
                   href={item.href}
+                  title={collapsed ? item.name : ''}
                   className={`${
                     isActive
                       ? "bg-gradient-to-r from-[#4AA8FF]/10 to-[#0099ff]/10 text-[#4AA8FF] border-r-2 border-[#4AA8FF]"
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  } group flex items-center px-2 py-2 text-sm font-medium rounded-md relative`}
+                  } group flex items-center px-2 py-2 text-sm font-medium rounded-md relative transition-all duration-300 ${
+                    collapsed ? 'justify-center' : ''
+                  }`}
                 >
                   <item.icon
                     className={`${
                       isActive
                         ? "text-[#4AA8FF]"
                         : "text-gray-400 group-hover:text-gray-500"
-                    } mr-3 flex-shrink-0 h-6 w-6`}
+                    } flex-shrink-0 h-6 w-6 ${collapsed ? '' : 'mr-3'}`}
                   />
-                  {item.name}
+                  {!collapsed && (
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">{item.name}</span>
+                  )}
                   {notificationCount > 0 && (
                     <>
-                      <Badge className="ml-auto h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs animate-pulse">
+                      <Badge className={`h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs animate-pulse ${
+                        collapsed ? 'absolute -top-1 -right-1' : 'ml-auto'
+                      }`}>
                         {notificationCount}
                       </Badge>
-                      <div className="absolute right-2 w-2 h-2 bg-[#0099ff] rounded-full animate-ping"></div>
+                      <div className={`w-2 h-2 bg-[#0099ff] rounded-full animate-ping ${
+                        collapsed ? 'absolute -bottom-0.5 -right-0.5' : 'absolute right-2'
+                      }`}></div>
                     </>
                   )}
                 </Link>
               );
+
+              return linkContent;
             })}
           </nav>
         </div>
-        <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-          <div className="flex items-center w-full">
-            <Clock className={`h-5 w-5 mr-2 ${isWarning ? 'text-red-500' : 'text-gray-500'}`} />
-            <div className="flex-1">
-              <p className={`text-xs font-medium ${isWarning ? 'text-red-600' : 'text-gray-600'}`}>
-                Session expires in
-              </p>
-              <p className={`text-sm font-semibold ${isWarning ? 'text-red-600' : 'text-gray-900'}`}>
-                {formatTime(timeRemaining)}
-              </p>
-            </div>
+        
+        <div className={`flex-shrink-0 flex border-t border-gray-200 p-4 transition-all duration-300 ${collapsed ? 'justify-center' : ''}`}>
+          <div className={`flex items-center ${collapsed ? 'flex-col gap-2' : 'w-full'}`}>
+            <Clock className={`h-5 w-5 flex-shrink-0 ${collapsed ? '' : 'mr-2'} ${isWarning ? 'text-red-500' : 'text-gray-500'}`} />
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <p className={`text-xs font-medium ${isWarning ? 'text-red-600' : 'text-gray-600'}`}>
+                  Session expires in
+                </p>
+                <p className={`text-sm font-semibold ${isWarning ? 'text-red-600' : 'text-gray-900'}`}>
+                  {formatTime(timeRemaining)}
+                </p>
+              </div>
+            )}
+            {collapsed && (
+              <div className="text-center">
+                <p className={`text-xs font-semibold leading-tight ${isWarning ? 'text-red-600' : 'text-gray-900'}`}>
+                  {formatTime(timeRemaining)}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
