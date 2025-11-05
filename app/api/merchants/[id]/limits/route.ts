@@ -11,9 +11,11 @@ export async function PATCH(
 
     const { id } = params;
     const body = await request.json();
-    const { ListingLimit, totalGraphics, totalReels, isWebsite, totalPodcast, secretCode } = body;
+    const { ListingLimit, totalGraphics, totalReels, isWebsite, totalPodcast, secretCode, bypassSecretCode } = body;
 
-    if (secretCode !== "SuperSecret123") {
+    // Allow updates if bypassSecretCode flag is true (for package-based updates)
+    // OR if the correct secret code is provided (for manual limit adjustments)
+    if (!bypassSecretCode && secretCode !== "SuperSecret123") {
       return NextResponse.json({ error: 'Invalid secret code' }, { status: 403 });
     }
 

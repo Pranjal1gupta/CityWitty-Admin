@@ -37,11 +37,29 @@ export async function GET(request: NextRequest) {
       query.target_audience = targetAudience;
     }
 
-    const notifications = await Notification.find(query)
+    let notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
+
+    // Auto-expire notifications that have passed their expiration time
+    const now = new Date();
+    notifications = await Promise.all(
+      notifications.map(async (notif: any) => {
+        if (notif.expires_at && new Date(notif.expires_at) < now && notif.status !== "expired") {
+          // Update the notification to expired status in the database
+          await Notification.findByIdAndUpdate(
+            notif._id,
+            { status: "expired" },
+            { new: true }
+          );
+          // Update the returned notification object
+          notif.status = "expired";
+        }
+        return notif;
+      })
+    );
 
     const total = await Notification.countDocuments(query);
 

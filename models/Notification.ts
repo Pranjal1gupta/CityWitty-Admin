@@ -11,7 +11,7 @@ export interface INotification extends Document {
   title: string;
   message: string;
   type: "info" | "alert" | "update" | "promotion" | "warning" | "pending actions";
-  status: "draft" | "sent" | "unsent";
+  status: "draft" | "sent" | "unsent" | "expired";
   target_audience: "user" | "merchant" | "franchise" | "all";
   target_ids?: string[];
   icon?: string;
@@ -34,7 +34,7 @@ const NotificationSchema = new Schema<INotification>(
     },
     status: {
       type: String,
-      enum: ["draft", "sent", "unsent"],
+      enum: ["draft", "sent", "unsent", "expired"],
       default: "draft",
     },
     target_audience: {

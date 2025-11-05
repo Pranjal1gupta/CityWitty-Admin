@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Merchant, ModalType } from "@/app/types/Merchant";
+import { PACKAGE_LIMITS, PACKAGE_TIERS, getPackageLimits } from "@/constants/packageLimits";
 
 type MerchantStatuses = {
   citywittyAssured: boolean;
@@ -654,9 +655,11 @@ const PackageSelectField = memo(
           <SelectValue placeholder="Select a variant" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="Launch Pad">Launch Pad</SelectItem>
-          <SelectItem value="Scale Up">Scale Up</SelectItem>
-          <SelectItem value="Market Leader">Market Leader</SelectItem>
+          {PACKAGE_TIERS.map((tier) => (
+            <SelectItem key={tier} value={tier}>
+              {tier}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
@@ -669,11 +672,13 @@ const ManagePurchasedPackageForm = memo(
   ({
     packageData,
     onPackageChange,
+    limits,
   }: {
     packageData: PurchasedPackage;
     onPackageChange: (key: keyof PurchasedPackage, value: string) => void;
+    limits?: MerchantLimits;
   }) => (
-    <div className="space-y-6 max-h-[400px] overflow-y-auto">
+    <div className="space-y-6 max-h-[600px] overflow-y-auto">
       <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
         <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-4">
           Package Details
@@ -708,6 +713,40 @@ const ManagePurchasedPackageForm = memo(
           />
         </div>
       </div>
+      
+      {limits && (
+        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+          <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-4">
+            Listing Limits for {packageData.variantName || "Selected Variant"}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="p-3 bg-white dark:bg-gray-800 rounded border">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Listings</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {limits.ListingLimit}
+              </p>
+            </div>
+            <div className="p-3 bg-white dark:bg-gray-800 rounded border">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Graphics</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {limits.totalGraphics}
+              </p>
+            </div>
+            <div className="p-3 bg-white dark:bg-gray-800 rounded border">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Reels</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {limits.totalReels}
+              </p>
+            </div>
+            <div className="p-3 bg-white dark:bg-gray-800 rounded border">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Podcasts</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {limits.totalPodcast}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 );
@@ -1303,7 +1342,7 @@ const DigitalSupportForm = memo(
                 rows={2}
               />
             </div>
-            <div className="flex items-center space-x-2">
+            {/* <div className="flex items-center space-x-2">
               <Switch
                 checked={graphicsForm.isSchedules}
                 onCheckedChange={(checked) =>
@@ -1311,7 +1350,7 @@ const DigitalSupportForm = memo(
                 }
               />
               <label className="text-xs font-medium">Scheduled</label>
-            </div>
+            </div> */}
             <Button
               onClick={addGraphic}
               className="w-full bg-blue-600 hover:bg-blue-700"
@@ -1804,6 +1843,24 @@ function MerchantActionModals({
         type: "INITIALIZE_PURCHASED_PACKAGE",
         payload: initializePurchasedPackage(modal.merchant),
       });
+      
+      // Initialize limits based on current package variant
+      const variantName = modal.merchant.purchasedPackage?.variantName;
+      if (variantName) {
+        const limits = getPackageLimits(variantName);
+        if (limits) {
+          dispatch({
+            type: "INITIALIZE_LIMITS",
+            payload: {
+              ListingLimit: limits.ListingLimit,
+              totalGraphics: limits.totalGraphics,
+              totalReels: limits.totalReels,
+              totalPodcast: limits.totalPodcast,
+              isWebsite: modal.merchant.isWebsite || false,
+            },
+          });
+        }
+      }
     }
     if (modal.type === "addOnboardingAgent" && modal.merchant) {
       dispatch({
@@ -1899,6 +1956,13 @@ function MerchantActionModals({
           await onUpdatePurchasedPackage(
             modal.merchant._id,
             state.purchasedPackage
+          );
+          // Also update the limits based on the selected variant
+          // Note: Empty string for secretCode when updating through package management
+          await onUpdateMerchantLimits(
+            modal.merchant._id,
+            state.limits,
+            "" // No secret code required for package-based limit updates
           );
           break;
         case "addOnboardingAgent":
@@ -2000,6 +2064,23 @@ function MerchantActionModals({
   const handlePackageChange = useCallback(
     (key: keyof PurchasedPackage, value: string) => {
       dispatch({ type: "SET_PURCHASED_PACKAGE", payload: { [key]: value } });
+      
+      // Auto-populate limits when variant is selected
+      if (key === "variantName") {
+        const limits = getPackageLimits(value);
+        if (limits) {
+          dispatch({
+            type: "SET_LIMITS",
+            payload: {
+              ListingLimit: limits.ListingLimit,
+              totalGraphics: limits.totalGraphics,
+              totalReels: limits.totalReels,
+              totalPodcast: limits.totalPodcast,
+              isWebsite: false, // Keep existing isWebsite value
+            },
+          });
+        }
+      }
     },
     []
   );
@@ -2075,6 +2156,7 @@ function MerchantActionModals({
             <ManagePurchasedPackageForm
               packageData={state.purchasedPackage}
               onPackageChange={handlePackageChange}
+              limits={state.limits}
             />
           )}
           {modal.type === "addOnboardingAgent" && (

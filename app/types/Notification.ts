@@ -10,7 +10,7 @@ export interface Notification {
   title: string;
   message: string;
   type: "info" | "alert" | "update" | "promotion" | "warning" | "pending actions";
-  status: "draft" | "sent" | "unsent";
+  status: "draft" | "sent" | "unsent" | "expired";
   target_audience: "user" | "merchant" | "franchise" | "all";
   target_ids?: string[];
   icon?: string;

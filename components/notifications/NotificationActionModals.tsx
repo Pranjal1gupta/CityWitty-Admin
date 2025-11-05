@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import type { Notification, ModalType } from "@/app/types/Notification";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { usePathname } from "next/navigation";
+import { isNotificationExpired } from "@/lib/notificationUtils";
 
 interface NotificationActionModalsProps {
   modal: { type: ModalType; notification: Notification | null };
@@ -198,6 +199,7 @@ export default function NotificationActionModals({
 }: NotificationActionModalsProps) {
   const [formData, setFormData] = useState<FormDataType>(initializeNotificationData(null));
   const [expiresAt, setExpiresAt] = useState<Date | undefined>(undefined);
+  const [expiresAtTime, setExpiresAtTime] = useState<string>("");
   const [showUnsavedConfirmation, setShowUnsavedConfirmation] = useState(false);
   const [showStatusConfirmation, setShowStatusConfirmation] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
@@ -219,6 +221,7 @@ export default function NotificationActionModals({
       setInitialFormData(initialData);
       setExpiresAt(undefined);
       setInitialExpiresAt(undefined);
+      setExpiresAtTime("");
       setAdditionalFields([]);
       setInitialAdditionalFields([]);
       setShowAdditionalFields(false);
@@ -229,6 +232,15 @@ export default function NotificationActionModals({
       const initialExpires = modal.notification.expires_at ? new Date(modal.notification.expires_at) : undefined;
       setExpiresAt(initialExpires);
       setInitialExpiresAt(initialExpires);
+      
+      // Extract time from existing expires_at
+      if (initialExpires) {
+        const hours = String(initialExpires.getHours()).padStart(2, '0');
+        const minutes = String(initialExpires.getMinutes()).padStart(2, '0');
+        setExpiresAtTime(`${hours}:${minutes}`);
+      } else {
+        setExpiresAtTime("");
+      }
 
       // Parse existing additional_field into key-value pairs
       if (modal.notification.additional_field) {
@@ -313,6 +325,28 @@ export default function NotificationActionModals({
     handleInputChange("target_ids", []);
   };
 
+  const handleExpiresAtDateChange = (date: Date | undefined) => {
+    if (date) {
+      if (expiresAtTime) {
+        const [hours, minutes] = expiresAtTime.split(':').map(Number);
+        date.setHours(hours, minutes, 0, 0);
+      }
+      setExpiresAt(date);
+    } else {
+      setExpiresAt(undefined);
+    }
+  };
+
+  const handleExpiresAtTimeChange = (timeString: string) => {
+    setExpiresAtTime(timeString);
+    if (expiresAt && timeString) {
+      const [hours, minutes] = timeString.split(':').map(Number);
+      const newDate = new Date(expiresAt);
+      newDate.setHours(hours, minutes, 0, 0);
+      setExpiresAt(newDate);
+    }
+  };
+
   const handleAddAdditionalField = () => {
     setAdditionalFields([...additionalFields, { key: "", value: "" }]);
     setShowAdditionalFields(true);
@@ -333,6 +367,12 @@ export default function NotificationActionModals({
   };
 
   const handleSubmit = () => {
+    // Check if notification is expired (in edit mode)
+    if (modal.type === "edit" && modal.notification && isNotificationExpired(modal.notification)) {
+      toast.error("Cannot edit an expired notification. Please delete it and create a new one.");
+      return;
+    }
+
     if (!formData.title.trim() || !formData.message.trim()) {
       toast.error("Title and message are required");
       return;
@@ -497,7 +537,7 @@ export default function NotificationActionModals({
                     <SelectContent>
                       <SelectItem value="draft">
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                          <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
                           <span className="font-medium">Draft</span>
                         </div>
                       </SelectItem>
@@ -696,27 +736,52 @@ export default function NotificationActionModals({
                   </div>
                   <label className="text-sm font-bold text-slate-900">Expires At</label>
                 </div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={`w-full justify-start text-left font-medium border-zinc-300 bg-white hover:border-zinc-600 hover:bg-zinc-50 ${
-                        !expiresAt && "text-muted-foreground"
-                      }`}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4 text-zinc-700" />
-                      {expiresAt ? format(expiresAt, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={expiresAt}
-                      onSelect={setExpiresAt}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="space-y-3">
+                  {/* Date Picker */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start text-left font-medium border-zinc-300 bg-white hover:border-zinc-600 hover:bg-zinc-50 ${
+                          !expiresAt && "text-muted-foreground"
+                        }`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-zinc-700" />
+                        {expiresAt ? format(expiresAt, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={expiresAt}
+                        onSelect={handleExpiresAtDateChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* Time Picker */}
+                  {expiresAt && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700">Time</label>
+                      <input
+                        type="time"
+                        value={expiresAtTime}
+                        onChange={(e) => handleExpiresAtTimeChange(e.target.value)}
+                        className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-white focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 font-medium"
+                      />
+                    </div>
+                  )}
+
+                  {/* Time Display */}
+                  {expiresAt && expiresAtTime && (
+                    <div className="p-2 rounded bg-blue-50 border border-blue-200">
+                      <p className="text-sm font-medium text-blue-900">
+                        {format(expiresAt, "PPP")} at {expiresAtTime}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Additional Field */}

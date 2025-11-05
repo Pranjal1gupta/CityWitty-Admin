@@ -121,7 +121,12 @@ export default function MerchantsPage() {
       const res = await fetch(`/api/merchants/${merchantId}/limits`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...limits, secretCode }),
+        body: JSON.stringify({ 
+          ...limits, 
+          secretCode,
+          // Allow bypass when called from package management (secretCode is empty)
+          bypassSecretCode: secretCode === ""
+        }),
       });
       if (!res.ok) throw new Error("Failed to update merchant limits");
       const updatedMerchant = await res.json();

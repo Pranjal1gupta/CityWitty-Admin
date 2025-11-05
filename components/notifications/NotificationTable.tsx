@@ -56,6 +56,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import type { Notification, ModalType } from "@/app/types/Notification";
+import { isNotificationExpired } from "@/lib/notificationUtils";
 
 interface NotificationTableProps {
   notifications: Notification[];
@@ -138,6 +139,8 @@ export default function NotificationTable({
         return <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>;
       case "unsent":
         return <Badge className="bg-orange-100 text-orange-800">Unsent</Badge>;
+      case "expired":
+        return <Badge className="bg-gray-400 text-white">Expired</Badge>;
       case "failed":
         return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
       default:
@@ -285,6 +288,7 @@ export default function NotificationTable({
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="unsent">Unsent</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
             </SelectContent>
           </Select>
           <Select value={targetFilter} onValueChange={setTargetFilter}>
@@ -483,15 +487,19 @@ export default function NotificationTable({
                           {notification.expires_at ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1 cursor-pointer">
-                                  <Clock className="h-4 w-4 text-orange-600" />
+                                <div className={`flex items-center gap-1 cursor-pointer ${isNotificationExpired(notification) ? 'text-gray-400' : 'text-orange-600'}`}>
+                                  <Clock className="h-4 w-4" />
                                   <span>
                                     {new Date(notification.expires_at).toLocaleDateString()}
                                   </span>
+                                  {/* {isNotificationExpired(notification) && (
+                                    <Badge className="bg-gray-400 text-white text-xs">Expired</Badge>
+                                  )} */}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>
+                                  {isNotificationExpired(notification) ? "Expired: " : "Expires: "}
                                   {new Date(notification.expires_at).toLocaleString()}
                                 </p>
                               </TooltipContent>
@@ -558,6 +566,7 @@ export default function NotificationTable({
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  disabled={isNotificationExpired(notification)}
                                   onClick={() =>
                                     onSetModal({ type: "edit", notification })
                                   }
@@ -566,7 +575,7 @@ export default function NotificationTable({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Edit Notification</p>
+                                <p>{isNotificationExpired(notification) ? "Cannot edit expired notification" : "Edit Notification"}</p>
                               </TooltipContent>
                             </Tooltip>
 
@@ -577,6 +586,7 @@ export default function NotificationTable({
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    disabled={isNotificationExpired(notification)}
                                     onClick={() =>
                                       openConfirmDialog("send", notification)
                                     }
@@ -585,7 +595,7 @@ export default function NotificationTable({
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Send Notification</p>
+                                  <p>{isNotificationExpired(notification) ? "Cannot send expired notification" : "Send Notification"}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ):
@@ -595,6 +605,7 @@ export default function NotificationTable({
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    disabled={notification.status === "expired"}
                                     onClick={() =>
                                       openConfirmDialog("unsend", notification)
                                     }
@@ -603,7 +614,7 @@ export default function NotificationTable({
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Unsend Notification</p>
+                                  <p>{notification.status === "expired" ? "Cannot unsend expired notification" : "Unsend Notification"}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ) }

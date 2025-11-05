@@ -291,18 +291,19 @@ export default function MerchantTable({
                                 size="sm"
                                 onClick={() =>
                                   onSetModal({
-                                    type: "toggleStatuses",
+                                    type: "managePurchasedPackage",
                                     merchant,
                                   })
                                 }
                               >
-                                <Award className="h-4 w-4 text-purple-600" />
+                                <Package className="h-4 w-4 text-orange-600" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Update Badges</p>
+                              <p>Manage Package</p>
                             </TooltipContent>
                           </Tooltip>
+                          
 
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -331,16 +332,16 @@ export default function MerchantTable({
                                 size="sm"
                                 onClick={() =>
                                   onSetModal({
-                                    type: "managePurchasedPackage",
+                                    type: "toggleStatuses",
                                     merchant,
                                   })
                                 }
                               >
-                                <Package className="h-4 w-4 text-orange-600" />
+                                <Award className="h-4 w-4 text-purple-600" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Manage Package</p>
+                              <p>Update Badges</p>
                             </TooltipContent>
                           </Tooltip>
 

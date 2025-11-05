@@ -52,6 +52,15 @@ export default function NotificationsPage() {
       }
     };
     fetchData();
+
+    if (!user) return;
+    setDataLoading(true);
+    fetchData();
+    const interval = setInterval(() => {
+      fetchData();
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [user, pathname]);
 
   const stats = useMemo((): NotificationStats => ({
