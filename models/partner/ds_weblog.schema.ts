@@ -3,7 +3,7 @@ import { Schema } from "mongoose";
 export const DsWeblogSchema = new Schema(
     {
         weblog_id: { type: String },
-        status: { type: String, enum: ["completed", "pending"], default: "pending" },
+        status: { type: String, enum: ["completed", "pending"], default: "completed" },
         completionDate: { type: Date },
         description: { type: String },
     },

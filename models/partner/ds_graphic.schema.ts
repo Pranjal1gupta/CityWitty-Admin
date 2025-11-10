@@ -5,7 +5,7 @@ export const DsGraphicSchema = new Schema(
         graphicId: { type: String },
         requestDate: { type: Date },
         completionDate: { type: Date },
-        status: { type: String, enum: ["completed", "pending"], default: "pending" },
+        status: { type: String, enum: ["completed", "pending"], default: "completed" },
         requestCategory: { type: String },
         content: { type: String },
         subject: { type: String },

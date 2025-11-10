@@ -1270,429 +1270,477 @@ const DigitalSupportForm = memo(
       }
     };
 
-    const renderGraphicsSection = () => (
-      <div className="space-y-4">
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
-              Add New Graphic
-            </h4>
-            {limits && (
-              <span
-                className={`text-xs font-medium px-2 py-1 rounded ${
-                  digitalData.ds_graphics.length >= limits.totalGraphics
-                    ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                    : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
-                }`}
-              >
-                {digitalData.ds_graphics.length}/{limits.totalGraphics}
-              </span>
-            )}
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium">Graphic ID *</label>
-              <Input
-                value={graphicsForm.graphicId}
-                onChange={(e) =>
-                  setGraphicsForm({
-                    ...graphicsForm,
-                    graphicId: e.target.value,
-                  })
-                }
-                placeholder="Auto-generated ID"
-                className="mt-1"
-                readOnly={true}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Subject *</label>
-              <Input
-                value={graphicsForm.subject}
-                onChange={(e) =>
-                  setGraphicsForm({ ...graphicsForm, subject: e.target.value })
-                }
-                placeholder="e.g., Product Banner"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Category</label>
-              <Input
-                value={graphicsForm.requestCategory}
-                onChange={(e) =>
-                  setGraphicsForm({
-                    ...graphicsForm,
-                    requestCategory: e.target.value,
-                  })
-                }
-                placeholder="e.g., Social Media"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Content</label>
-              <Textarea
-                value={graphicsForm.content}
-                onChange={(e) =>
-                  setGraphicsForm({ ...graphicsForm, content: e.target.value })
-                }
-                placeholder="Describe the graphic content"
-                className="mt-1 resize-none"
-                rows={2}
-              />
-            </div>
-            {/* <div className="flex items-center space-x-2">
-              <Switch
-                checked={graphicsForm.isSchedules}
-                onCheckedChange={(checked) =>
-                  setGraphicsForm({ ...graphicsForm, isSchedules: checked })
-                }
-              />
-              <label className="text-xs font-medium">Scheduled</label>
-            </div> */}
-            <Button
-              onClick={addGraphic}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              Add Graphic
-            </Button>
-          </div>
-        </div>
-
-        {digitalData.ds_graphics.length > 0 && (
-          <div className="space-y-2">
-            <h5 className="font-semibold text-sm">
-              Added Graphics ({digitalData.ds_graphics.length})
-            </h5>
-            <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {digitalData.ds_graphics.map((graphic, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{graphic.subject}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      ID: {graphic.graphicId}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <label className="text-xs font-medium">Status:</label>
-                      <Select
-                        value={graphic.status}
-                        onValueChange={(value) =>
-                          updateGraphicStatus(idx, value as "completed" | "pending")
-                        }
-                      >
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeGraphic(idx)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-
-    const renderReelsSection = () => (
-      <div className="space-y-4">
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
-              Add New Reel
-            </h4>
-            {limits && (
-              <span
-                className={`text-xs font-medium px-2 py-1 rounded ${
-                  digitalData.ds_reel.length >= limits.totalReels
-                    ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                    : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
-                }`}
-              >
-                {digitalData.ds_reel.length}/{limits.totalReels}
-              </span>
-            )}
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium">Reel ID *</label>
-              <Input
-                value={reelsForm.reelId}
-                onChange={(e) =>
-                  setReelsForm({ ...reelsForm, reelId: e.target.value })
-                }
-                placeholder="Auto-generated ID"
-                className="mt-1"
-                readOnly={true}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Subject *</label>
-              <Input
-                value={reelsForm.subject}
-                onChange={(e) =>
-                  setReelsForm({ ...reelsForm, subject: e.target.value })
-                }
-                placeholder="e.g., Product Showcase"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Content</label>
-              <Textarea
-                value={reelsForm.content}
-                onChange={(e) =>
-                  setReelsForm({ ...reelsForm, content: e.target.value })
-                }
-                placeholder="Describe the reel content"
-                className="mt-1 resize-none"
-                rows={2}
-              />
-            </div>
-            <Button
-              onClick={addReel}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              Add Reel
-            </Button>
-          </div>
-        </div>
-
-        {digitalData.ds_reel.length > 0 && (
-          <div className="space-y-2">
-            <h5 className="font-semibold text-sm">
-              Added Reels ({digitalData.ds_reel.length})
-            </h5>
-            <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {digitalData.ds_reel.map((reel, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{reel.subject}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      ID: {reel.reelId}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <label className="text-xs font-medium">Status:</label>
-                      <Select
-                        value={reel.status}
-                        onValueChange={(value) =>
-                          updateReelStatus(idx, value as "completed" | "pending")
-                        }
-                      >
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeReel(idx)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-
-    const renderPodcastsSection = () => (
-      <div className="space-y-4">
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
-              Add New Podcast
-            </h4>
-            {limits && (
-              <span
-                className={`text-xs font-medium px-2 py-1 rounded ${
-                  digitalData.podcastLog.length >= limits.totalPodcast
-                    ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                    : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
-                }`}
-              >
-                {digitalData.podcastLog.length}/{limits.totalPodcast}
-              </span>
-            )}
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium">Title *</label>
-              <Input
-                value={podcastsForm.title}
-                onChange={(e) =>
-                  setPodcastsForm({ ...podcastsForm, title: e.target.value })
-                }
-                placeholder="e.g., Episode 1: Getting Started"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Schedule Date *</label>
-              <Input
-                type="date"
-                value={podcastsForm.scheduleDate}
-                onChange={(e) =>
-                  setPodcastsForm({
-                    ...podcastsForm,
-                    scheduleDate: e.target.value,
-                  })
-                }
-                className="mt-1"
-              />
-            </div>
-            <Button
-              onClick={addPodcast}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              Add Podcast
-            </Button>
-          </div>
-        </div>
-
-        {digitalData.podcastLog.length > 0 && (
-          <div className="space-y-2">
-            <h5 className="font-semibold text-sm">
-              Added Podcasts ({digitalData.podcastLog.length})
-            </h5>
-            <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {digitalData.podcastLog.map((podcast, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{podcast.title}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Scheduled:{" "}
-                      {new Date(podcast.scheduleDate).toLocaleDateString()}
-                    </p>
-                    <Badge variant="secondary" className="mt-1">
-                      {podcast.status}
-                    </Badge>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removePodcast(idx)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-
-    const renderWeblogsSection = () => (
-      <div className="space-y-4">
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-4">
-            Add New Weblog
+    const renderGraphicsForm = () => (
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+            Add New Graphic
           </h4>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium">Weblog ID *</label>
-              <Input
-                value={weblogsForm.weblog_id}
-                onChange={(e) =>
-                  setWeblogsForm({ ...weblogsForm, weblog_id: e.target.value })
-                }
-                placeholder="Auto-generated ID"
-                className="mt-1"
-                readOnly={true}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium">Description *</label>
-              <Textarea
-                value={weblogsForm.description}
-                onChange={(e) =>
-                  setWeblogsForm({
-                    ...weblogsForm,
-                    description: e.target.value,
-                  })
-                }
-                placeholder="Enter weblog description"
-                className="mt-1 resize-none"
-                rows={3}
-              />
-            </div>
-            <Button
-              onClick={addWeblog}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+          {limits && (
+            <span
+              className={`text-xs font-medium px-2 py-1 rounded ${
+                digitalData.ds_graphics.length >= limits.totalGraphics
+                  ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                  : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+              }`}
             >
-              Add Weblog
-            </Button>
-          </div>
+              {digitalData.ds_graphics.length}/{limits.totalGraphics}
+            </span>
+          )}
         </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium">Graphic ID *</label>
+            <Input
+              value={graphicsForm.graphicId}
+              onChange={(e) =>
+                setGraphicsForm({
+                  ...graphicsForm,
+                  graphicId: e.target.value,
+                })
+              }
+              placeholder="Auto-generated ID"
+              className="mt-1"
+              readOnly={true}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Subject *</label>
+            <Input
+              value={graphicsForm.subject}
+              onChange={(e) =>
+                setGraphicsForm({ ...graphicsForm, subject: e.target.value })
+              }
+              placeholder="e.g., Product Banner"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Category</label>
+            <Input
+              value={graphicsForm.requestCategory}
+              onChange={(e) =>
+                setGraphicsForm({
+                  ...graphicsForm,
+                  requestCategory: e.target.value,
+                })
+              }
+              placeholder="e.g., Social Media"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Content</label>
+            <Textarea
+              value={graphicsForm.content}
+              onChange={(e) =>
+                setGraphicsForm({ ...graphicsForm, content: e.target.value })
+              }
+              placeholder="Describe the graphic content"
+              className="mt-1 resize-none"
+              rows={2}
+            />
+          </div>
+          <Button
+            onClick={addGraphic}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            Add Graphic
+          </Button>
+        </div>
+      </div>
+    );
 
-        {digitalData.ds_weblog.length > 0 && (
-          <div className="space-y-2">
-            <h5 className="font-semibold text-sm">
-              Added Weblogs ({digitalData.ds_weblog.length})
-            </h5>
-            <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {digitalData.ds_weblog.map((weblog, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{weblog.weblog_id}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {weblog.description}
-                    </p>
-                    <Badge variant="secondary" className="mt-1">
-                      {weblog.status}
-                    </Badge>
+    const renderGraphicsList = () => (
+      <div className="p-4 border rounded-lg bg-white dark:bg-gray-900 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h5 className="font-semibold text-sm">Added Graphics</h5>
+          <Badge variant="outline" className="text-xs">
+            {digitalData.ds_graphics.length}
+          </Badge>
+        </div>
+        {digitalData.ds_graphics.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-900/20 p-4 text-center text-xs text-blue-700 dark:text-blue-300">
+            No graphics added yet
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+            {digitalData.ds_graphics.map((graphic, idx) => (
+              <div
+                key={idx}
+                className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{graphic.subject}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    ID: {graphic.graphicId}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="text-xs font-medium">Status:</label>
+                    <Select
+                      value={graphic.status}
+                      onValueChange={(value) =>
+                        updateGraphicStatus(idx, value as "completed" | "pending")
+                      }
+                    >
+                      <SelectTrigger className="w-[120px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeWeblog(idx)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    Remove
-                  </Button>
                 </div>
-              ))}
-            </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeGraphic(idx)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
           </div>
         )}
       </div>
     );
+
+    const renderReelsForm = () => (
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+            Add New Reel
+          </h4>
+          {limits && (
+            <span
+              className={`text-xs font-medium px-2 py-1 rounded ${
+                digitalData.ds_reel.length >= limits.totalReels
+                  ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                  : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+              }`}
+            >
+              {digitalData.ds_reel.length}/{limits.totalReels}
+            </span>
+          )}
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium">Reel ID *</label>
+            <Input
+              value={reelsForm.reelId}
+              onChange={(e) =>
+                setReelsForm({ ...reelsForm, reelId: e.target.value })
+              }
+              placeholder="Auto-generated ID"
+              className="mt-1"
+              readOnly={true}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Subject *</label>
+            <Input
+              value={reelsForm.subject}
+              onChange={(e) =>
+                setReelsForm({ ...reelsForm, subject: e.target.value })
+              }
+              placeholder="e.g., Product Showcase"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Content</label>
+            <Textarea
+              value={reelsForm.content}
+              onChange={(e) =>
+                setReelsForm({ ...reelsForm, content: e.target.value })
+              }
+              placeholder="Describe the reel content"
+              className="mt-1 resize-none"
+              rows={2}
+            />
+          </div>
+          <Button
+            onClick={addReel}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            Add Reel
+          </Button>
+        </div>
+      </div>
+    );
+
+    const renderReelsList = () => (
+      <div className="p-4 border rounded-lg bg-white dark:bg-gray-900 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h5 className="font-semibold text-sm">Added Reels</h5>
+          <Badge variant="outline" className="text-xs">
+            {digitalData.ds_reel.length}
+          </Badge>
+        </div>
+        {digitalData.ds_reel.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-900/20 p-4 text-center text-xs text-blue-700 dark:text-blue-300">
+            No reels added yet
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+            {digitalData.ds_reel.map((reel, idx) => (
+              <div
+                key={idx}
+                className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{reel.subject}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    ID: {reel.reelId}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="text-xs font-medium">Status:</label>
+                    <Select
+                      value={reel.status}
+                      onValueChange={(value) =>
+                        updateReelStatus(idx, value as "completed" | "pending")
+                      }
+                    >
+                      <SelectTrigger className="w-[120px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeReel(idx)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+    const renderPodcastsForm = () => (
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+            Add New Podcast
+          </h4>
+          {limits && (
+            <span
+              className={`text-xs font-medium px-2 py-1 rounded ${
+                digitalData.podcastLog.length >= limits.totalPodcast
+                  ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                  : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+              }`}
+            >
+              {digitalData.podcastLog.length}/{limits.totalPodcast}
+            </span>
+          )}
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium">Title *</label>
+            <Input
+              value={podcastsForm.title}
+              onChange={(e) =>
+                setPodcastsForm({ ...podcastsForm, title: e.target.value })
+              }
+              placeholder="e.g., Episode 1: Getting Started"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Schedule Date *</label>
+            <Input
+              type="date"
+              value={podcastsForm.scheduleDate}
+              onChange={(e) =>
+                setPodcastsForm({
+                  ...podcastsForm,
+                  scheduleDate: e.target.value,
+                })
+              }
+              className="mt-1"
+            />
+          </div>
+          <Button
+            onClick={addPodcast}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            Add Podcast
+          </Button>
+        </div>
+      </div>
+    );
+
+    const renderPodcastsList = () => (
+      <div className="p-4 border rounded-lg bg-white dark:bg-gray-900 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h5 className="font-semibold text-sm">Added Podcasts</h5>
+          <Badge variant="outline" className="text-xs">
+            {digitalData.podcastLog.length}
+          </Badge>
+        </div>
+        {digitalData.podcastLog.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-900/20 p-4 text-center text-xs text-blue-700 dark:text-blue-300">
+            No podcasts scheduled yet
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+            {digitalData.podcastLog.map((podcast, idx) => (
+              <div
+                key={idx}
+                className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{podcast.title}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Scheduled: {new Date(podcast.scheduleDate).toLocaleDateString()}
+                  </p>
+                  <Badge variant="secondary" className="mt-1">
+                    {podcast.status}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removePodcast(idx)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+    const renderWeblogsForm = () => (
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+        <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-4">
+          Add New Weblog
+        </h4>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium">Weblog ID *</label>
+            <Input
+              value={weblogsForm.weblog_id}
+              onChange={(e) =>
+                setWeblogsForm({ ...weblogsForm, weblog_id: e.target.value })
+              }
+              placeholder="Auto-generated ID"
+              className="mt-1"
+              readOnly={true}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Description *</label>
+            <Textarea
+              value={weblogsForm.description}
+              onChange={(e) =>
+                setWeblogsForm({
+                  ...weblogsForm,
+                  description: e.target.value,
+                })
+              }
+              placeholder="Enter weblog description"
+              className="mt-1 resize-none"
+              rows={3}
+            />
+          </div>
+          <Button
+            onClick={addWeblog}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            Add Weblog
+          </Button>
+        </div>
+      </div>
+    );
+
+    const renderWeblogsList = () => (
+      <div className="p-4 border rounded-lg bg-white dark:bg-gray-900 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h5 className="font-semibold text-sm">Added Weblogs</h5>
+          <Badge variant="outline" className="text-xs">
+            {digitalData.ds_weblog.length}
+          </Badge>
+        </div>
+        {digitalData.ds_weblog.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-900/20 p-4 text-center text-xs text-blue-700 dark:text-blue-300">
+            No weblogs added yet
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+            {digitalData.ds_weblog.map((weblog, idx) => (
+              <div
+                key={idx}
+                className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 flex justify-between items-start"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{weblog.weblog_id}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                    {weblog.description}
+                  </p>
+                  <Badge variant="secondary" className="mt-1">
+                    {weblog.status}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeWeblog(idx)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+    const renderActiveForm = () => {
+      switch (activeTab) {
+        case "graphics":
+          return renderGraphicsForm();
+        case "reels":
+          return renderReelsForm();
+        case "podcasts":
+          return renderPodcastsForm();
+        case "weblogs":
+          return renderWeblogsForm();
+        default:
+          return null;
+      }
+    };
+
+    const renderActiveList = () => {
+      switch (activeTab) {
+        case "graphics":
+          return renderGraphicsList();
+        case "reels":
+          return renderReelsList();
+        case "podcasts":
+          return renderPodcastsList();
+        case "weblogs":
+          return renderWeblogsList();
+        default:
+          return null;
+      }
+    };
 
     return (
       <div className="space-y-4 max-h-[70vh] sm:max-h-[65vh] overflow-y-auto">
@@ -1776,13 +1824,14 @@ const DigitalSupportForm = memo(
           </div>
         </div>
 
-        <div className="">
-          {activeTab === "graphics" && renderGraphicsSection()}
-          {activeTab === "reels" && renderReelsSection()}
-          {activeTab === "podcasts" && renderPodcastsSection()}
-          {activeTab === "weblogs" && renderWeblogsSection()}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+          <div className="space-y-4">
+            {renderActiveForm()}
+          </div>
+          <div className="space-y-4">
+            {renderActiveList()}
+          </div>
         </div>
-        
       </div>
     );
   }
