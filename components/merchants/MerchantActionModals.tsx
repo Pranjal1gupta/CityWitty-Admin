@@ -1695,7 +1695,7 @@ const DigitalSupportForm = memo(
     );
 
     return (
-      <div className="space-y-4 max-h-[600px] overflow-y-auto">
+      <div className="space-y-4 max-h-[70vh] sm:max-h-[65vh] overflow-y-auto">
         <div className="flex gap-2 flex-wrap">
           <Button
             variant={activeTab === "graphics" ? "default" : "outline"}
@@ -2109,10 +2109,15 @@ function MerchantActionModals({
     );
   }, [
     modal.type,
-    modal.merchant?.displayName,
+    modal.merchant,
     modal.newVisibility,
     modal.newStatus,
   ]);
+
+  const isDigitalSupportModal = modal.type === "manageDigitalSupport";
+  const dialogContentClassName = isDigitalSupportModal
+    ? "max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6"
+    : undefined;
 
   // Early returns AFTER all hooks
   if (!modal.merchant) return null;
@@ -2121,7 +2126,7 @@ function MerchantActionModals({
   return (
     <>
       <Dialog open={!!modal.type} onOpenChange={onClose}>
-        <DialogContent>
+        <DialogContent className={dialogContentClassName}>
           <DialogHeader>
             <DialogTitle>{content.title}</DialogTitle>
             <DialogDescription>{content.description}</DialogDescription>
