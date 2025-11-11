@@ -2115,7 +2115,39 @@ function MerchantActionModals({
   const handlePackageChange = useCallback(
     (key: keyof PurchasedPackage, value: string) => {
       dispatch({ type: "SET_PURCHASED_PACKAGE", payload: { [key]: value } });
-      
+
+      if (key === "purchaseDate") {
+        if (!value) {
+          dispatch({ type: "SET_PURCHASED_PACKAGE", payload: { expiryDate: "" } });
+        } else {
+          const [yearStr, monthStr, dayStr] = value.split("-");
+          const year = Number(yearStr);
+          const month = Number(monthStr);
+          const day = Number(dayStr);
+          if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+            const purchaseDateUTC = new Date(Date.UTC(year, month - 1, day));
+            if (!Number.isNaN(purchaseDateUTC.getTime())) {
+              const expiryUTC = new Date(purchaseDateUTC);
+              expiryUTC.setUTCFullYear(expiryUTC.getUTCFullYear() + 1);
+              expiryUTC.setUTCDate(expiryUTC.getUTCDate() - 1);
+              const formattedExpiryDate = `${expiryUTC
+                .getUTCFullYear()
+                .toString()
+                .padStart(4, "0")}-${(expiryUTC.getUTCMonth() + 1)
+                .toString()
+                .padStart(2, "0")}-${expiryUTC
+                .getUTCDate()
+                .toString()
+                .padStart(2, "0")}`;
+              dispatch({
+                type: "SET_PURCHASED_PACKAGE",
+                payload: { expiryDate: formattedExpiryDate },
+              });
+            }
+          }
+        }
+      }
+
       // Auto-populate limits when variant is selected
       if (key === "variantName") {
         const limits = getPackageLimits(value);
