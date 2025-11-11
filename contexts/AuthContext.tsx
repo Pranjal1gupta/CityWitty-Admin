@@ -22,8 +22,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SESSION_TIMEOUT = 10 * 60; // 10 minutes in seconds
-const WARNING_THRESHOLD = 60; // Show warning at 1 minute remaining
+const SESSION_TIMEOUT = 60 * 60; // timeout in seconds (1 hour)
+const WARNING_THRESHOLD = 300; // Show warning at 5 minute remaining
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

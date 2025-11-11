@@ -188,7 +188,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="hidden md:flex md:flex-shrink-0">
         <div className={`flex flex-col transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? "w-20" : "w-64"
+          sidebarCollapsed ? "w-16" : "w-52"
         }`}>
           <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
         </div>

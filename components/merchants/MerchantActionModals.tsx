@@ -678,48 +678,50 @@ const ManagePurchasedPackageForm = memo(
     onPackageChange: (key: keyof PurchasedPackage, value: string) => void;
     limits?: MerchantLimits;
   }) => (
-    <div className="space-y-6 max-h-[600px] overflow-y-auto">
-      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-4">
-          Package Details
-        </h3>
-        <div className="space-y-4">
-          <PackageSelectField
-            label="Variant Name"
-            value={packageData.variantName}
-            onChange={(val) => onPackageChange("variantName", val)}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <PackageInputField
-              label="Purchase Date"
-              value={packageData.purchaseDate}
-              onChange={(val) => onPackageChange("purchaseDate", val)}
-              placeholder="Select purchase date"
-              type="date"
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div className="space-y-6">
+        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-4">
+            Package Details
+          </h3>
+          <div className="space-y-4">
+            <PackageSelectField
+              label="Variant Name"
+              value={packageData.variantName}
+              onChange={(val) => onPackageChange("variantName", val)}
             />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <PackageInputField
+                label="Purchase Date"
+                value={packageData.purchaseDate}
+                onChange={(val) => onPackageChange("purchaseDate", val)}
+                placeholder="Select purchase date"
+                type="date"
+              />
+              <PackageInputField
+                label="Expiry Date"
+                value={packageData.expiryDate}
+                onChange={(val) => onPackageChange("expiryDate", val)}
+                placeholder="Select expiry date"
+                type="date"
+              />
+            </div>
             <PackageInputField
-              label="Expiry Date"
-              value={packageData.expiryDate}
-              onChange={(val) => onPackageChange("expiryDate", val)}
-              placeholder="Select expiry date"
-              type="date"
+              label="Transaction ID"
+              value={packageData.transactionId}
+              onChange={(val) => onPackageChange("transactionId", val)}
+              placeholder="Enter transaction ID"
             />
           </div>
-          <PackageInputField
-            label="Transaction ID"
-            value={packageData.transactionId}
-            onChange={(val) => onPackageChange("transactionId", val)}
-            placeholder="Enter transaction ID"
-          />
         </div>
       </div>
-      
+
       {limits && (
-        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800 flex flex-col">
           <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-4">
             Listing Limits for {packageData.variantName || "Selected Variant"}
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="space-y-3">
             <div className="p-3 bg-white dark:bg-gray-800 rounded border">
               <p className="text-sm text-gray-600 dark:text-gray-400">Listings</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -2164,8 +2166,11 @@ function MerchantActionModals({
   ]);
 
   const isDigitalSupportModal = modal.type === "manageDigitalSupport";
+  const isPackageModal = modal.type === "managePurchasedPackage";
   const dialogContentClassName = isDigitalSupportModal
     ? "max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6"
+    : isPackageModal
+    ? "max-w-[92vw] sm:max-w-[80vw] md:max-w-[70vw] lg:max-w-4xl w-full max-h-[90vh] overflow-hidden grid-rows-[auto,1fr,auto] p-4 sm:p-6"
     : undefined;
 
   // Early returns AFTER all hooks
@@ -2207,11 +2212,13 @@ function MerchantActionModals({
             />
           )}
           {modal.type === "managePurchasedPackage" && (
-            <ManagePurchasedPackageForm
-              packageData={state.purchasedPackage}
-              onPackageChange={handlePackageChange}
-              limits={state.limits}
-            />
+            <div className="overflow-y-auto pr-1 sm:pr-2 min-h-0 max-h-full">
+              <ManagePurchasedPackageForm
+                packageData={state.purchasedPackage}
+                onPackageChange={handlePackageChange}
+                limits={state.limits}
+              />
+            </div>
           )}
           {modal.type === "addOnboardingAgent" && (
             <AddOnboardingAgentForm

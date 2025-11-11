@@ -67,9 +67,6 @@ export default function Dashboard() {
     }
   }, [user, isLoading, router]);
 
-  const handleslogout=()=>{
-
-  }
 
   if (isLoading) {
     return (
