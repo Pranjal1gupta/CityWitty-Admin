@@ -40,6 +40,7 @@ import {
   UserPlus,
   Eye,
   Zap,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Merchant, ModalType } from "@/app/types/Merchant";
@@ -393,6 +394,25 @@ export default function MerchantTable({
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Digital Support (Graphics, Reels, Podcasts, Weblogs)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  onSetModal({
+                                    type: "deleteMerchant",
+                                    merchant,
+                                  })
+                                }
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete Merchant</p>
                             </TooltipContent>
                           </Tooltip>
 

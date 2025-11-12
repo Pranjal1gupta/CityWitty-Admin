@@ -33,6 +33,8 @@ import { toast } from "sonner";
 import { Merchant, ModalType } from "@/app/types/Merchant";
 import { PACKAGE_LIMITS, PACKAGE_TIERS, getPackageLimits } from "@/constants/packageLimits";
 
+const CLIENT_ADMIN_SECRET_CODE = process.env.ADMIN_SECRET_CODE ?? "";
+
 type MerchantStatuses = {
   citywittyAssured: boolean;
   isVerified: boolean;
@@ -127,6 +129,10 @@ interface MerchantActionModalsProps {
   onUpdateOnboardingAgent: (
     merchantId: string,
     agentData: OnboardingAgent
+  ) => Promise<void>;
+  onDeleteMerchant: (
+    merchantId: string,
+    secretCode: string
   ) => Promise<void>;
   onUpdateDigitalSupport?: (
     merchantId: string,
@@ -245,6 +251,13 @@ const MODAL_CONFIGS = {
       `Add new digital support assets for ${name}: Graphics, Reels, Podcasts, and Weblogs.`,
     confirmText: "Save Assets",
     confirmClass: "bg-blue-600 hover:bg-blue-700",
+  },
+  deleteMerchant: {
+    title: "Delete Merchant",
+    description: (name: string) =>
+      `This will permanently delete ${name} and all associated merchant data.`,
+    confirmText: "Delete Merchant",
+    confirmClass: "bg-red-600 hover:bg-red-700",
   },
 } as const;
 
@@ -1849,6 +1862,7 @@ function MerchantActionModals({
   onUpdateMerchantStatuses,
   onUpdatePurchasedPackage,
   onUpdateOnboardingAgent,
+  onDeleteMerchant,
   onUpdateDigitalSupport,
 }: MerchantActionModalsProps) {
   // All hooks must be called before any early returns
@@ -1864,6 +1878,7 @@ function MerchantActionModals({
   });
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [showDeleteSecret, setShowDeleteSecret] = React.useState(false);
 
   // Reset submitting state when modal type changes
   useEffect(() => {
@@ -1871,6 +1886,8 @@ function MerchantActionModals({
   }, [modal.type]);
 
   useEffect(() => {
+    dispatch({ type: "SET_SECRET_CODE", payload: "" });
+    setShowDeleteSecret(false);
     if (
       modal.type !== "deactivate" &&
       !(modal.type === "confirmStatusChange" && modal.newStatus === "suspended")
@@ -1970,13 +1987,21 @@ function MerchantActionModals({
     onClose,
   ]);
 
+  const isSecretCodeValid = useCallback(() => {
+    if (!state.secretCode.trim()) return false;
+    if (CLIENT_ADMIN_SECRET_CODE) {
+      return state.secretCode === CLIENT_ADMIN_SECRET_CODE;
+    }
+    return true;
+  }, [state.secretCode]);
+
   const handleComplexConfirm = useCallback(async () => {
     if (!modal.merchant || isSubmitting) return;
     setIsSubmitting(true);
     try {
       switch (modal.type) {
         case "adjustLimits":
-          if (state.secretCode !== "SuperSecret123") {
+          if (!isSecretCodeValid()) {
             toast.error("Invalid secret code");
             setIsSubmitting(false);
             return;
@@ -1986,6 +2011,14 @@ function MerchantActionModals({
             state.limits,
             state.secretCode
           );
+          break;
+        case "deleteMerchant":
+          if (!isSecretCodeValid()) {
+            toast.error("Invalid secret code");
+            setIsSubmitting(false);
+            return;
+          }
+          await onDeleteMerchant(modal.merchant._id, state.secretCode);
           break;
         case "toggleStatuses":
           await onUpdateMerchantStatuses(modal.merchant._id, state.statuses);
@@ -2056,8 +2089,10 @@ function MerchantActionModals({
     onUpdatePurchasedPackage,
     onUpdateOnboardingAgent,
     onUpdateDigitalSupport,
+    onDeleteMerchant,
     onClose,
     isSubmitting,
+    isSecretCodeValid,
   ]);
 
   const handleConfirmAction = useCallback(async () => {
@@ -2080,7 +2115,8 @@ function MerchantActionModals({
       dispatch({ type: "SET_SHOW_CONFIRMATION", payload: true });
     } else if (
       modal.type === "confirmVisibilityChange" ||
-      modal.type === "confirmStatusChange"
+      modal.type === "confirmStatusChange" ||
+      modal.type === "deleteMerchant"
     ) {
       handleMainConfirm();
     } else {
@@ -2089,14 +2125,21 @@ function MerchantActionModals({
   }, [modal.type, handleMainConfirm, handleSimpleConfirm]);
 
   const isConfirmDisabled = useMemo(() => {
-    return (
-      ((modal.type === "deactivate" ||
+    const requiresSuspensionReason =
+      (modal.type === "deactivate" ||
         (modal.type === "confirmStatusChange" &&
           modal.newStatus === "suspended")) &&
-        !state.suspensionReason.trim()) ||
-      (modal.type === "adjustLimits" && state.secretCode !== "SuperSecret123")
-    );
-  }, [modal.type, modal.newStatus, state.suspensionReason, state.secretCode]);
+      !state.suspensionReason.trim();
+    const requiresSecret =
+      modal.type === "adjustLimits" || modal.type === "deleteMerchant";
+    const secretInvalid = requiresSecret && !isSecretCodeValid();
+    return requiresSuspensionReason || secretInvalid;
+  }, [
+    modal.type,
+    modal.newStatus,
+    state.suspensionReason,
+    isSecretCodeValid,
+  ]);
 
   const handleLimitsChange = useCallback(
     (key: keyof MerchantLimits, value: any) => {
@@ -2236,6 +2279,36 @@ function MerchantActionModals({
                 dispatch({ type: "SET_SECRET_CODE", payload: value })
               }
             />
+          )}
+          {modal.type === "deleteMerchant" && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                Deleting {merchant.displayName} will remove all associated merchant data permanently.
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Secret Code</label>
+                <div className="relative">
+                  <Input
+                    type={showDeleteSecret ? "text" : "password"}
+                    value={state.secretCode}
+                    onChange={(e) =>
+                      dispatch({ type: "SET_SECRET_CODE", payload: e.target.value })
+                    }
+                    placeholder="Enter secret code"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                    onClick={() => setShowDeleteSecret((prev) => !prev)}
+                  >
+                    {showDeleteSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
           {modal.type === "toggleStatuses" && (
             <ToggleStatusesForm

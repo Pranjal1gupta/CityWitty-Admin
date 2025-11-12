@@ -273,6 +273,27 @@ export default function MerchantsPage() {
     }
   };
 
+  const deleteMerchant = async (merchantId: string, secretCode: string) => {
+    try {
+      const res = await fetch(`/api/merchants/${merchantId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secretCode }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to delete merchant");
+      }
+      setMerchants((prev) => prev.filter((m) => m._id !== merchantId));
+      setTotalCount((prev) => Math.max(prev - 1, 0));
+      setDataLoading(true);
+      await fetchData();
+      toast.success("Merchant deleted successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Error deleting merchant");
+    }
+  };
+
 
 
   if (isLoading)
@@ -339,6 +360,7 @@ export default function MerchantsPage() {
             onUpdateMerchantStatuses={updateMerchantStatuses}
             onUpdatePurchasedPackage={updatePurchasedPackage}
             onUpdateOnboardingAgent={updateOnboardingAgent}
+            onDeleteMerchant={deleteMerchant}
             onUpdateDigitalSupport={updateDigitalSupport}
           />
         </div>

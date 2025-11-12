@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Partner from '@/models/partner/partner.schema';
 
+const ADMIN_SECRET_CODE = process.env.ADMIN_SECRET_CODE ?? "";
+
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
@@ -15,8 +17,13 @@ export async function PATCH(
 
     // Allow updates if bypassSecretCode flag is true (for package-based updates)
     // OR if the correct secret code is provided (for manual limit adjustments)
-    if (!bypassSecretCode && secretCode !== "SuperSecret123") {
-      return NextResponse.json({ error: 'Invalid secret code' }, { status: 403 });
+    if (!bypassSecretCode) {
+      if (!ADMIN_SECRET_CODE) {
+        return NextResponse.json({ error: 'Secret code not configured' }, { status: 500 });
+      }
+      if (secretCode !== ADMIN_SECRET_CODE) {
+        return NextResponse.json({ error: 'Invalid secret code' }, { status: 403 });
+      }
     }
 
     const updateData: any = {};
