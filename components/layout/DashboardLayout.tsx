@@ -12,6 +12,7 @@ import {
   Receipt,
   MessageSquare,
   User,
+  Users,
   Menu,
   X,
   Bell,
@@ -44,6 +45,7 @@ const navigation = [
   { name: "Ecommerce", href: "/ecommerce", icon: ShoppingBag },
   { name: "Transactions", href: "/transactions", icon: Receipt },
   { name: "Careers", href: "/careers", icon: Briefcase },
+  { name: "Team", href: "/Teams", icon: Users },
   { name: "Feedback", href: "/feedback", icon: MessageSquare },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Profile", href: "/profile", icon: User },
@@ -53,27 +55,26 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-// Helper function to safely get sidebar state from localStorage
-const getSidebarState = () => {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("sidebarCollapsed");
-    return saved !== null ? JSON.parse(saved) : true;
-  }
-  return true;
-};
-
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(getSidebarState());
+  // Initialize sidebarCollapsed from localStorage synchronously
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("sidebarCollapsed");
+      return saved !== null ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
   const { user, logout, timeRemaining, isWarning } = useAuth();
   const pathname = usePathname();
 
-  // Save sidebar state whenever it changes
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidebarCollapsed", JSON.stringify(sidebarCollapsed));
+  const toggleSidebar = () => {
+    const newValue = !sidebarCollapsed;
+    setSidebarCollapsed(newValue);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("sidebarCollapsed", JSON.stringify(newValue));
     }
-  }, [sidebarCollapsed]);
+  };
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -88,6 +89,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     ecommerce: 8,
     transactions: 12,
     careers: 0, // will fetch dynamically
+    team: 0,
     feedback: 3,
   });
   
@@ -190,7 +192,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className={`flex flex-col transition-all duration-300 ease-in-out ${
           sidebarCollapsed ? "w-16" : "w-52"
         }`}>
-          <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
+          <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
         </div>
       </div>
 
@@ -277,7 +279,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className={`transition-all duration-300 ${
               sidebarCollapsed 
                 ? 'px-2 sm:px-3 md:px-4' 
-                : 'max-w-7xl mx-auto px-4 sm:px-6 md:px-8'
+                : 'max-w-7xl mx-auto px-2 sm:px-2 md:px-2'
             }`}>
               {children}
             </div>
@@ -412,6 +414,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         return notificationCounts.transactions;
       case "careers":
         return notificationCounts.careers;
+      case "team":
+        return notificationCounts.team;
       case "feedback":
         return notificationCounts.feedback;
       default:

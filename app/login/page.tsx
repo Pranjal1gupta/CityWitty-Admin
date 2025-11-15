@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,9 +100,9 @@ export default function LoginPage() {
         </CardHeader>
 
         <CardContent className="px-8 pb-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Email */}
-            <div className="space-y-3 animate-fade-in animation-delay-4000">
+            <div className="space-y-2 animate-fade-in animation-delay-4000">
               <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <div className="relative group">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-blue-500 transition-colors duration-200" />
@@ -122,7 +123,7 @@ export default function LoginPage() {
             </div>
 
             {/* Password */}
-            <div className="space-y-3 animate-fade-in animation-delay-5000">
+            <div className="space-y-2 animate-fade-in animation-delay-5000">
               <Label htmlFor="password" className="text-sm font-medium">Password</Label>
               <div className="relative group">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-orange-500 transition-colors duration-200" />
@@ -151,6 +152,16 @@ export default function LoginPage() {
               {errors.password && (
                 <p className="text-red-500 text-sm animate-shake">{errors.password}</p>
               )}
+            </div>
+
+            {/* Forgot Password */}
+            <div className="text-right animate-fade-in animation-delay-5500">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-blue-500 hover:text-blue-700 transition-colors duration-200"
+              >
+                Forgot Password?
+              </Link>
             </div>
 
             {/* Submit */}

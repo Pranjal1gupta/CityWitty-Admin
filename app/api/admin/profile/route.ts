@@ -7,7 +7,7 @@ import Partner from "@/models/partner/partner.schema";
 
 const connectDB = async () => {
   try {
-    if (mongoose.connections[0].readyState) return;
+    if (mongoose.connections.length > 0 && mongoose.connections[0].readyState === 1) return;
     await mongoose.connect(process.env.MONGODB_URI as string, {
       dbName: "citywitty",
     });
