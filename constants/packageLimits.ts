@@ -10,6 +10,8 @@ export interface PackageLimitConfig {
   totalGraphics: number;
   totalReels: number;
   totalPodcast: number;
+  price: number;
+  incentivePercent: number; // percentage for onboarding incentive
 }
 
 export const PACKAGE_LIMITS: Record<PackageTier, PackageLimitConfig> = {
@@ -18,18 +20,24 @@ export const PACKAGE_LIMITS: Record<PackageTier, PackageLimitConfig> = {
     totalGraphics: 48,
     totalReels: 12,
     totalPodcast: 0,
+    price: 5000,
+    incentivePercent: 5,
   },
   "Scale Up": {
     ListingLimit: 20,
     totalGraphics: 96,
     totalReels: 24,
     totalPodcast: 0,
+    price: 10000,
+    incentivePercent: 7,
   },
   "Market Leader": {
     ListingLimit: 30,
     totalGraphics: 144,
     totalReels: 48,
     totalPodcast: 1,
+    price: 15000,
+    incentivePercent: 10,
   },
 };
 

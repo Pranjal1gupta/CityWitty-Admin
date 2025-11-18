@@ -76,11 +76,11 @@ export default function MerchantsPage() {
     if (!user) return;
     setDataLoading(true);
     fetchData();
-    const interval = setInterval(() => {
-      fetchData();
-    }, 3000);
+    // const interval = setInterval(() => {
+    //   fetchData();
+    // }, 3000);
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, [user, pathname, searchTerm, statusFilter, currentPage, rowsPerPage]); // refetch when filters or pagination change
 
   // Unified merchant status update helper

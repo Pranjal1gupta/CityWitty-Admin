@@ -523,7 +523,7 @@ export default function CardsPage() {
             </div>
 
             {/* Cards Table */}
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -560,8 +560,8 @@ export default function CardsPage() {
                       <TableCell>{card.lastUsed || "-"}</TableCell>
                       <TableCell>{card.transactions || 0}</TableCell>
                       <TableCell>Rs. {card.savings || 0}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
+                      <TableCell className="min-w-fit">
+                        <div className="flex items-center space-x-2 flex-wrap gap-1">
                           <Button
                             variant="outline"
                             size="sm"

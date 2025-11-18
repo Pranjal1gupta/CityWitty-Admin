@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+  import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 
@@ -24,7 +24,7 @@ export async function PUT(
       branch,
       role,
       status,
-      defaultMonthlyTarget,
+      defaultMonthlyRevenueTarget,
       defaultBonusRule,
     } = body;
 
@@ -41,16 +41,22 @@ export async function PUT(
     if (status && !validStatuses.includes(status)) {
       return NextResponse.json(
         { error: "Invalid status. Must be one of: " + validStatuses.join(", ") },
-        { status: 400 }
+        {
+          status: 400,
+          headers: { "Cache-Control": "no-store, max-age=0" },
+        }
       );
     }
 
     // Validate bonus rule
     if (defaultBonusRule) {
-      if (!["perMerchant", "fixed"].includes(defaultBonusRule.type)) {
+      if (!["perRevenue", "fixed"].includes(defaultBonusRule.type)) {
         return NextResponse.json(
-          { error: "Invalid bonus rule type. Must be 'perMerchant' or 'fixed'" },
-          { status: 400 }
+          { error: "Invalid bonus rule type. Must be 'perRevenue' or 'fixed'" },
+          {
+            status: 400,
+            headers: { "Cache-Control": "no-store, max-age=0" },
+          }
         );
       }
     }
@@ -68,7 +74,7 @@ export async function PUT(
     if (branch !== undefined) updateData.branch = branch?.trim();
     if (role !== undefined) updateData.role = role?.trim();
     if (status !== undefined) updateData.status = status;
-    if (defaultMonthlyTarget !== undefined) updateData.defaultMonthlyTarget = defaultMonthlyTarget;
+    if (defaultMonthlyRevenueTarget !== undefined) updateData.defaultMonthlyRevenueTarget = defaultMonthlyRevenueTarget;
     if (defaultBonusRule !== undefined) updateData.defaultBonusRule = defaultBonusRule;
 
     const updatedEmployee = await Employee.findByIdAndUpdate(
@@ -78,7 +84,13 @@ export async function PUT(
     );
 
     if (!updatedEmployee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        {
+          status: 404,
+          headers: { "Cache-Control": "no-store, max-age=0" },
+        }
+      );
     }
 
     const employee = updatedEmployee.toObject();
@@ -100,17 +112,27 @@ export async function PUT(
           branch: employee.branch,
           role: employee.role,
           status: employee.status,
-          defaultMonthlyTarget: employee.defaultMonthlyTarget,
+          defaultMonthlyRevenueTarget: employee.defaultMonthlyRevenueTarget,
           defaultBonusRule: employee.defaultBonusRule,
+          packagePrices: employee.packagePrices,
+          incentivePercentages: employee.incentivePercentages,
+          incentivePercentageHistory: employee.incentivePercentageHistory?.map((entry: any) => ({
+            percentage: entry.percentage,
+            effectiveFrom: entry.effectiveFrom?.toISOString(),
+          })),
           monthlyRecords: employee.monthlyRecords,
           totalOnboarded: employee.totalOnboarded,
           totalBonusEarned: employee.totalBonusEarned,
+          onboardingIncentiveEarned: employee.onboardingIncentiveEarned,
           createdAt: employee.createdAt?.toISOString(),
           updatedAt: employee.updatedAt?.toISOString(),
         },
         message: "Employee updated successfully"
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      }
     );
   } catch (error: any) {
     console.error("Error updating employee:", error);
@@ -119,13 +141,19 @@ export async function PUT(
     if (error.code === 11000) {
       return NextResponse.json(
         { error: "An employee with this ID already exists" },
-        { status: 409 }
+        {
+          status: 409,
+          headers: { "Cache-Control": "no-store, max-age=0" },
+        }
       );
     }
 
     return NextResponse.json(
       { error: "Failed to update employee" },
-      { status: 500 }
+      {
+        status: 500,
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      }
     );
   }
 }
@@ -142,18 +170,30 @@ export async function DELETE(
     const deletedEmployee = await Employee.findByIdAndDelete(id).lean();
 
     if (!deletedEmployee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        {
+          status: 404,
+          headers: { "Cache-Control": "no-store, max-age=0" },
+        }
+      );
     }
 
     return NextResponse.json(
       { success: true, message: "Employee deleted successfully" },
-      { status: 200 }
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      }
     );
   } catch (error) {
     console.error("Error deleting employee:", error);
     return NextResponse.json(
       { error: "Failed to delete employee" },
-      { status: 500 }
+      {
+        status: 500,
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      }
     );
   }
 }

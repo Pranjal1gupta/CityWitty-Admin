@@ -883,34 +883,59 @@ const DigitalSupportForm = memo(
       description: "",
     });
 
+    // Editing state
+    const [editingAsset, setEditingAsset] = React.useState<{
+      type: "graphics" | "reels" | "podcasts" | "weblogs";
+      index: number;
+    } | null>(null);
+
     const addGraphic = () => {
       if (!graphicsForm.graphicId || !graphicsForm.subject) {
         toast.error("Please fill in Subject");
         return;
       }
 
-      // Check if adding would exceed the limit
-      if (limits && digitalData.ds_graphics.length >= limits.totalGraphics) {
-        toast.error(
-          `Graphics limit reached. Maximum: ${limits.totalGraphics}, Current: ${digitalData.ds_graphics.length}`
-        );
-        return;
-      }
+      if (editingAsset && editingAsset.type === "graphics") {
+        // Update existing graphic
+        const updatedGraphics = [...digitalData.ds_graphics];
+        updatedGraphics[editingAsset.index] = {
+          ...updatedGraphics[editingAsset.index],
+          ...graphicsForm,
+        };
+        onDigitalChange("ds_graphics", updatedGraphics);
+        setEditingAsset(null);
+        setGraphicsForm({
+          graphicId: generateUniqueId("GRA"),
+          requestCategory: "",
+          content: "",
+          subject: "",
+          isSchedules: false,
+        });
+        toast.success("Graphic updated successfully");
+      } else {
+        // Check if adding would exceed the limit
+        if (limits && digitalData.ds_graphics.length >= limits.totalGraphics) {
+          toast.error(
+            `Graphics limit reached. Maximum: ${limits.totalGraphics}, Current: ${digitalData.ds_graphics.length}`
+          );
+          return;
+        }
 
-      const newGraphic = {
-        ...graphicsForm,
-        requestDate: new Date().toISOString(),
-        status: "pending" as const,
-      };
-      onDigitalChange("ds_graphics", [...digitalData.ds_graphics, newGraphic]);
-      setGraphicsForm({
-        graphicId: generateUniqueId("GRA"),
-        requestCategory: "",
-        content: "",
-        subject: "",
-        isSchedules: false,
-      });
-      toast.success("Graphic added successfully");
+        const newGraphic = {
+          ...graphicsForm,
+          requestDate: new Date().toISOString(),
+          status: "pending" as const,
+        };
+        onDigitalChange("ds_graphics", [...digitalData.ds_graphics, newGraphic]);
+        setGraphicsForm({
+          graphicId: generateUniqueId("GRA"),
+          requestCategory: "",
+          content: "",
+          subject: "",
+          isSchedules: false,
+        });
+        toast.success("Graphic added successfully");
+      }
     };
 
     const addReel = () => {
@@ -919,22 +944,35 @@ const DigitalSupportForm = memo(
         return;
       }
 
-      // Check if adding would exceed the limit
-      if (limits && digitalData.ds_reel.length >= limits.totalReels) {
-        toast.error(
-          `Reels limit reached. Maximum: ${limits.totalReels}, Current: ${digitalData.ds_reel.length}`
-        );
-        return;
-      }
+      if (editingAsset && editingAsset.type === "reels") {
+        // Update existing reel
+        const updatedReels = [...digitalData.ds_reel];
+        updatedReels[editingAsset.index] = {
+          ...updatedReels[editingAsset.index],
+          ...reelsForm,
+        };
+        onDigitalChange("ds_reel", updatedReels);
+        setEditingAsset(null);
+        setReelsForm({ reelId: generateUniqueId("REE"), content: "", subject: "" });
+        toast.success("Reel updated successfully");
+      } else {
+        // Check if adding would exceed the limit
+        if (limits && digitalData.ds_reel.length >= limits.totalReels) {
+          toast.error(
+            `Reels limit reached. Maximum: ${limits.totalReels}, Current: ${digitalData.ds_reel.length}`
+          );
+          return;
+        }
 
-      const newReel = {
-        ...reelsForm,
-        requestDate: new Date().toISOString(),
-        status: "pending" as const,
-      };
-      onDigitalChange("ds_reel", [...digitalData.ds_reel, newReel]);
-      setReelsForm({ reelId: generateUniqueId("REE"), content: "", subject: "" });
-      toast.success("Reel added successfully");
+        const newReel = {
+          ...reelsForm,
+          requestDate: new Date().toISOString(),
+          status: "pending" as const,
+        };
+        onDigitalChange("ds_reel", [...digitalData.ds_reel, newReel]);
+        setReelsForm({ reelId: generateUniqueId("REE"), content: "", subject: "" });
+        toast.success("Reel added successfully");
+      }
     };
 
     const addPodcast = () => {
@@ -943,22 +981,36 @@ const DigitalSupportForm = memo(
         return;
       }
 
-      // Check if adding would exceed the limit
-      if (limits && digitalData.podcastLog.length >= limits.totalPodcast) {
-        toast.error(
-          `Podcasts limit reached. Maximum: ${limits.totalPodcast}, Current: ${digitalData.podcastLog.length}`
-        );
-        return;
-      }
+      if (editingAsset && editingAsset.type === "podcasts") {
+        // Update existing podcast
+        const updatedPodcasts = [...digitalData.podcastLog];
+        updatedPodcasts[editingAsset.index] = {
+          ...updatedPodcasts[editingAsset.index],
+          ...podcastsForm,
+          scheduleDate: new Date(podcastsForm.scheduleDate).toISOString(),
+        };
+        onDigitalChange("podcastLog", updatedPodcasts);
+        setEditingAsset(null);
+        setPodcastsForm({ title: "", scheduleDate: "" });
+        toast.success("Podcast updated successfully");
+      } else {
+        // Check if adding would exceed the limit
+        if (limits && digitalData.podcastLog.length >= limits.totalPodcast) {
+          toast.error(
+            `Podcasts limit reached. Maximum: ${limits.totalPodcast}, Current: ${digitalData.podcastLog.length}`
+          );
+          return;
+        }
 
-      const newPodcast = {
-        ...podcastsForm,
-        scheduleDate: new Date(podcastsForm.scheduleDate).toISOString(),
-        status: "pending" as const,
-      };
-      onDigitalChange("podcastLog", [...digitalData.podcastLog, newPodcast]);
-      setPodcastsForm({ title: "", scheduleDate: "" });
-      toast.success("Podcast added successfully");
+        const newPodcast = {
+          ...podcastsForm,
+          scheduleDate: new Date(podcastsForm.scheduleDate).toISOString(),
+          status: "pending" as const,
+        };
+        onDigitalChange("podcastLog", [...digitalData.podcastLog, newPodcast]);
+        setPodcastsForm({ title: "", scheduleDate: "" });
+        toast.success("Podcast added successfully");
+      }
     };
 
     const addWeblog = () => {
@@ -966,13 +1018,27 @@ const DigitalSupportForm = memo(
         toast.error("Please fill in Description");
         return;
       }
-      const newWeblog = {
-        ...weblogsForm,
-        status: "pending" as const,
-      };
-      onDigitalChange("ds_weblog", [...digitalData.ds_weblog, newWeblog]);
-      setWeblogsForm({ weblog_id: generateUniqueId("WEB"), description: "" });
-      toast.success("Weblog added successfully");
+
+      if (editingAsset && editingAsset.type === "weblogs") {
+        // Update existing weblog
+        const updatedWeblogs = [...digitalData.ds_weblog];
+        updatedWeblogs[editingAsset.index] = {
+          ...updatedWeblogs[editingAsset.index],
+          ...weblogsForm,
+        };
+        onDigitalChange("ds_weblog", updatedWeblogs);
+        setEditingAsset(null);
+        setWeblogsForm({ weblog_id: generateUniqueId("WEB"), description: "" });
+        toast.success("Weblog updated successfully");
+      } else {
+        const newWeblog = {
+          ...weblogsForm,
+          status: "pending" as const,
+        };
+        onDigitalChange("ds_weblog", [...digitalData.ds_weblog, newWeblog]);
+        setWeblogsForm({ weblog_id: generateUniqueId("WEB"), description: "" });
+        toast.success("Weblog added successfully");
+      }
     };
 
     const removeGraphic = async (idx: number) => {
@@ -1193,103 +1259,104 @@ const DigitalSupportForm = memo(
       }
     };
 
-    const updatePodcastStatus = async (
-      idx: number,
-      newStatus: "scheduled" | "completed" | "pending"
-    ) => {
-      const podcast = digitalData.podcastLog[idx];
+    // const updatePodcastStatus = async (
+    //   idx: number,
+    //   newStatus: "scheduled" | "completed" | "pending"
+    // ) => {
+    //   const podcast = digitalData.podcastLog[idx];
 
-      // Update UI immediately
-      const updatedPodcasts = [...digitalData.podcastLog];
-      updatedPodcasts[idx] = {
-        ...podcast,
-        status: newStatus,
-        completeDate:
-          newStatus === "completed" ? new Date().toISOString() : undefined,
-      };
-      onDigitalChange("podcastLog", updatedPodcasts);
-      toast.success(`Podcast status updated to ${newStatus}`);
+    //   // Update UI immediately
+    //   const updatedPodcasts = [...digitalData.podcastLog];
+    //   updatedPodcasts[idx] = {
+    //     ...podcast,
+    //     status: newStatus,
+    //     completeDate:
+    //       newStatus === "completed" ? new Date().toISOString() : undefined,
+    //   };
+    //   onDigitalChange("podcastLog", updatedPodcasts);
+    //   toast.success(`Podcast status updated to ${newStatus}`);
 
-      // Update in database if item has title and merchantId exists
-      if (podcast.title && merchantId) {
-        try {
-          const res = await fetch(
-            `/api/merchants/${merchantId}/digital-support`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                type: "podcast",
-                itemId: podcast.title,
-                status: newStatus,
-                completeDate:
-                  newStatus === "completed"
-                    ? new Date().toISOString()
-                    : undefined,
-              }),
-            }
-          );
-          if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            console.error("API Error Response:", res.status, errorData);
-            throw new Error(errorData.error || "Failed to update podcast status in database");
-          }
-        } catch (error) {
-          console.error("Error updating podcast status:", error);
-          toast.error(error instanceof Error ? error.message : "Failed to update podcast status in database");
-        }
-      }
-    };
+    //   // Update in database if item has title and merchantId exists
+    //   if (podcast.title && merchantId) {
+    //     try {
+    //       const res = await fetch(
+    //         `/api/merchants/${merchantId}/digital-support`,
+    //         {
+    //           method: "PATCH",
+    //           headers: { "Content-Type": "application/json" },
+    //           body: JSON.stringify({
+    //             type: "podcast",
+    //             itemId: podcast.title,
+    //             status: newStatus,
+    //             completeDate:
+    //               newStatus === "completed"
+    //                 ? new Date().toISOString()
+    //                 : undefined,
+    //           }),
+    //         }
+    //       );
+    //       if (!res.ok) {
+    //         const errorData = await res.json().catch(() => ({}));
+    //         console.error("API Error Response:", res.status, errorData);
+    //         throw new Error(errorData.error || "Failed to update podcast status in database");
+    //       }
+    //     } catch (error) {
+    //       console.error("Error updating podcast status:", error);
+    //       toast.error(error instanceof Error ? error.message : "Failed to update podcast status in database");
+    //     }
+    //   }
+    // };
 
-    const updateWeblogStatus = async (idx: number, newStatus: "completed" | "pending") => {
-      const weblog = digitalData.ds_weblog[idx];
+    
+    // const updateWeblogStatus = async (idx: number, newStatus: "completed" | "pending") => {
+    //   const weblog = digitalData.ds_weblog[idx];
 
-      // Update UI immediately
-      const updatedWeblogs = [...digitalData.ds_weblog];
-      updatedWeblogs[idx] = {
-        ...weblog,
-        status: newStatus,
-        completionDate: newStatus === "completed" ? new Date().toISOString() : undefined,
-      };
-      onDigitalChange("ds_weblog", updatedWeblogs);
-      toast.success(`Weblog status updated to ${newStatus}`);
+    //   // Update UI immediately
+    //   const updatedWeblogs = [...digitalData.ds_weblog];
+    //   updatedWeblogs[idx] = {
+    //     ...weblog,
+    //     status: newStatus,
+    //     completionDate: newStatus === "completed" ? new Date().toISOString() : undefined,
+    //   };
+    //   onDigitalChange("ds_weblog", updatedWeblogs);
+    //   toast.success(`Weblog status updated to ${newStatus}`);
 
-      // Update in database if item has weblog_id and merchantId exists
-      if (weblog.weblog_id && merchantId) {
-        try {
-          const res = await fetch(
-            `/api/merchants/${merchantId}/digital-support`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                type: "weblog",
-                itemId: weblog.weblog_id,
-                status: newStatus,
-                completionDate:
-                  newStatus === "completed"
-                    ? new Date().toISOString()
-                    : undefined,
-              }),
-            }
-          );
-          if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            console.error("API Error Response:", res.status, errorData);
-            throw new Error(errorData.error || "Failed to update weblog status in database");
-          }
-        } catch (error) {
-          console.error("Error updating weblog status:", error);
-          toast.error(error instanceof Error ? error.message : "Failed to update weblog status in database");
-        }
-      }
-    };
+    //   // Update in database if item has weblog_id and merchantId exists
+    //   if (weblog.weblog_id && merchantId) {
+    //     try {
+    //       const res = await fetch(
+    //         `/api/merchants/${merchantId}/digital-support`,
+    //         {
+    //           method: "PATCH",
+    //           headers: { "Content-Type": "application/json" },
+    //           body: JSON.stringify({
+    //             type: "weblog",
+    //             itemId: weblog.weblog_id,
+    //             status: newStatus,
+    //             completionDate:
+    //               newStatus === "completed"
+    //                 ? new Date().toISOString()
+    //                 : undefined,
+    //           }),
+    //         }
+    //       );
+    //       if (!res.ok) {
+    //         const errorData = await res.json().catch(() => ({}));
+    //         console.error("API Error Response:", res.status, errorData);
+    //         throw new Error(errorData.error || "Failed to update weblog status in database");
+    //       }
+    //     } catch (error) {
+    //       console.error("Error updating weblog status:", error);
+    //       toast.error(error instanceof Error ? error.message : "Failed to update weblog status in database");
+    //     }
+    //   }
+    // };
 
     const renderGraphicsForm = () => (
       <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
         <div className="flex justify-between items-center mb-4">
           <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
-            Add New Graphic
+            {editingAsset && editingAsset.type === "graphics" ? "Edit Graphic" : "Add New Graphic"}
           </h4>
           {limits && (
             <span
@@ -1356,12 +1423,32 @@ const DigitalSupportForm = memo(
               rows={2}
             />
           </div>
-          <Button
-            onClick={addGraphic}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            Add Graphic
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={addGraphic}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              {editingAsset && editingAsset.type === "graphics" ? "Update Graphic" : "Add Graphic"}
+            </Button>
+            {editingAsset && editingAsset.type === "graphics" && (
+              <Button
+                onClick={() => {
+                  setEditingAsset(null);
+                  setGraphicsForm({
+                    graphicId: generateUniqueId("GRA"),
+                    requestCategory: "",
+                    content: "",
+                    subject: "",
+                    isSchedules: false,
+                  });
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel Edit
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -1408,14 +1495,34 @@ const DigitalSupportForm = memo(
                     </Select>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeGraphic(idx)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  Remove
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const graphic = digitalData.ds_graphics[idx];
+                      setEditingAsset({ type: "graphics", index: idx });
+                      setGraphicsForm({
+                        graphicId: graphic.graphicId,
+                        requestCategory: graphic.requestCategory,
+                        content: graphic.content,
+                        subject: graphic.subject,
+                        isSchedules: graphic.isSchedules || false,
+                      });
+                    }}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeGraphic(idx)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -1427,7 +1534,7 @@ const DigitalSupportForm = memo(
       <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
         <div className="flex justify-between items-center mb-4">
           <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
-            Add New Reel
+            {editingAsset && editingAsset.type === "reels" ? "Edit Reel" : "Add New Reel"}
           </h4>
           {limits && (
             <span
@@ -1477,12 +1584,26 @@ const DigitalSupportForm = memo(
               rows={2}
             />
           </div>
-          <Button
-            onClick={addReel}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            Add Reel
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={addReel}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              {editingAsset && editingAsset.type === "reels" ? "Update Reel" : "Add Reel"}
+            </Button>
+            {editingAsset && editingAsset.type === "reels" && (
+              <Button
+                onClick={() => {
+                  setEditingAsset(null);
+                  setReelsForm({ reelId: generateUniqueId("REE"), content: "", subject: "" });
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel Edit
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -1529,14 +1650,32 @@ const DigitalSupportForm = memo(
                     </Select>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeReel(idx)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  Remove
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const reel = digitalData.ds_reel[idx];
+                      setEditingAsset({ type: "reels", index: idx });
+                      setReelsForm({
+                        reelId: reel.reelId,
+                        content: reel.content,
+                        subject: reel.subject,
+                      });
+                    }}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeReel(idx)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -1548,7 +1687,7 @@ const DigitalSupportForm = memo(
       <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
         <div className="flex justify-between items-center mb-4">
           <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
-            Add New Podcast
+            {editingAsset && editingAsset.type === "podcasts" ? "Edit Podcast" : "Add New Podcast"}
           </h4>
           {limits && (
             <span
@@ -1588,12 +1727,26 @@ const DigitalSupportForm = memo(
               className="mt-1"
             />
           </div>
-          <Button
-            onClick={addPodcast}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            Add Podcast
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={addPodcast}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              {editingAsset && editingAsset.type === "podcasts" ? "Update Podcast" : "Add Podcast"}
+            </Button>
+            {editingAsset && editingAsset.type === "podcasts" && (
+              <Button
+                onClick={() => {
+                  setEditingAsset(null);
+                  setPodcastsForm({ title: "", scheduleDate: "" });
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel Edit
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -1626,14 +1779,31 @@ const DigitalSupportForm = memo(
                     {podcast.status}
                   </Badge>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removePodcast(idx)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  Remove
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const podcast = digitalData.podcastLog[idx];
+                      setEditingAsset({ type: "podcasts", index: idx });
+                      setPodcastsForm({
+                        title: podcast.title,
+                        scheduleDate: new Date(podcast.scheduleDate).toISOString().split('T')[0],
+                      });
+                    }}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removePodcast(idx)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -1644,7 +1814,7 @@ const DigitalSupportForm = memo(
     const renderWeblogsForm = () => (
       <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
         <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-4">
-          Add New Weblog
+          {editingAsset && editingAsset.type === "weblogs" ? "Edit Weblog" : "Add New Weblog"}
         </h4>
         <div className="space-y-3">
           <div>
@@ -1674,12 +1844,26 @@ const DigitalSupportForm = memo(
               rows={3}
             />
           </div>
-          <Button
-            onClick={addWeblog}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            Add Weblog
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={addWeblog}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              {editingAsset && editingAsset.type === "weblogs" ? "Update Weblog" : "Add Weblog"}
+            </Button>
+            {editingAsset && editingAsset.type === "weblogs" && (
+              <Button
+                onClick={() => {
+                  setEditingAsset(null);
+                  setWeblogsForm({ weblog_id: generateUniqueId("WEB"), description: "" });
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel Edit
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -1712,14 +1896,31 @@ const DigitalSupportForm = memo(
                     {weblog.status}
                   </Badge>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeWeblog(idx)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  Remove
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const weblog = digitalData.ds_weblog[idx];
+                      setEditingAsset({ type: "weblogs", index: idx });
+                      setWeblogsForm({
+                        weblog_id: weblog.weblog_id,
+                        description: weblog.description,
+                      });
+                    }}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeWeblog(idx)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -1758,7 +1959,7 @@ const DigitalSupportForm = memo(
     };
 
     return (
-      <div className="space-y-4 max-h-[70vh] sm:max-h-[65vh] overflow-y-auto">
+      <div className="space-y-4 flex-1 overflow-y-auto">
         <div className="flex gap-2 flex-wrap">
           <Button
             variant={activeTab === "graphics" ? "default" : "outline"}
@@ -1797,12 +1998,12 @@ const DigitalSupportForm = memo(
         <div className="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg space-y-3">
           <div>
             <p className="font-semibold mb-2">📊 Merchant Digital Support Overview:</p>
-            <ul className="space-y-1 ml-2 text-xs">
+            <ul className="flex flex-col gap-1 md:flex-row md:flex-wrap md:gap-4 ml-2 text-xs">
               <li>
                 • Listing Limit:{" "}
                 <span className="font-medium text-blue-700 dark:text-blue-300">
                   {limits?.ListingLimit ?? 0}
-                </span>
+                </span>{" "}
               </li>
               <li>
                 • Graphics Limit:{" "}
@@ -1814,26 +2015,25 @@ const DigitalSupportForm = memo(
                 • Reels Limit:{" "}
                 <span className="font-medium text-blue-700 dark:text-blue-300">
                   {digitalData.ds_reel.length}/{limits?.totalReels ?? 0}
-                </span>
-                
+                </span>{" "}
               </li>
               <li>
                 • Podcasts Limit:{" "}
                 <span className="font-medium text-blue-700 dark:text-blue-300">
                   {digitalData.podcastLog.length}/{limits?.totalPodcast ?? 0}
-                </span>
+                </span>{" "}
               </li>
               <li>
                 • Weblogs:{" "}
                 <span className="font-medium text-blue-700 dark:text-blue-300">
                   {digitalData.ds_weblog.length}
-                </span>
+                </span>{" "}
               </li>
               <li>
                 • Website:{" "}
                 <span className="font-medium text-blue-700 dark:text-blue-300">
                   {limits?.isWebsite ? "Enabled" : "Disabled"}
-                </span>
+                </span>{" "}
               </li>
             </ul>
           </div>
@@ -2243,7 +2443,7 @@ function MerchantActionModals({
   const isDigitalSupportModal = modal.type === "manageDigitalSupport";
   const isPackageModal = modal.type === "managePurchasedPackage";
   const dialogContentClassName = isDigitalSupportModal
-    ? "max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6"
+    ? "max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-6xl w-full h-[85vh] overflow-hidden flex flex-col p-4 sm:p-6"
     : isPackageModal
     ? "max-w-[92vw] sm:max-w-[80vw] md:max-w-[70vw] lg:max-w-4xl w-full max-h-[90vh] overflow-hidden grid-rows-[auto,1fr,auto] p-4 sm:p-6"
     : undefined;

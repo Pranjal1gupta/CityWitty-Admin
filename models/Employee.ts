@@ -1,22 +1,35 @@
 // models/Employee.ts
 import mongoose, { Schema, Document } from "mongoose";
 
-export type BonusCalcType = "perMerchant" | "fixed";
+export type BonusCalcType = "perRevenue" | "fixed";
 
 export interface IBonusRule {
   type: BonusCalcType;
-  // used when type === 'perMerchant'
-  amountPerMerchant?: number; // currency units per extra merchant
+  // used when type === 'perRevenue'
+  amountPerRevenue?: number; // currency units per unit of excess revenue
   // used when type === 'fixed'
   fixedBonusAmount?: number; // fixed bonus when target exceeded
+}
+
+export interface IIncentivePercentageEntry {
+  percentage: { [key: string]: number }; // percentages per package
+  effectiveFrom: Date; // when this percentage becomes active
+}
+
+export interface IOnboardedMerchant {
+  merchantID: string;
+  name: string;
+  email: string;
+  package: string;
+  revenue: number;
 }
 
 export interface IMonthlyOnboardRecord {
   year: number;
   month: number; // 1-12
-  target: number; // fixed target (number of merchants) for the month
+  revenueTarget: number; // revenue target for the month
   onboardedCount: number; // number of merchants actually onboarded this month
-  partners: string[]; // optional list of merchantIds counted
+  onboardedMerchants: IOnboardedMerchant[]; // list of onboarded merchants
   bonusRule?: IBonusRule | null; // optional per-month override
   bonusAmount?: number; // computed bonus for the month
   bonusCalculatedAt?: Date;
@@ -35,26 +48,50 @@ export interface IEmployee extends Document {
   department?: string;
   branch?: string;
   role?: string;
-  status?: "active" | "on_leave" | "suspended" | "terminated";
-  defaultMonthlyTarget: number; // default target if not set in monthly record
+  status?: "active" | "suspended" | "terminated";
+  defaultMonthlyRevenueTarget: number; // default revenue target if not set in monthly record
   defaultBonusRule: IBonusRule;
+  packagePrices: { [key: string]: number }; // dynamic package prices
+  incentivePercentages: { [key: string]: number }; // current/active incentive percentages per package
+  incentivePercentageHistory: IIncentivePercentageEntry[]; // historical record of incentive percentage changes
 
-  monthlyRecords: IMonthlyOnboardRecord[];  
+  monthlyRecords: IMonthlyOnboardRecord[];
 
   // convenience totals
   totalOnboarded?: number;
   totalBonusEarned?: number;
+  onboardingIncentiveEarned?: number;
 
   // helper methods
-  registerOnboardedPartner(partnerId: string, year?: number, month?: number): Promise<void>;
+  getIncentivePercentageForDate(packageName: string, date: Date): number;
+  registerOnboardedMerchant(merchant: IOnboardedMerchant, year?: number, month?: number): Promise<void>;
   computeAndPersistMonthlyBonus(year: number, month: number): Promise<number>;
 }
 
 const BonusRuleSchema = new Schema(
   {
-    type: { type: String, enum: ["perMerchant", "fixed"], required: true },
-    amountPerMerchant: { type: Number, min: 0 }, // used when perMerchant
+    type: { type: String, enum: ["perRevenue", "fixed"], required: true },
+    amountPerRevenue: { type: Number, min: 0 }, // used when perRevenue
     fixedBonusAmount: { type: Number, min: 0 }, // used when fixed
+  },
+  { _id: false }
+);
+
+const IncentivePercentageEntrySchema = new Schema(
+  {
+    percentage: { type: Object, required: true }, // { "Launch Pad": 5, "Scale Up": 7, ... }
+    effectiveFrom: { type: Date, required: true, index: true },
+  },
+  { _id: false }
+);
+
+const OnboardedMerchantSchema = new Schema(
+  {
+    merchantID: { type: String, required: true },
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    package: { type: String, required: true },
+    revenue: { type: Number, required: true, min: 0 },
   },
   { _id: false }
 );
@@ -63,9 +100,9 @@ const MonthlyOnboardSchema = new Schema(
   {
     year: { type: Number, required: true },
     month: { type: Number, required: true, min: 1, max: 12 },
-    target: { type: Number, required: true, default: 0 },
+    revenueTarget: { type: Number, required: true, default: 0 },
     onboardedCount: { type: Number, required: true, default: 0 },
-    partners: [{ type: String }],
+    onboardedMerchants: [{ type: OnboardedMerchantSchema }],
     bonusRule: { type: BonusRuleSchema, default: null },
     bonusAmount: { type: Number, default: 0, min: 0 },
     bonusCalculatedAt: { type: Date },
@@ -89,16 +126,20 @@ const EmployeeSchema = new Schema(
     branch: { type: String },
     role: { type: String },
 
-    status: { type: String, enum: ["active", "on_leave", "suspended", "terminated"], default: "active" },
+    status: { type: String, enum: ["active", "suspended", "terminated"], default: "active" },
 
-    // default month target and bonus rule (applies when monthly record doesn't override)
-    defaultMonthlyTarget: { type: Number, required: true, default: 10 }, // example default
-    defaultBonusRule: { type: BonusRuleSchema, required: true, default: { type: "perMerchant", amountPerMerchant: 500 } },
+    // default month revenue target and bonus rule (applies when monthly record doesn't override)
+    defaultMonthlyRevenueTarget: { type: Number, required: true, default: 10000 }, // example default revenue target
+    defaultBonusRule: { type: BonusRuleSchema, required: true, default: { type: "perRevenue", amountPerRevenue: 0.1 } },
+    packagePrices: { type: Object, default: { "Launch Pad": 5000, "Scale Up": 10000, "Market Leader": 15000 } }, // dynamic package prices
+    incentivePercentages: { type: Object, default: { "Launch Pad": 5, "Scale Up": 7, "Market Leader": 10 } }, // dynamic incentive percentages per package
+    incentivePercentageHistory: { type: [IncentivePercentageEntrySchema], default: [] }, // track historical changes
 
     monthlyRecords: { type: [MonthlyOnboardSchema], default: [] },
 
     totalOnboarded: { type: Number, default: 0 },
     totalBonusEarned: { type: Number, default: 0 },
+    onboardingIncentiveEarned: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -115,15 +156,15 @@ EmployeeSchema.pre('save', function (next) {
 });
 
 /**
- * Helper: compute bonus for given rule, target and onboardedCount
+ * Helper: compute bonus for given rule, target and totalRevenue
  */
-function computeBonusFromRule(rule: IBonusRule | null | undefined, target: number, onboardedCount: number): number {
+function computeBonusFromRule(rule: IBonusRule | null | undefined, target: number, totalRevenue: number): number {
   if (!rule) return 0;
-  const excess = Math.max(0, onboardedCount - target);
+  const excess = Math.max(0, totalRevenue - target);
   if (excess <= 0) return 0;
 
-  if (rule.type === "perMerchant") {
-    const amt = rule.amountPerMerchant || 0;
+  if (rule.type === "perRevenue") {
+    const amt = rule.amountPerRevenue || 0;
     return excess * amt;
   }
 
@@ -136,15 +177,53 @@ function computeBonusFromRule(rule: IBonusRule | null | undefined, target: numbe
 }
 
 /**
+ * Helper: get applicable incentive percentage for a package on a given date
+ * Returns the percentage that was active on that date from history, or current percentage if no history
+ */
+function getApplicableIncentivePercentage(
+  employee: IEmployee,
+  packageName: string,
+  date: Date
+): number {
+  const history = employee.incentivePercentageHistory || [];
+  
+  // Find the latest entry that is effective on or before the given date
+  const applicableEntry = history
+    .filter(entry => new Date(entry.effectiveFrom) <= date)
+    .sort((a, b) => new Date(b.effectiveFrom).getTime() - new Date(a.effectiveFrom).getTime())
+    .at(0);
+
+  if (applicableEntry) {
+    return applicableEntry.percentage[packageName] || 0;
+  }
+
+  // Fallback to current incentive percentages
+  return employee.incentivePercentages[packageName] || 0;
+}
+
+/**
  * Instance method:
- * Register a partner as onboarded for this employee for the given year/month (defaults to now)
- * - Avoid duplicates (checks partners array)
+ * Get applicable incentive percentage for a package on a given date
+ */
+EmployeeSchema.methods.getIncentivePercentageForDate = function (
+  this: IEmployee,
+  packageName: string,
+  date: Date
+): number {
+  return getApplicableIncentivePercentage(this, packageName, date);
+};
+
+/**
+ * Instance method:
+ * Register a merchant as onboarded for this employee for the given year/month (defaults to now)
+ * - Avoid duplicates (checks merchantID)
  * - Increments onboardedCount and updates totals
+ * - Uses dynamic incentive percentage based on date
  * - Does NOT auto-calc bonus unless you call computeAndPersistMonthlyBonus
  */
-EmployeeSchema.methods.registerOnboardedPartner = async function (
+EmployeeSchema.methods.registerOnboardedMerchant = async function (
   this: IEmployee,
-  partnerId: string,
+  merchant: IOnboardedMerchant,
   year?: number,
   month?: number
 ) {
@@ -158,9 +237,9 @@ EmployeeSchema.methods.registerOnboardedPartner = async function (
     this.monthlyRecords.push({
       year: y,
       month: m,
-      target: this.defaultMonthlyTarget,
+      revenueTarget: this.defaultMonthlyRevenueTarget,
       onboardedCount: 0,
-      partners: [],
+      onboardedMerchants: [],
       bonusRule: null,
       bonusAmount: 0,
     } as IMonthlyOnboardRecord);
@@ -170,11 +249,18 @@ EmployeeSchema.methods.registerOnboardedPartner = async function (
   const rec = this.monthlyRecords[recIndex];
 
   // avoid duplicates
-  const already = (rec.partners || []).includes(partnerId);
+  const already = (rec.onboardedMerchants || []).some(m => m.merchantID === merchant.merchantID);
   if (!already) {
-    rec.partners.push(partnerId);
-    rec.onboardedCount = (rec.onboardedCount || 0) + 1;
+    // set revenue to package price
+    merchant.revenue = this.packagePrices[merchant.package] || 0;
+    rec.onboardedMerchants.push(merchant);
+    rec.onboardedCount = rec.onboardedMerchants.length;
     this.totalOnboarded = (this.totalOnboarded || 0) + 1;
+
+    // calculate onboarding incentive using dynamic percentage for the current date
+    const incentivePercent = getApplicableIncentivePercentage(this, merchant.package, now);
+    const incentive = merchant.revenue * incentivePercent / 100;
+    this.onboardingIncentiveEarned = (this.onboardingIncentiveEarned || 0) + incentive;
 
     await this.save();
   }
@@ -191,10 +277,10 @@ EmployeeSchema.methods.computeAndPersistMonthlyBonus = async function (this: IEm
 
   const rec = this.monthlyRecords[recIndex];
   const rule = rec.bonusRule || this.defaultBonusRule;
-  const target = typeof rec.target === "number" ? rec.target : this.defaultMonthlyTarget;
-  const onboarded = rec.onboardedCount || 0;
+  const target = typeof rec.revenueTarget === "number" ? rec.revenueTarget : this.defaultMonthlyRevenueTarget;
+  const totalRevenue = (rec.onboardedMerchants || []).reduce((sum, m) => sum + (m.revenue || 0), 0);
 
-  const bonus = computeBonusFromRule(rule, target, onboarded);
+  const bonus = computeBonusFromRule(rule, target, totalRevenue);
 
   rec.bonusAmount = bonus;
   rec.bonusCalculatedAt = new Date();

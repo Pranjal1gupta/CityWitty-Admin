@@ -55,11 +55,18 @@ export async function GET(request: NextRequest) {
       branch: employee.branch,
       role: employee.role,
       status: employee.status,
-      defaultMonthlyTarget: employee.defaultMonthlyTarget,
+      defaultMonthlyRevenueTarget: employee.defaultMonthlyRevenueTarget,
       defaultBonusRule: employee.defaultBonusRule,
+      packagePrices: employee.packagePrices,
+      incentivePercentages: employee.incentivePercentages,
+      incentivePercentageHistory: employee.incentivePercentageHistory?.map((entry: any) => ({
+        percentage: entry.percentage,
+        effectiveFrom: entry.effectiveFrom?.toISOString ? entry.effectiveFrom.toISOString() : entry.effectiveFrom,
+      })),
       monthlyRecords: employee.monthlyRecords,
       totalOnboarded: employee.totalOnboarded,
       totalBonusEarned: employee.totalBonusEarned,
+      onboardingIncentiveEarned: employee.onboardingIncentiveEarned,
       createdAt: employee.createdAt ? employee.createdAt.toISOString() : null,
       updatedAt: employee.updatedAt ? employee.updatedAt.toISOString() : null,
     }));
@@ -110,7 +117,7 @@ export async function POST(request: NextRequest) {
       branch,
       role,
       status,
-      defaultMonthlyTarget,
+      defaultMonthlyRevenueTarget,
       defaultBonusRule,
     } = body;
 
@@ -118,7 +125,10 @@ export async function POST(request: NextRequest) {
     if (!empId || !firstName) {
       return NextResponse.json(
         { error: "Employee ID and first name are required" },
-        { status: 400 }
+        {
+          status: 400,
+          headers: { "Cache-Control": "no-store, max-age=0" },
+        }
       );
     }
 
@@ -127,16 +137,22 @@ export async function POST(request: NextRequest) {
     if (status && !validStatuses.includes(status)) {
       return NextResponse.json(
         { error: "Invalid status. Must be one of: " + validStatuses.join(", ") },
-        { status: 400 }
+        {
+          status: 400,
+          headers: { "Cache-Control": "no-store, max-age=0" },
+        }
       );
     }
 
     // Validate bonus rule
     if (defaultBonusRule) {
-      if (!["perMerchant", "fixed"].includes(defaultBonusRule.type)) {
+      if (!["perRevenue", "fixed"].includes(defaultBonusRule.type)) {
         return NextResponse.json(
-          { error: "Invalid bonus rule type. Must be 'perMerchant' or 'fixed'" },
-          { status: 400 }
+          { error: "Invalid bonus rule type. Must be 'perRevenue' or 'fixed'" },
+          {
+            status: 400,
+            headers: { "Cache-Control": "no-store, max-age=0" },
+          }
         );
       }
     }
@@ -154,8 +170,8 @@ export async function POST(request: NextRequest) {
       branch: branch?.trim(),
       role: role?.trim() || "onboarding_agent",
       status: status || "active",
-      defaultMonthlyTarget: defaultMonthlyTarget || 10,
-      defaultBonusRule: defaultBonusRule || { type: "perMerchant", amountPerMerchant: 500 },
+      defaultMonthlyRevenueTarget: defaultMonthlyRevenueTarget || 10000,
+      defaultBonusRule: defaultBonusRule || { type: "perRevenue", amountPerRevenue: 0.1 },
     });
 
     const savedEmployee = await newEmployee.save();
@@ -177,14 +193,24 @@ export async function POST(request: NextRequest) {
           branch: savedEmployee.branch,
           role: savedEmployee.role,
           status: savedEmployee.status,
-          defaultMonthlyTarget: savedEmployee.defaultMonthlyTarget,
+          defaultMonthlyRevenueTarget: savedEmployee.defaultMonthlyRevenueTarget,
           defaultBonusRule: savedEmployee.defaultBonusRule,
+          packagePrices: savedEmployee.packagePrices,
+          incentivePercentages: savedEmployee.incentivePercentages,
+          incentivePercentageHistory: savedEmployee.incentivePercentageHistory,
+          monthlyRecords: savedEmployee.monthlyRecords,
+          totalOnboarded: savedEmployee.totalOnboarded,
+          totalBonusEarned: savedEmployee.totalBonusEarned,
+          onboardingIncentiveEarned: savedEmployee.onboardingIncentiveEarned,
           createdAt: savedEmployee.createdAt?.toISOString(),
           updatedAt: savedEmployee.updatedAt?.toISOString(),
         },
         message: "Employee created successfully"
       },
-      { status: 201 }
+      {
+        status: 201,
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      }
     );
   } catch (error: any) {
     console.error("Error creating employee:", error);
@@ -193,13 +219,19 @@ export async function POST(request: NextRequest) {
     if (error.code === 11000) {
       return NextResponse.json(
         { error: "An employee with this ID already exists" },
-        { status: 409 }
+        {
+          status: 409,
+          headers: { "Cache-Control": "no-store, max-age=0" },
+        }
       );
     }
 
     return NextResponse.json(
       { error: "Failed to create employee" },
-      { status: 500 }
+      {
+        status: 500,
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      }
     );
   }
 }

@@ -46,7 +46,7 @@ const navigation = [
   { name: "Transactions", href: "/transactions", icon: Receipt },
   { name: "Careers", href: "/careers", icon: Briefcase },
   { name: "Team", href: "/Teams", icon: Users },
-  { name: "Feedback", href: "/feedback", icon: MessageSquare },
+  // { name: "Feedback", href: "/feedback", icon: MessageSquare },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Profile", href: "/profile", icon: User },
 ];
@@ -57,7 +57,6 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Initialize sidebarCollapsed from localStorage synchronously
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("sidebarCollapsed");
@@ -71,9 +70,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const toggleSidebar = () => {
     const newValue = !sidebarCollapsed;
     setSidebarCollapsed(newValue);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem("sidebarCollapsed", JSON.stringify(newValue));
-    }
+    localStorage.setItem("sidebarCollapsed", JSON.stringify(newValue));
   };
 
   const formatTime = (seconds: number) => {
@@ -188,7 +185,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       )}
 
-      <div className="hidden md:flex md:flex-shrink-0">
+      <div className="hidden md:flex md:flex-shrink-0" suppressHydrationWarning>
         <div className={`flex flex-col transition-all duration-300 ease-in-out ${
           sidebarCollapsed ? "w-16" : "w-52"
         }`}>
