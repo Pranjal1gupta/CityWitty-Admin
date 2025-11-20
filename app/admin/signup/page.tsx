@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,43 +14,49 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
-import logo from "../../public/logo.png";
+import logo from "../../../public/logo.png";
 import Image from "next/image";
 
-export default function LoginPage() {
+export default function AdminSignupPage() {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [secretCode, setSecretCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
-  );
+  const [errors, setErrors] = useState<{
+    username?: string;
+    email?: string;
+    password?: string;
+    secretCode?: string;
+  }>({});
   const [isVisible, setIsVisible] = useState(false);
-  const [inactiveError, setInactiveError] = useState<{
-    reason?: string;
-    inactiveUntil?: string;
-  } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
-  const { login, isLoading, loginError } = useAuth();
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  useEffect(() => {
-    if (loginError) {
-      setInactiveError(loginError);
-      toast.error(loginError.reason || "Account is inactive");
-    }
-  }, [loginError]);
-
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: {
+      username?: string;
+      email?: string;
+      password?: string;
+      secretCode?: string;
+    } = {};
+
+    if (!username) newErrors.username = "Username is required";
+    else if (username.length < 3) newErrors.username = "Username must be at least 3 characters";
+
     if (!email) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Invalid email";
+
     if (!password) newErrors.password = "Password is required";
-    // else if (password.length < 6) newErrors.password = "Min 6 characters";
+    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+
+    if (!secretCode) newErrors.secretCode = "Secret code is required";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -60,18 +65,32 @@ export default function LoginPage() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const success = await login(email, password);
+    setIsLoading(true);
 
-    if (success) {
-      toast.success("Welcome back Admin!");
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password, secretCode }),
+      });
 
-      // Redirect after 2 seconds (2000 milliseconds)
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 2000);
-    } else {
-      toast.error("Invalid email or password");
-      setErrors({ password: "Invalid credentials" });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Admin account created successfully!");
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+      } else {
+        toast.error(data.error || "Failed to create admin account");
+        if (data.error === "Invalid secret code") {
+          setErrors({ secretCode: "Invalid secret code" });
+        }
+      }
+    } catch (error) {
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -106,23 +125,33 @@ export default function LoginPage() {
           </CardTitle>
 
           <CardDescription className="text-center mt-2 text-base animate-fade-in animation-delay-3000">
-            Sign in to access your admin dashboard
+            Create a new admin account
           </CardDescription>
         </CardHeader>
 
         <CardContent className="px-8 pb-8">
-          {inactiveError && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-fade-in">
-              <p className="text-red-700 font-medium mb-2">Account Inactive</p>
-              <p className="text-red-600 text-sm mb-2">{inactiveError.reason}</p>
-              {inactiveError.inactiveUntil && (
-                <p className="text-red-600 text-sm">
-                  <span className="font-semibold">Available from:</span> {new Date(inactiveError.inactiveUntil).toLocaleString()}
-                </p>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Username */}
+            <div className="space-y-2 animate-fade-in animation-delay-3500">
+              <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+              <div className="relative group">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-blue-500 transition-colors duration-200" />
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Enter username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className={`pl-12 h-12 text-base transition-all duration-200 hover:shadow-md focus:shadow-lg ${
+                    errors.username ? "border-red-500 focus:border-red-500" : "focus:border-blue-400"
+                  }`}
+                />
+              </div>
+              {errors.username && (
+                <p className="text-red-500 text-sm animate-shake">{errors.username}</p>
               )}
             </div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-3">
+
             {/* Email */}
             <div className="space-y-2 animate-fade-in animation-delay-4000">
               <Label htmlFor="email" className="text-sm font-medium">Email</Label>
@@ -145,7 +174,7 @@ export default function LoginPage() {
             </div>
 
             {/* Password */}
-            <div className="space-y-2 animate-fade-in animation-delay-5000">
+            <div className="space-y-2 animate-fade-in animation-delay-4500">
               <Label htmlFor="password" className="text-sm font-medium">Password</Label>
               <div className="relative group">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-orange-500 transition-colors duration-200" />
@@ -176,23 +205,34 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Forgot Password */}
-            <div className="text-right animate-fade-in animation-delay-5500">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-blue-500 hover:text-blue-700 transition-colors duration-200"
-              >
-                Forgot Password?
-              </Link>
+            {/* Secret Code */}
+            <div className="space-y-2 animate-fade-in animation-delay-5000">
+              <Label htmlFor="secretCode" className="text-sm font-medium">Secret Code</Label>
+              <div className="relative group">
+                <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-green-500 transition-colors duration-200" />
+                <Input
+                  id="secretCode"
+                  type="password"
+                  placeholder="Enter secret code"
+                  value={secretCode}
+                  onChange={(e) => setSecretCode(e.target.value)}
+                  className={`pl-12 h-12 text-base transition-all duration-200 hover:shadow-md focus:shadow-lg ${
+                    errors.secretCode ? "border-red-500 focus:border-red-500" : "focus:border-green-400"
+                  }`}
+                />
+              </div>
+              {errors.secretCode && (
+                <p className="text-red-500 text-sm animate-shake">{errors.secretCode}</p>
+              )}
             </div>
 
             {/* Submit */}
             <Button
               type="submit"
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] hover:from-[#3A98EF] hover:to-[#EF6A00] transition-all duration-300 transform hover:scale-105 hover:shadow-xl animate-fade-in animation-delay-6000"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] hover:from-[#3A98EF] hover:to-[#EF6A00] transition-all duration-300 transform hover:scale-105 hover:shadow-xl animate-fade-in animation-delay-5500"
               disabled={isLoading}
             >
-              {isLoading ? "Signing In..." : "Sign In"}
+              {isLoading ? "Creating Account..." : "Create Admin Account"}
             </Button>
           </form>
         </CardContent>
@@ -225,14 +265,20 @@ export default function LoginPage() {
         .animation-delay-3000 {
           animation-delay: 3s;
         }
+        .animation-delay-3500 {
+          animation-delay: 3.5s;
+        }
         .animation-delay-4000 {
           animation-delay: 4s;
+        }
+        .animation-delay-4500 {
+          animation-delay: 4.5s;
         }
         .animation-delay-5000 {
           animation-delay: 5s;
         }
-        .animation-delay-6000 {
-          animation-delay: 6s;
+        .animation-delay-5500 {
+          animation-delay: 5.5s;
         }
         .animate-gradient-x {
           background-size: 200% 200%;

@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { id, username, email, phone, address } = await req.json();
+    const { id, username, email, phone, address, avatar, permissions } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: "Admin ID is required" }, { status: 400 });
@@ -84,6 +84,8 @@ export async function PUT(req: NextRequest) {
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (permissions !== undefined) updateData.permissions = permissions;
 
     const admin = await Admin.findByIdAndUpdate(id, updateData, { new: true }).select("-password");
     if (!admin) {

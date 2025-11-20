@@ -10,7 +10,6 @@ import {
   Building2,
   ShoppingBag,
   Receipt,
-  MessageSquare,
   User,
   Users,
   Menu,
@@ -32,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +45,7 @@ const navigation = [
   { name: "Transactions", href: "/transactions", icon: Receipt },
   { name: "Careers", href: "/careers", icon: Briefcase },
   { name: "Team", href: "/Teams", icon: Users },
+  { name: "Manage Admins", href: "/manage-admins", icon: Users },
   // { name: "Feedback", href: "/feedback", icon: MessageSquare },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Profile", href: "/profile", icon: User },
@@ -88,6 +88,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     careers: 0, // will fetch dynamically
     team: 0,
     feedback: 3,
+    admins: 0,
   });
   
 
@@ -237,6 +238,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="ml-3 flex items-center">
                     <Avatar className="h-8 w-8">
+                      {user?.avatar && (
+                        <AvatarImage src={user.avatar} alt={user?.username} />
+                      )}
                       <AvatarFallback className="bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] text-white uppercase">
                         {user?.username
                           ?.split(" ")
@@ -415,6 +419,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         return notificationCounts.team;
       case "feedback":
         return notificationCounts.feedback;
+      case "manage admins":
+        return notificationCounts.admins;
       default:
         return 0;
     }

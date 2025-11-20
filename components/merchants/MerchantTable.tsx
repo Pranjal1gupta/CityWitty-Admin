@@ -237,7 +237,7 @@ export default function MerchantTable({
                             });
                           }}
                         >
-                          <SelectTrigger className={`w-28 px-2 py-0.5 text-sm font-semibold border-0 ${getStatusBadgeClass(merchant.status)}`}>
+                          <SelectTrigger className={`w-24 text-sm font-semibold border-0 ${getStatusBadgeClass(merchant.status)}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -258,7 +258,7 @@ export default function MerchantTable({
                             });
                           }}
                         >
-                          <SelectTrigger className={`w-28 px-2 py-0.5 text-sm font-semibold border-0 ${getVisibilityBadgeClass(merchant.visibility)}`}>
+                          <SelectTrigger className={`w-24 text-sm font-semibold border-0 ${getVisibilityBadgeClass(merchant.visibility)}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>

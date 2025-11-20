@@ -9,6 +9,8 @@ interface User {
   email: string;
   username: string;
   role: string;
+  isSuperAdmin?: boolean;
+  avatar?: string;
 }
 
 interface AuthContextType {
@@ -18,6 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   timeRemaining: number;
   isWarning: boolean;
+  loginError: { reason?: string; inactiveUntil?: string } | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(SESSION_TIMEOUT);
   const [isWarning, setIsWarning] = useState(false);
+  const [loginError, setLoginError] = useState<{ reason?: string; inactiveUntil?: string } | null>(null);
   const router = useRouter();
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -115,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    setLoginError(null);
     try {
       const res = await fetch("/api/admin/login", {
         method: "POST",
@@ -124,12 +129,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = await res.json();
 
+      if (res.status === 403 && data.isInactive) {
+        setLoginError({
+          reason: data.reason,
+          inactiveUntil: data.inactiveUntil,
+        });
+        return false;
+      }
+
       if (res.ok && data.success) {
         const userData: User = {
           id: data.id,
           email: data.email,
           username: data.username,
-          role: "admin",
+          role: data.role || "admin",
+          isSuperAdmin: data.isSuperAdmin || false,
+          avatar: data.avatar || undefined,
         };
 
         setUser(userData);
@@ -156,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, timeRemaining, isWarning }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, timeRemaining, isWarning, loginError }}>
       {children}
     </AuthContext.Provider>
   );

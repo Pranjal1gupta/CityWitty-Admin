@@ -4,6 +4,28 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import Admin from "@/models/Admin";
+import { sendFailedLoginWarningEmail } from "@/lib/send-warning-email";
+
+const getClientIP = (req: Request): string => {
+  const headers = req.headers;
+  
+  const forwardedFor = headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const ips = forwardedFor.split(',').map(ip => ip.trim());
+    return ips[0];
+  }
+  
+  const realIp = headers.get('x-real-ip');
+  if (realIp) return realIp;
+  
+  const cfConnectingIp = headers.get('cf-connecting-ip');
+  if (cfConnectingIp) return cfConnectingIp;
+  
+  const xClientIp = headers.get('x-client-ip');
+  if (xClientIp) return xClientIp;
+  
+  return 'Unknown';
+};
 
 const connectDB = async () => {
   try {
@@ -51,12 +73,38 @@ export async function POST(req: Request) {
       );
     }
 
+    if (admin.status === "inactive") {
+      console.log("Admin account is inactive");
+      return NextResponse.json({
+        error: "Account inactive",
+        reason: admin.accountLockReason || "Your account has been deactivated",
+        inactiveUntil: admin.accountLockedUntil,
+        isInactive: true
+      }, { status: 403 });
+    }
+
     console.log("Comparing passwords...");
     const isMatch = await bcrypt.compare(password, admin.password);
     console.log("Password match:", isMatch);
 
     if (!isMatch) {
       console.log("Password does not match");
+      const failedAttempts = (admin.failedLoginAttempts || 0) + 1;
+      console.log("Incrementing failed login attempts to:", failedAttempts);
+      
+      await Admin.findByIdAndUpdate(
+        admin._id,
+        {
+          failedLoginAttempts: failedAttempts
+        },
+        { new: true }
+      );
+
+      if (failedAttempts > 5) {
+        console.log("Failed attempts exceeded 5, sending warning email");
+        await sendFailedLoginWarningEmail(admin.email, admin.username, failedAttempts);
+      }
+      
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
@@ -64,8 +112,18 @@ export async function POST(req: Request) {
     }
 
     console.log("Updating last login...");
-    admin.lastLogin = new Date();
-    await admin.save();
+    
+    const ip = getClientIP(req);
+    console.log("Client IP:", ip);
+    
+    await Admin.findByIdAndUpdate(
+      admin._id,
+      {
+        lastLogin: new Date(),
+        lastLoginIP: ip
+      },
+      { new: true }
+    );
     console.log("Last login updated successfully");
 
     console.log("Login successful, returning response");
@@ -74,6 +132,9 @@ export async function POST(req: Request) {
       id: admin._id,
       username: admin.username,
       email: admin.email,
+      role: admin.role || "admin",
+      isSuperAdmin: admin.isSuperAdmin || false,
+      avatar: admin.avatar || null,
     });
   } catch (err) {
     console.error("Login error details:", err);
