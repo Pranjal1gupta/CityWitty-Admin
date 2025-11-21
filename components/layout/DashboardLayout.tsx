@@ -21,6 +21,7 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,22 +34,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import AccessDenied from "@/components/AccessDenied";
+import { useTabAccess } from "@/hooks/useTabAccess";
 
 import { useAuth } from "@/contexts/AuthContext";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Users & Cards", href: "/cards", icon: CreditCard },
-  { name: "Merchants", href: "/merchants", icon: Store },
-  { name: "Franchises", href: "/franchises", icon: Building2 },
-  { name: "Ecommerce", href: "/ecommerce", icon: ShoppingBag },
-  { name: "Transactions", href: "/transactions", icon: Receipt },
-  { name: "Careers", href: "/careers", icon: Briefcase },
-  { name: "Team", href: "/Teams", icon: Users },
-  { name: "Manage Admins", href: "/manage-admins", icon: Users },
-  // { name: "Feedback", href: "/feedback", icon: MessageSquare },
-  { name: "Notifications", href: "/notifications", icon: Bell },
-  { name: "Profile", href: "/profile", icon: User },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, tabId: "dashboard" },
+  { name: "Users & Cards", href: "/cards", icon: CreditCard, tabId: "cards" },
+  { name: "Merchants", href: "/merchants", icon: Store, tabId: "merchants" },
+  { name: "Franchises", href: "/franchises", icon: Building2, tabId: "franchises" },
+  { name: "Ecommerce", href: "/ecommerce", icon: ShoppingBag, tabId: "ecommerce" },
+  { name: "Transactions", href: "/transactions", icon: Receipt, tabId: "transactions" },
+  { name: "Careers", href: "/careers", icon: Briefcase, tabId: "careers" },
+  { name: "Team", href: "/Teams", icon: Users, tabId: "teams" },
+  { name: "Manage Admins", href: "/manage-admins", icon: Users, tabId: "manage-admins" },
+  { name: "Feedback", href: "/feedback", icon: MessageSquare, tabId: "feedback" },
+  { name: "Notifications", href: "/notifications", icon: Bell, tabId: "notifications" },
+  { name: "Profile", href: "/profile", icon: User, tabId: "profile" },
 ];
 
 interface DashboardLayoutProps {
@@ -64,8 +67,41 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
     return true;
   });
+  const [avatarKey, setAvatarKey] = useState(0);
+  const [allowedTabs, setAllowedTabs] = useState<string[]>(navigation.map(n => n.tabId));
   const { user, logout, timeRemaining, isWarning } = useAuth();
   const pathname = usePathname();
+  const { hasAccess, isLoading: isAccessLoading } = useTabAccess(pathname);
+
+  useEffect(() => {
+    setAvatarKey(prev => prev + 1);
+  }, [user?.avatar]);
+
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      if (!user?.id) return;
+
+      try {
+        if (user.role === "superadmin") {
+          setAllowedTabs(navigation.map(n => n.tabId));
+          return;
+        }
+
+        const res = await fetch(`/api/admin/permissions?userId=${user.id}`);
+        const data = await res.json();
+        if (data.success && data.permissions) {
+          setAllowedTabs(data.permissions);
+        } else {
+          setAllowedTabs(navigation.map(n => n.tabId));
+        }
+      } catch (error) {
+        console.error("Failed to fetch permissions:", error);
+        setAllowedTabs(navigation.map(n => n.tabId));
+      }
+    };
+
+    fetchPermissions();
+  }, [user?.id, user?.role]);
 
   const toggleSidebar = () => {
     const newValue = !sidebarCollapsed;
@@ -237,9 +273,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="ml-3 flex items-center">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8" key={avatarKey}>
                       {user?.avatar && (
-                        <AvatarImage src={user.avatar} alt={user?.username} />
+                        <AvatarImage src={`${user.avatar}?v=${avatarKey}`} alt={user?.username} />
                       )}
                       <AvatarFallback className="bg-gradient-to-r from-[#4AA8FF] to-[#FF7A00] text-white uppercase">
                         {user?.username
@@ -276,15 +312,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <main className="flex-1 relative overflow-y-auto focus:outline-none">
-          <div className="py-6">
-            <div className={`transition-all duration-300 ${
-              sidebarCollapsed 
-                ? 'px-2 sm:px-3 md:px-4' 
-                : 'max-w-7xl mx-auto px-2 sm:px-2 md:px-2'
-            }`}>
-              {children}
+          {isAccessLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4AA8FF]"></div>
             </div>
-          </div>
+          ) : !hasAccess ? (
+            <AccessDenied />
+          ) : (
+            <div className="py-6">
+              <div className={`transition-all duration-300 ${
+                sidebarCollapsed 
+                  ? 'px-2 sm:px-3 md:px-4' 
+                  : 'max-w-7xl mx-auto px-2 sm:px-2 md:px-2'
+              }`}>
+                {children}
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
@@ -328,7 +372,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
 
           <nav className={`mt-5 flex-1 px-2 space-y-1 transition-all duration-300 ${collapsed ? 'px-1' : 'px-2'}`}>
-            {navigation.map((item) => {
+            {navigation.filter(item => allowedTabs.includes(item.tabId)).map((item) => {
               const isActive = pathname === item.href;
               const notificationCount = getNotificationCount(item.name);
 

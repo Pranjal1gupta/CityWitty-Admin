@@ -17,6 +17,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   isLoading: boolean;
   timeRemaining: number;
   isWarning: boolean;
@@ -170,8 +171,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem("citywitty_admin_user", JSON.stringify(updatedUser));
+      console.log("User updated in context:", updatedUser);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, timeRemaining, isWarning, loginError }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading, timeRemaining, isWarning, loginError }}>
       {children}
     </AuthContext.Provider>
   );

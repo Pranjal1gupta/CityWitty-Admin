@@ -186,7 +186,10 @@ export function AdminsTable({
 
                 {filteredAdmins.map((admin) => (
                   <TableRow key={admin._id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium capitalize">{admin.username}</TableCell>
+                    <TableCell className="font-medium capitalize flex items-center gap-2">
+                      {admin.isSuperAdmin && <Crown className="h-4 w-4 text-yellow-600" />}
+                      {admin.username}
+                    </TableCell>
                     <TableCell>
                       <div>
                         <div className="text-sm font-medium">{admin.email}</div>
