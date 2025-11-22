@@ -99,7 +99,9 @@ export function AdminsTable({
   onStatusChange,
   isSuperAdmin,
 }: AdminsTableProps) {
-  const filteredAdmins = isSuperAdmin ? admins : admins.filter(admin => !admin.isSuperAdmin);
+  const filteredAdmins = isSuperAdmin
+    ? admins
+    : admins.filter((admin) => !admin.isSuperAdmin);
   const totalPages = Math.ceil(totalCount / rowsPerPage);
 
   return (
@@ -162,16 +164,19 @@ export function AdminsTable({
             <p className="text-gray-500 mt-2">Loading admins...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-md border" style={{ minWidth: 0 }}>
+          <div
+            className="overflow-x-auto rounded-md border"
+            style={{ minWidth: 0 }}
+          >
             <Table className="w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>Username</TableHead>
                   <TableHead>Email & Role</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead>Last Login</TableHead>
                   <TableHead>Failed Attempts</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -179,7 +184,9 @@ export function AdminsTable({
                 {filteredAdmins.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
-                      {filteredAdmins.length === 0 ? "No admins found." : "No admins match your search."}
+                      {filteredAdmins.length === 0
+                        ? "No admins found."
+                        : "No admins match your search."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -187,28 +194,57 @@ export function AdminsTable({
                 {filteredAdmins.map((admin) => (
                   <TableRow key={admin._id} className="hover:bg-gray-50">
                     <TableCell className="font-medium capitalize flex items-center gap-2">
-                      {admin.isSuperAdmin && <Crown className="h-4 w-4 text-yellow-600" />}
+                      {admin.isSuperAdmin && (
+                        <Crown className="h-4 w-4 text-yellow-600" />
+                      )}
                       {admin.username}
                     </TableCell>
                     <TableCell>
                       <div>
                         <div className="text-sm font-medium">{admin.email}</div>
-                        <div className="text-sm text-gray-600">{admin.role}</div>
+                        <div className="text-sm text-gray-600">
+                          {admin.role}
+                        </div>
                       </div>
                     </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {admin.createdAt
+                        ? new Date(admin.createdAt).toLocaleDateString()
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {admin.lastLogin
+                        ? new Date(admin.lastLogin).toLocaleDateString()
+                        : "Never"}
+                    </TableCell>
+                    <TableCell
+                      className={`text-sm font-semibold text-center ${
+                        (admin.failedLoginAttempts || 0) > 5
+                          ? "text-red-600"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {admin.failedLoginAttempts || 0}
+                    </TableCell>
+
                     <TableCell>
                       <div>
                         <Select
                           value={admin.status}
                           onValueChange={(value) =>
-                            onStatusChange(admin, value as "active" | "inactive")
+                            onStatusChange(
+                              admin,
+                              value as "active" | "inactive"
+                            )
                           }
                         >
-                          <SelectTrigger className={`w-24 border-0 ${
-                            admin.status === "active"
-                              ? "text-green-700 font-semibold"
-                              : "text-red-700 font-semibold"
-                          }`}>
+                          <SelectTrigger
+                            className={`w-24 border-0 ${
+                              admin.status === "active"
+                                ? "text-green-700 font-semibold"
+                                : "text-red-700 font-semibold"
+                            }`}
+                          >
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -216,30 +252,22 @@ export function AdminsTable({
                             <SelectItem value="inactive">Inactive</SelectItem>
                           </SelectContent>
                         </Select>
-                        {admin.status === "inactive" && admin.accountLockedUntil && (
-                          <div className="text-xs text-orange-600 mt-1">
-                            Until: {new Date(admin.accountLockedUntil).toLocaleDateString()}
-                          </div>
-                        )}
-                        {admin.status === "inactive" && !admin.accountLockedUntil && (
-                          <div className="text-xs text-orange-600 mt-1">
-                            Indefinite
-                          </div>
-                        )}
+                        {admin.status === "inactive" &&
+                          admin.accountLockedUntil && (
+                            <div className="text-xs text-orange-600 mt-1">
+                              Until:{" "}
+                              {new Date(
+                                admin.accountLockedUntil
+                              ).toLocaleDateString()}
+                            </div>
+                          )}
+                        {admin.status === "inactive" &&
+                          !admin.accountLockedUntil && (
+                            <div className="text-xs text-orange-600 mt-1">
+                              Indefinite
+                            </div>
+                          )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {admin.lastLogin ? new Date(admin.lastLogin).toLocaleDateString() : "Never"}
-                    </TableCell>
-                    <TableCell className={`text-sm font-semibold ${
-                      (admin.failedLoginAttempts || 0) > 5 
-                        ? "text-red-600" 
-                        : "text-gray-600"
-                    }`}>
-                      {admin.failedLoginAttempts || 0}
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : "N/A"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1">
@@ -279,7 +307,10 @@ export function AdminsTable({
                               variant="outline"
                               size="sm"
                               onClick={() => onResetAttempts(admin)}
-                              disabled={!admin.failedLoginAttempts || admin.failedLoginAttempts === 0}
+                              disabled={
+                                !admin.failedLoginAttempts ||
+                                admin.failedLoginAttempts === 0
+                              }
                             >
                               <RotateCcw className="h-4 w-4 text-purple-600" />
                             </Button>
@@ -294,17 +325,23 @@ export function AdminsTable({
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() =>
-                                onSuperAdminToggle(admin)
-                              }
+                              onClick={() => onSuperAdminToggle(admin)}
                               disabled={!isSuperAdmin}
                             >
-                              <Crown className={`h-4 w-4 ${admin.isSuperAdmin ? "text-yellow-600" : "text-gray-600"}`} />
+                              <Crown
+                                className={`h-4 w-4 ${
+                                  admin.isSuperAdmin
+                                    ? "text-yellow-600"
+                                    : "text-gray-600"
+                                }`}
+                              />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>
-                              {admin.isSuperAdmin ? "Remove Super Admin" : "Make Super Admin"}
+                              {admin.isSuperAdmin
+                                ? "Remove Super Admin"
+                                : "Make Super Admin"}
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -358,8 +395,8 @@ export function AdminsTable({
             <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
               <span className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
                 Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
-                {Math.min(currentPage * rowsPerPage, totalCount)} of {totalCount}{" "}
-                entries
+                {Math.min(currentPage * rowsPerPage, totalCount)} of{" "}
+                {totalCount} entries
               </span>
               <div className="flex items-center space-x-2">
                 <Button
