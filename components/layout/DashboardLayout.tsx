@@ -41,14 +41,14 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, tabId: "dashboard" },
-  { name: "Users & Cards", href: "/cards", icon: CreditCard, tabId: "cards" },
+  { name: "Transactions", href: "/transactions", icon: Receipt, tabId: "transactions" },
   { name: "Merchants", href: "/merchants", icon: Store, tabId: "merchants" },
+  { name: "Users & Cards", href: "/cards", icon: CreditCard, tabId: "cards" },
   { name: "Franchises", href: "/franchises", icon: Building2, tabId: "franchises" },
   { name: "Ecommerce", href: "/ecommerce", icon: ShoppingBag, tabId: "ecommerce" },
-  { name: "Transactions", href: "/transactions", icon: Receipt, tabId: "transactions" },
-  { name: "Careers", href: "/careers", icon: Briefcase, tabId: "careers" },
-  { name: "Team", href: "/Teams", icon: Users, tabId: "teams" },
   { name: "Manage Admins", href: "/manage-admins", icon: Users, tabId: "manage-admins" },
+  { name: "Team", href: "/Teams", icon: Users, tabId: "teams" },
+  { name: "Careers", href: "/careers", icon: Briefcase, tabId: "careers" },
   { name: "Feedback", href: "/feedback", icon: MessageSquare, tabId: "feedback" },
   { name: "Notifications", href: "/notifications", icon: Bell, tabId: "notifications" },
   { name: "Profile", href: "/profile", icon: User, tabId: "profile" },
