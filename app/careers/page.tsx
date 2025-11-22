@@ -686,7 +686,7 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
             <CardTitle>Job Posts</CardTitle>
             <CardDescription>Manage job openings and postings</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-4">
             {/* Job Posts Search */}
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
               <div className="relative flex-1">
@@ -837,7 +837,7 @@ ${jobPost.workType ? `Work Type: ${jobPost.workType}\n` : ""}${
               Search, filter, and manage applications
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-4">
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

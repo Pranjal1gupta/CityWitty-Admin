@@ -255,7 +255,7 @@ export default function NotificationTable({
           Manage all notifications and their delivery status
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 sm:px-4">
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Input

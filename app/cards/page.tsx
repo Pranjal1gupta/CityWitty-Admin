@@ -497,7 +497,7 @@ export default function CardsPage() {
             <CardTitle>Card Directory</CardTitle>
             <CardDescription>Search and filter user cards</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-4">
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

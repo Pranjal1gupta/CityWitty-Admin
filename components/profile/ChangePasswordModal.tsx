@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Eye, EyeOff } from "lucide-react";
+import { Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -37,6 +37,9 @@ interface ChangePasswordModalProps {
   showNewPassword: boolean;
   showConfirmPassword: boolean;
   showPasswordConfirm: boolean;
+  isPasswordVerified: boolean;
+  isVerifying: boolean;
+  verificationError: string;
   onShowPasswordConfirmChange: (show: boolean) => void;
   onPasswordFormChange: (form: any) => void;
   onShowCurrentPasswordChange: (show: boolean) => void;
@@ -44,6 +47,7 @@ interface ChangePasswordModalProps {
   onShowConfirmPasswordChange: (show: boolean) => void;
   onPasswordChange: (e: React.FormEvent) => void;
   onPasswordConfirm: () => Promise<void>;
+  onVerifyPassword: () => Promise<void>;
 }
 
 export default function ChangePasswordModal({
@@ -54,6 +58,9 @@ export default function ChangePasswordModal({
   showNewPassword,
   showConfirmPassword,
   showPasswordConfirm,
+  isPasswordVerified,
+  isVerifying,
+  verificationError,
   onShowPasswordConfirmChange,
   onPasswordFormChange,
   onShowCurrentPasswordChange,
@@ -61,6 +68,7 @@ export default function ChangePasswordModal({
   onShowConfirmPasswordChange,
   onPasswordChange,
   onPasswordConfirm,
+  onVerifyPassword,
 }: ChangePasswordModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -77,8 +85,7 @@ export default function ChangePasswordModal({
         <form onSubmit={onPasswordChange} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="modal-currentPassword">Current Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <div className="flex gap-2">
               <Input
                 id="modal-currentPassword"
                 type={showCurrentPassword ? "text" : "password"}
@@ -89,21 +96,52 @@ export default function ChangePasswordModal({
                     currentPassword: e.target.value,
                   })
                 }
-                className="pl-10 pr-10"
+                disabled={isPasswordVerified}
+                className="flex-1"
                 placeholder="Enter current password"
               />
-              <button
-                type="button"
-                onClick={() => onShowCurrentPasswordChange(!showCurrentPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showCurrentPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
+              <div className="flex gap-1">
+                {!isPasswordVerified && (
+                  <button
+                    type="button"
+                    onClick={onVerifyPassword}
+                    disabled={!passwordForm.currentPassword || isVerifying}
+                    className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-md transition-colors flex items-center justify-center"
+                    title="Verify password"
+                  >
+                    {isVerifying ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <Lock className="w-4 h-4" />
+                    )}
+                  </button>
                 )}
-              </button>
+                {isPasswordVerified && (
+                  <button
+                    type="button"
+                    disabled
+                    className="px-3 py-2 bg-green-500 text-white rounded-md flex items-center justify-center"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onShowCurrentPasswordChange(!showCurrentPassword)}
+                  className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-md transition-colors flex items-center justify-center"
+                  title={showCurrentPassword ? "Hide password" : "Show password"}
+                >
+                  {showCurrentPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
+            {verificationError && (
+              <p className="text-red-500 text-sm mt-1">{verificationError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -120,6 +158,7 @@ export default function ChangePasswordModal({
                     newPassword: e.target.value,
                   })
                 }
+                disabled={!isPasswordVerified}
                 className="pl-10 pr-10"
                 placeholder="Enter new password"
               />
@@ -151,6 +190,7 @@ export default function ChangePasswordModal({
                     confirmPassword: e.target.value,
                   })
                 }
+                disabled={!isPasswordVerified}
                 className="pl-10 pr-10"
                 placeholder="Confirm new password"
               />

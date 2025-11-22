@@ -68,40 +68,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return true;
   });
   const [avatarKey, setAvatarKey] = useState(0);
-  const [allowedTabs, setAllowedTabs] = useState<string[]>(navigation.map(n => n.tabId));
-  const { user, logout, timeRemaining, isWarning } = useAuth();
+  const { user, logout, timeRemaining, isWarning, allowedTabs, permissionsLoading } = useAuth();
   const pathname = usePathname();
   const { hasAccess, isLoading: isAccessLoading } = useTabAccess(pathname);
 
   useEffect(() => {
     setAvatarKey(prev => prev + 1);
   }, [user?.avatar]);
-
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      if (!user?.id) return;
-
-      try {
-        if (user.role === "superadmin") {
-          setAllowedTabs(navigation.map(n => n.tabId));
-          return;
-        }
-
-        const res = await fetch(`/api/admin/permissions?userId=${user.id}`);
-        const data = await res.json();
-        if (data.success && data.permissions) {
-          setAllowedTabs(data.permissions);
-        } else {
-          setAllowedTabs(navigation.map(n => n.tabId));
-        }
-      } catch (error) {
-        console.error("Failed to fetch permissions:", error);
-        setAllowedTabs(navigation.map(n => n.tabId));
-      }
-    };
-
-    fetchPermissions();
-  }, [user?.id, user?.role]);
 
   const toggleSidebar = () => {
     const newValue = !sidebarCollapsed;
@@ -121,83 +94,56 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     franchises: 2,
     ecommerce: 8,
     transactions: 12,
-    careers: 0, // will fetch dynamically
+    careers: 0,
     team: 0,
     feedback: 3,
     admins: 0,
   });
-  
 
-  useEffect(() => {
-    async function fetchMerchantStats() {
-      try {
-        const response = await fetch("/api/merchants", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          const { pendingApprovals, inactiveMerchants } = data.stats || {};
-          const merchantsCount =
-            (pendingApprovals || 0) + (inactiveMerchants || 0);
-          setNotificationCounts((prev) => ({
-            ...prev,
-            merchants: merchantsCount,
-          }));
-        }
-      } catch (error) {
-        console.error("Failed to fetch merchant stats:", error);
-      }
-    }
-
-    async function fetchCardStats() {
-      try {
-        const response = await fetch("/api/cards", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          const { blockedCards, expiredCards } = data.stats || {};
-          const cardsCount = (blockedCards || 0) + (expiredCards || 0);
-          setNotificationCounts((prev) => ({
-            ...prev,
-            cards: cardsCount,
-          }));
-        }
-      } catch (error) {
-        console.error("Failed to fetch card stats:", error);
-      }
-    }
-
-    async function fetchCareerStats() {
-      try {
-        const response = await fetch("/api/careers");
-        if (response.ok) {
-          const data = await response.json();
-          // Count only pending applications
-          const pendingCount =
-            data.applications?.filter(
+  const fetchPageStats = async (page: string) => {
+    try {
+      switch (page) {
+        case "merchants":
+          const merchantRes = await fetch("/api/merchants", { cache: "no-store" });
+          if (merchantRes.ok) {
+            const data = await merchantRes.json();
+            const { pendingApprovals, inactiveMerchants } = data.stats || {};
+            const merchantsCount = (pendingApprovals || 0) + (inactiveMerchants || 0);
+            setNotificationCounts((prev) => ({ ...prev, merchants: merchantsCount }));
+          }
+          break;
+        
+        case "cards":
+          const cardsRes = await fetch("/api/cards", { cache: "no-store" });
+          if (cardsRes.ok) {
+            const data = await cardsRes.json();
+            const { blockedCards, expiredCards } = data.stats || {};
+            const cardsCount = (blockedCards || 0) + (expiredCards || 0);
+            setNotificationCounts((prev) => ({ ...prev, cards: cardsCount }));
+          }
+          break;
+        
+        case "careers":
+          const careersRes = await fetch("/api/careers");
+          if (careersRes.ok) {
+            const data = await careersRes.json();
+            const pendingCount = data.applications?.filter(
               (app: { status: string }) => app.status === "Pending"
             ).length || 0;
-
-          setNotificationCounts((prev) => ({
-            ...prev,
-            careers: pendingCount,
-          }));
-        }
-      } catch (error) {
-        console.error("Failed to fetch career stats:", error);
+            setNotificationCounts((prev) => ({ ...prev, careers: pendingCount }));
+          }
+          break;
       }
+    } catch (error) {
+      console.error(`Failed to fetch ${page} stats:`, error);
     }
+  };
 
-    // Initial fetch
-    fetchMerchantStats();
-    fetchCardStats();
-    fetchCareerStats();
-
-    // Polling every 5 seconds
-    const interval = setInterval(() => {
-      fetchMerchantStats();
-      fetchCardStats();
-      fetchCareerStats();
-    }, 3000);
-
-    return () => clearInterval(interval); // cleanup on unmount
+  useEffect(() => {
+    const currentPage = pathname?.split("/")[1];
+    if (currentPage && ["merchants", "cards", "careers"].includes(currentPage)) {
+      fetchPageStats(currentPage);
+    }
   }, [pathname]);
 
   return (
@@ -217,7 +163,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <X className="h-6 w-6 text-white" />
               </button>
             </div>
-            <Sidebar collapsed={false} onToggleCollapse={() => {}} />
+            {!permissionsLoading && allowedTabs && <Sidebar collapsed={false} onToggleCollapse={() => {}} />}
           </div>
         </div>
       )}
@@ -226,7 +172,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className={`flex flex-col transition-all duration-300 ease-in-out ${
           sidebarCollapsed ? "w-16" : "w-52"
         }`}>
-          <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
+          {!permissionsLoading && allowedTabs ? (
+            <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
+          ) : (
+            <div className="flex items-center justify-center h-screen border-r border-gray-200 bg-white">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4AA8FF]"></div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -259,7 +211,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     : 'bg-gray-50 text-gray-600'
                 }`}>
                   <Clock className={`h-3.5 w-3.5 ${isWarning ? 'text-red-500' : 'text-gray-500'}`} />
-                  <span>{formatTime(timeRemaining)}</span>
+                  <span className="w-[2.5rem] ">{formatTime(timeRemaining)}</span>
                 </div>
               </div>
 
@@ -372,7 +324,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
 
           <nav className={`mt-5 flex-1 px-2 space-y-1 transition-all duration-300 ${collapsed ? 'px-1' : 'px-2'}`}>
-            {navigation.filter(item => allowedTabs.includes(item.tabId)).map((item) => {
+            {navigation.filter(item => allowedTabs && allowedTabs.includes(item.tabId)).map((item) => {
               const isActive = pathname === item.href;
               const notificationCount = getNotificationCount(item.name);
 

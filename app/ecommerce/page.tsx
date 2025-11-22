@@ -409,7 +409,7 @@ export default function EcommercePage() {
             <CardTitle className="text-lg md:text-xl">CityWitty Product Catalog</CardTitle>
             <CardDescription className="text-sm md:text-base">Manage all CityWitty products and inventory</CardDescription>
           </CardHeader>
-          <CardContent className="px-4 md:px-6">
+          <CardContent className="px-2 sm:px-4">
             <ProductFilters
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}

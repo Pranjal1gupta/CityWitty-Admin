@@ -22,6 +22,8 @@ interface AuthContextType {
   timeRemaining: number;
   isWarning: boolean;
   loginError: { reason?: string; inactiveUntil?: string } | null;
+  allowedTabs: string[] | null;
+  permissionsLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,21 +31,30 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const SESSION_TIMEOUT = 60 * 60; // timeout in seconds (1 hour)
 const WARNING_THRESHOLD = 300; // Show warning at 5 minute remaining
 
+const DEFAULT_TABS = ["dashboard", "cards", "merchants", "franchises", "ecommerce", "transactions", "careers", "teams", "manage-admins", "feedback", "notifications", "profile"];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(SESSION_TIMEOUT);
   const [isWarning, setIsWarning] = useState(false);
   const [loginError, setLoginError] = useState<{ reason?: string; inactiveUntil?: string } | null>(null);
+  const [allowedTabs, setAllowedTabs] = useState<string[] | null>(null);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
   const router = useRouter();
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Load user from localStorage on refresh
+    // Load user and permissions from localStorage on refresh
     const savedUser = localStorage.getItem("citywitty_admin_user");
+    const savedPermissions = localStorage.getItem("citywitty_admin_permissions");
+    
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+      if (savedPermissions) {
+        setAllowedTabs(JSON.parse(savedPermissions));
+      }
     }
     setIsLoading(false);
   }, []);
@@ -114,8 +125,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleAutoLogout = () => {
     setUser(null);
     localStorage.removeItem("citywitty_admin_user");
+    localStorage.removeItem("citywitty_admin_permissions");
     toast.error("Session expired due to inactivity. Please log in again.");
     router.push("/login");
+  };
+
+  const fetchPermissions = async (userId: string, role: string) => {
+    setPermissionsLoading(true);
+    try {
+      if (role === "superadmin") {
+        setAllowedTabs(DEFAULT_TABS);
+        localStorage.setItem("citywitty_admin_permissions", JSON.stringify(DEFAULT_TABS));
+        return;
+      }
+
+      const res = await fetch(`/api/admin/permissions?userId=${userId}`);
+      const data = await res.json();
+      if (data.success && data.permissions) {
+        setAllowedTabs(data.permissions);
+        localStorage.setItem("citywitty_admin_permissions", JSON.stringify(data.permissions));
+      } else {
+        setAllowedTabs(DEFAULT_TABS);
+        localStorage.setItem("citywitty_admin_permissions", JSON.stringify(DEFAULT_TABS));
+      }
+    } catch (error) {
+      console.error("Failed to fetch permissions:", error);
+      setAllowedTabs(DEFAULT_TABS);
+      localStorage.setItem("citywitty_admin_permissions", JSON.stringify(DEFAULT_TABS));
+    } finally {
+      setPermissionsLoading(false);
+    }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -150,6 +189,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setUser(userData);
         localStorage.setItem("citywitty_admin_user", JSON.stringify(userData));
+        
+        // Fetch permissions once after login
+        await fetchPermissions(userData.id, userData.role);
+        
         return true;
       }
 
@@ -166,7 +209,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     setUser(null);
+    setAllowedTabs(null);
     localStorage.removeItem("citywitty_admin_user");
+    localStorage.removeItem("citywitty_admin_permissions");
     toast.success("Logged out successfully");
     router.push("/login");
   };
@@ -181,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading, timeRemaining, isWarning, loginError }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading, timeRemaining, isWarning, loginError, allowedTabs, permissionsLoading }}>
       {children}
     </AuthContext.Provider>
   );

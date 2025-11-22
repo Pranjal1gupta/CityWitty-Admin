@@ -68,6 +68,9 @@ export default function ProfilePage() {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [avatarVersion, setAvatarVersion] = useState(0);
   const [pendingAvatar, setPendingAvatar] = useState<string>("");
+  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -177,21 +180,14 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        const fetchRes = await fetch(`/api/admin/profile?id=${user?.id}`);
-        const fetchData = await fetchRes.json();
-        if (fetchRes.ok && fetchData.success) {
-          setProfileForm(prev => ({
-            ...prev,
-            avatar: fetchData.admin.avatar,
-          }));
-          updateUser({
-            username: fetchData.admin.username,
-            email: fetchData.admin.email,
-            avatar: fetchData.admin.avatar,
-          });
-          setPendingAvatar("");
-          setAvatarVersion(prev => prev + 1);
-        }
+        setPendingAvatar("");
+        setAvatarVersion(prev => prev + 1);
+        await fetchProfile();
+        updateUser({
+          username: profileForm.username,
+          email: profileForm.email,
+          avatar: avatarToSave,
+        });
         toast.success("Profile updated successfully");
         setShowEditModal(false);
       } else {
@@ -227,6 +223,32 @@ export default function ProfilePage() {
     setShowPasswordConfirm(true);
   };
 
+  const handleVerifyPassword = async () => {
+    setIsVerifying(true);
+    setVerificationError("");
+    try {
+      const res = await fetch("/api/admin/password/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user?.id,
+          currentPassword: passwordForm.currentPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsPasswordVerified(true);
+        toast.success("Password verified successfully");
+      } else {
+        setVerificationError(data.error || "Failed to verify password");
+      }
+    } catch (error) {
+      setVerificationError("Failed to verify password");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const handlePasswordConfirm = async () => {
     setShowPasswordConfirm(false);
     try {
@@ -247,6 +269,8 @@ export default function ProfilePage() {
           newPassword: "",
           confirmPassword: "",
         });
+        setIsPasswordVerified(false);
+        setVerificationError("");
         setShowPasswordModal(false);
       } else {
         toast.error(data.error || "Failed to change password");
@@ -375,12 +399,26 @@ export default function ProfilePage() {
 
         <ChangePasswordModal
           open={showPasswordModal}
-          onOpenChange={setShowPasswordModal}
+          onOpenChange={(open) => {
+            setShowPasswordModal(open);
+            if (!open) {
+              setIsPasswordVerified(false);
+              setVerificationError("");
+              setPasswordForm({
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+              });
+            }
+          }}
           passwordForm={passwordForm}
           showCurrentPassword={showCurrentPassword}
           showNewPassword={showNewPassword}
           showConfirmPassword={showConfirmPassword}
           showPasswordConfirm={showPasswordConfirm}
+          isPasswordVerified={isPasswordVerified}
+          isVerifying={isVerifying}
+          verificationError={verificationError}
           onShowPasswordConfirmChange={setShowPasswordConfirm}
           onPasswordFormChange={setPasswordForm}
           onShowCurrentPasswordChange={setShowCurrentPassword}
@@ -388,6 +426,7 @@ export default function ProfilePage() {
           onShowConfirmPasswordChange={setShowConfirmPassword}
           onPasswordChange={handlePasswordChange}
           onPasswordConfirm={handlePasswordConfirm}
+          onVerifyPassword={handleVerifyPassword}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

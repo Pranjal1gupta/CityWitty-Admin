@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import Admin from "@/models/Admin";
+
+const connectDB = async () => {
+  try {
+    if (mongoose.connections.length > 0 && mongoose.connections[0].readyState === 1) return;
+    await mongoose.connect(process.env.MONGODB_URI as string, {
+      dbName: "citywitty",
+    });
+    console.log("✅ MongoDB connected with Mongoose");
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err);
+    throw new Error("Failed to connect to MongoDB");
+  }
+};
+
+export async function POST(req: NextRequest) {
+  try {
+    const { id, currentPassword } = await req.json();
+
+    if (!id || !currentPassword) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    await connectDB();
+
+    const admin = await Admin.findById(id);
+    if (!admin) {
+      return NextResponse.json({ error: "Admin not found" }, { status: 404 });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, admin.password);
+    if (!isMatch) {
+      return NextResponse.json({ error: "Current password is incorrect" }, { status: 401 });
+    }
+
+    return NextResponse.json({ success: true, message: "Password verified successfully" });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}

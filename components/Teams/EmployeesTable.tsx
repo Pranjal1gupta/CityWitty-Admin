@@ -105,7 +105,7 @@ export function EmployeesTable({
         <CardTitle>Employees</CardTitle>
         <CardDescription>Manage team members and their details</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 sm:px-4">
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
