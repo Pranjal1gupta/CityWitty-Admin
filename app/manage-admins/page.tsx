@@ -482,6 +482,7 @@ export default function AdminsPage() {
             isLoading={formLoading}
             onClose={() => setShowFormModal(false)}
             onSubmit={handleCreateAdmin}
+            userId={user?.id}
           />
 
           <EditAdminModal

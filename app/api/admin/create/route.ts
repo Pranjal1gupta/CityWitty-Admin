@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
 
-    const { username, email, secretKey, role } = await request.json();
+    const { username, email, secretKey, role, permissions } = await request.json();
 
     if (!username || !email || !secretKey) {
       return NextResponse.json(
@@ -75,6 +75,7 @@ export async function POST(request: Request) {
       role: role || "admin",
       status: "active",
       isSuperAdmin: role === "superadmin",
+      permissions: permissions && Array.isArray(permissions) ? permissions : [],
     });
 
     await newAdmin.save();

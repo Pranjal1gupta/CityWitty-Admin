@@ -103,7 +103,7 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
 
-    const { username, email, password, secretCode } = await request.json();
+    const { username, email, password, secretCode, permissions } = await request.json();
 
     // Validate required fields
     if (!username || !email || !password || !secretCode) {
@@ -177,6 +177,7 @@ export async function POST(request: Request) {
       role: "admin",
       status: "active",
       isSuperAdmin: false,
+      permissions: permissions && Array.isArray(permissions) ? permissions : [],
     });
 
     await newAdmin.save();

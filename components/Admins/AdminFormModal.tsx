@@ -15,13 +15,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const AVAILABLE_TABS = [
+  "dashboard",
+  "cards",
+  "merchants",
+  "franchises",
+  "ecommerce",
+  "transactions",
+  "careers",
+  "teams",
+  "manage-admins",
+  "feedback",
+  "notifications",
+  "profile",
+];
 
 interface AdminFormData {
   username: string;
   email: string;
   role: "admin" | "superadmin";
   secretKey: string;
+  permissions: string[];
 }
 
 interface AdminFormModalProps {
@@ -29,6 +45,7 @@ interface AdminFormModalProps {
   isLoading: boolean;
   onClose: () => void;
   onSubmit: (formData: AdminFormData) => Promise<void>;
+  userId?: string;
 }
 
 export function AdminFormModal({
@@ -36,15 +53,57 @@ export function AdminFormModal({
   isLoading,
   onClose,
   onSubmit,
+  userId,
 }: AdminFormModalProps) {
   const [formData, setFormData] = useState<AdminFormData>({
     username: "",
     email: "",
     role: "admin",
     secretKey: "",
+    permissions: AVAILABLE_TABS,
   });
 
   const [errors, setErrors] = useState<Partial<AdminFormData>>({});
+  const [isFetchingPermissions, setIsFetchingPermissions] = useState(false);
+
+  useEffect(() => {
+    const fetchUserPermissions = async () => {
+      if (!isOpen || !userId) {
+        setFormData((prev) => ({
+          ...prev,
+          permissions: AVAILABLE_TABS,
+        }));
+        return;
+      }
+
+      setIsFetchingPermissions(true);
+      try {
+        const res = await fetch(`/api/admin/permissions?userId=${userId}`);
+        const data = await res.json();
+        if (data.success && data.permissions && Array.isArray(data.permissions)) {
+          setFormData((prev) => ({
+            ...prev,
+            permissions: data.permissions,
+          }));
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            permissions: AVAILABLE_TABS,
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch permissions:", error);
+        setFormData((prev) => ({
+          ...prev,
+          permissions: AVAILABLE_TABS,
+        }));
+      } finally {
+        setIsFetchingPermissions(false);
+      }
+    };
+
+    fetchUserPermissions();
+  }, [isOpen, userId]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<AdminFormData> = {};
@@ -69,6 +128,7 @@ export function AdminFormModal({
         email: "",
         role: "admin",
         secretKey: "",
+        permissions: AVAILABLE_TABS,
       });
       setErrors({});
     } catch (err) {
@@ -83,6 +143,7 @@ export function AdminFormModal({
         email: "",
         role: "admin",
         secretKey: "",
+        permissions: AVAILABLE_TABS,
       });
       setErrors({});
       onClose();

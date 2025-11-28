@@ -68,10 +68,24 @@ export default function AdminSignupPage() {
     setIsLoading(true);
 
     try {
+      let permissions: string[] = [];
+
+      try {
+        const authRes = await fetch("/api/admin/profile");
+        if (authRes.ok) {
+          const authData = await authRes.json();
+          if (authData.admin?.permissions && Array.isArray(authData.admin.permissions)) {
+            permissions = authData.admin.permissions;
+          }
+        }
+      } catch {
+        permissions = [];
+      }
+
       const res = await fetch("/api/admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password, secretCode }),
+        body: JSON.stringify({ username, email, password, secretCode, permissions }),
       });
 
       const data = await res.json();
