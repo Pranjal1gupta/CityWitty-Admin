@@ -23,6 +23,10 @@ export default function MerchantsPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
@@ -55,6 +59,10 @@ export default function MerchantsPage() {
         const params = new URLSearchParams({
           search: searchTerm,
           status: statusFilter,
+          visibility: visibilityFilter,
+          category: categoryFilter,
+          state: stateFilter,
+          city: cityFilter,
           page: currentPage.toString(),
           limit: rowsPerPage.toString(),
         });
@@ -81,7 +89,7 @@ export default function MerchantsPage() {
     // }, 3000);
 
     // return () => clearInterval(interval);
-  }, [user, pathname, searchTerm, statusFilter, currentPage, rowsPerPage]); // refetch when filters or pagination change
+  }, [user, pathname, searchTerm, statusFilter, visibilityFilter, categoryFilter, stateFilter, cityFilter, currentPage, rowsPerPage]); // refetch when filters or pagination change
 
   // Unified merchant status update helper
   const updateMerchantStatus = async (
@@ -340,6 +348,14 @@ export default function MerchantsPage() {
             setSearchTerm={setSearchTerm}
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
+            visibilityFilter={visibilityFilter}
+            setVisibilityFilter={setVisibilityFilter}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            stateFilter={stateFilter}
+            setStateFilter={setStateFilter}
+            cityFilter={cityFilter}
+            setCityFilter={setCityFilter}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             rowsPerPage={rowsPerPage}

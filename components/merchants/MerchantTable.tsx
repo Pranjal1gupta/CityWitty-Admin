@@ -29,6 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Combobox } from "@/components/ui/combobox";
 
 import {
   BookUser,
@@ -41,9 +42,12 @@ import {
   Eye,
   Zap,
   Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Merchant, ModalType } from "@/app/types/Merchant";
+import { categories } from "@/app/types/ecommerce";
+import { indianStates } from "@/app/types/states";
 
 interface MerchantTableProps {
   merchants: Merchant[];
@@ -60,6 +64,14 @@ interface MerchantTableProps {
   setSearchTerm: (term: string) => void;
   statusFilter: string;
   setStatusFilter: (filter: string) => void;
+  visibilityFilter: string;
+  setVisibilityFilter: (filter: string) => void;
+  categoryFilter: string;
+  setCategoryFilter: (filter: string) => void;
+  stateFilter: string;
+  setStateFilter: (filter: string) => void;
+  cityFilter: string;
+  setCityFilter: (filter: string) => void;
   currentPage: number;
   setCurrentPage: (page: number) => void;
   rowsPerPage: number;
@@ -77,6 +89,14 @@ export default function MerchantTable({
   setSearchTerm,
   statusFilter,
   setStatusFilter,
+  visibilityFilter,
+  setVisibilityFilter,
+  categoryFilter,
+  setCategoryFilter,
+  stateFilter,
+  setStateFilter,
+  cityFilter,
+  setCityFilter,
   currentPage,
   setCurrentPage,
   rowsPerPage,
@@ -85,10 +105,21 @@ export default function MerchantTable({
 }: MerchantTableProps) {
   const totalPages = Math.ceil(totalCount / rowsPerPage);
 
+  const resetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setVisibilityFilter("all");
+    setCategoryFilter("");
+    setStateFilter("");
+    setCityFilter("");
+    setCurrentPage(1);
+    toast.success("Filters reset");
+  };
+
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, setCurrentPage]);
+  }, [searchTerm, statusFilter, visibilityFilter, categoryFilter, stateFilter, cityFilter, setCurrentPage]);
 
   // Adjust current page if it exceeds total pages
   useEffect(() => {
@@ -144,26 +175,84 @@ export default function MerchantTable({
         </CardDescription>
       </CardHeader>
       <CardContent className="px-2 sm:px-4">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-start lg:items-center">
+            <div className="relative flex-1 w-full">
+              <Input
+                placeholder="Search by name, email, or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center w-full sm:w-auto lg:w-auto lg:flex-nowrap">
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetFilters}
+                className="order-1 sm:order-2 w-full sm:w-auto lg:w-auto"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset Filters
+              </Button>
+              <span className="text-sm text-gray-600 order-2 sm:order-1">
+                {totalCount} record{totalCount !== 1 ? 's' : ''} found
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Visibility</SelectItem>
+                <SelectItem value="visible">Visible</SelectItem>
+                <SelectItem value="hidden">Hidden</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Combobox
+              value={categoryFilter || "All Categories"}
+              onChange={(value) => setCategoryFilter(value === "All Categories" ? "" : value)}
+              options={["All Categories", ...categories]}
+              placeholder="Select category..."
+              searchPlaceholder="Search category..."
+              emptyMessage="No categories found."
+              className="w-full"
+            />
+
+            <Combobox
+              value={stateFilter || "All States"}
+              onChange={(value) => setStateFilter(value === "All States" ? "" : value)}
+              options={["All States", ...indianStates]}
+              placeholder="Select state..."
+              searchPlaceholder="Search state..."
+              emptyMessage="No states found."
+              className="w-full"
+            />
+
             <Input
-              placeholder="Search by name, email, or category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              placeholder="Filter by city..."
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              className="w-full"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {dataLoading ? (

@@ -13,6 +13,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const search = url.searchParams.get('search') || '';
     const status = url.searchParams.get('status') || 'all';
+    const visibility = url.searchParams.get('visibility') || 'all';
+    const category = url.searchParams.get('category') || '';
+    const state = url.searchParams.get('state') || '';
+    const city = url.searchParams.get('city') || '';
     const page = parseInt(url.searchParams.get('page') || '1', 10);
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
 
@@ -26,10 +30,22 @@ export async function GET(request: Request) {
       ];
     }
 
-    // Build query for pagination (includes status filter)
+    // Build query for pagination (includes all filters)
     let query: any = { ...baseQuery };
     if (status !== 'all') {
       query.status = status;
+    }
+    if (visibility !== 'all') {
+      query.visibility = visibility === 'visible';
+    }
+    if (category) {
+      query.category = category;
+    }
+    if (state) {
+      query.state = state;
+    }
+    if (city) {
+      query.city = { $regex: city, $options: 'i' };
     }
 
     const totalCount = await Partner.countDocuments(query);

@@ -87,6 +87,39 @@ export const productCategories = [
   "Others",
 ];
 
+export const categories = [
+    'Fashion & Clothing',
+    'Footwear',
+    'Salon & Spa',
+    'Restaurants & Dining',
+    'Hotels & Resorts',
+    'Education & Careers',
+    'Optical Stores',
+    'Books & Stationery',
+    'Household & Home Needs',
+    'Watches & Accessories',
+    'Hospital & Pharmacy',
+    'Computers & IT',
+    'Electronics & Appliances',
+    'Mobile & Accessories',
+    'Tattoo Studios',
+    'Gifts & Flowers',
+    'Sports & Fitness',
+    'Automotive & Vehicles',
+    'Travel & Tourism',
+    'Real Estate & Property',
+    'Jewellery & Ornaments',
+    'Furniture & Home Décor',
+    'Grocery & Supermarkets',
+    'Entertainment & Gaming',
+    'Pet Care & Supplies',
+    'Healthcare & Clinics',
+    'Logistics & Courier',
+    'Event Management',
+    'Agriculture & Farming',
+    'Other Businesses'
+];
+
 export const EtaOptions = [
   { label: "Same-Day Delivery (6–12 hours)", eta: "6–12 hours" },
   { label: "Next-Day Delivery (1 day)", eta: "1 day" },
@@ -97,6 +130,8 @@ export const EtaOptions = [
   { label: "International Delivery (15–30 days)", eta: "15–30 days" },
   { label: "Pre-Order Delivery (30–45 day)", eta: "30–45 days" },
 ];
+
+
 
 export const mockStats = {
   totalProducts: 1245,

@@ -35,86 +35,47 @@ import { Textarea } from '@/components/ui/textarea';
 import { Building2, MapPin, Store, Search, Eye, ToggleLeft, ToggleRight } from 'lucide-react';
 import { toast } from 'sonner';
 
-const mockFranchiseData = [
-  {
-    id: 'FRA001',
-    name: 'McDonald\'s Downtown',
-    franchisee: 'John Smith',
-    email: 'john.smith@mcdonalds.com',
-    phone: '+1-555-0150',
-    status: 'active',
-    registrationDate: '2023-06-15',
-    locations: 3,
-    totalMerchants: 12,
-    address: '100 Main St, Downtown, City',
-    territory: 'Downtown District',
-    franchiseFee: 50000,
-    monthlyRevenue: 125000
-  },
-  {
-    id: 'FRA002',
-    name: 'Subway Network',
-    franchisee: 'Sarah Johnson',
-    email: 'sarah.j@subway.com',
-    phone: '+1-555-0151',
-    status: 'active',
-    registrationDate: '2023-08-22',
-    locations: 5,
-    totalMerchants: 18,
-    address: '250 Oak Ave, Midtown, City',
-    territory: 'Midtown Area',
-    franchiseFee: 35000,
-    monthlyRevenue: 95000
-  },
-  {
-    id: 'FRA003',
-    name: 'Coffee House Chain',
-    franchisee: 'Mike Williams',
-    email: 'mike.w@coffeehouse.com',
-    phone: '+1-555-0152',
-    status: 'inactive',
-    registrationDate: '2023-04-10',
-    locations: 2,
-    totalMerchants: 8,
-    address: '75 Pine St, Uptown, City',
-    territory: 'Uptown Region',
-    franchiseFee: 25000,
-    monthlyRevenue: 45000,
-    deactivationReason: 'Failed to meet performance metrics'
-  },
-  {
-    id: 'FRA004',
-    name: 'Pizza Express Group',
-    franchisee: 'Lisa Davis',
-    email: 'lisa.d@pizzaexpress.com',
-    phone: '+1-555-0153',
-    status: 'pending',
-    registrationDate: '2024-01-08',
-    locations: 1,
-    totalMerchants: 4,
-    address: '320 Elm St, Westside, City',
-    territory: 'West District',
-    franchiseFee: 40000,
-    monthlyRevenue: 0
-  }
-];
+interface Franchise {
+  id: string;
+  name: string;
+  franchisee: string;
+  email: string;
+  phone: string;
+  status: string;
+  registrationDate: string;
+  locations: number;
+  totalMerchants: number;
+  address: string;
+  territory: string;
+  franchiseFee: number;
+  monthlyRevenue: number;
+  deactivationReason?: string;
+  _id?: string;
+}
 
-const mockStats = {
-  totalFranchises: 89,
-  activeFranchises: 72,
-  totalLocations: 245,
-  pendingApplications: 8
-};
+interface Stats {
+  totalFranchises: number;
+  activeFranchises: number;
+  totalLocations: number;
+  pendingApplications: number;
+}
 
 export default function FranchisesPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [franchises, setFranchises] = useState(mockFranchiseData);
-  const [selectedFranchise, setSelectedFranchise] = useState<any>(null);
+  const [franchises, setFranchises] = useState<Franchise[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalFranchises: 0,
+    activeFranchises: 0,
+    totalLocations: 0,
+    pendingApplications: 0,
+  });
+  const [selectedFranchise, setSelectedFranchise] = useState<Franchise | null>(null);
   const [deactivationReason, setDeactivationReason] = useState('');
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
+  const [isLoading2, setIsLoading2] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -122,20 +83,46 @@ export default function FranchisesPage() {
     }
   }, [user, isLoading, router]);
 
-  const filteredFranchises = franchises.filter(franchise => {
-    const matchesSearch = franchise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         franchise.franchisee.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         franchise.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || franchise.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    const fetchFranchises = async () => {
+      try {
+        setIsLoading2(true);
+        const params = new URLSearchParams();
+        if (searchTerm) params.append('search', searchTerm);
+        if (statusFilter !== 'all') params.append('status', statusFilter);
 
-  const toggleFranchiseStatus = (franchiseId: string) => {
+        const response = await fetch(`/api/franchises?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch franchises');
+        }
+
+        const data = await response.json();
+        setFranchises(data.franchises);
+        setStats(data.stats);
+      } catch (error) {
+        console.error('Error fetching franchises:', error);
+        toast.error('Failed to load franchises');
+      } finally {
+        setIsLoading2(false);
+      }
+    };
+
+    if (user) {
+      fetchFranchises();
+    }
+  }, [user, searchTerm, statusFilter]);
+
+  const filteredFranchises = franchises;
+
+  const toggleFranchiseStatus = async (franchiseId: string) => {
+    const franchise = franchises.find(f => f.id === franchiseId);
+    if (!franchise) return;
+
     setFranchises(prevFranchises => 
-      prevFranchises.map(franchise => 
-        franchise.id === franchiseId 
-          ? { ...franchise, status: franchise.status === 'active' ? 'inactive' : 'active' }
-          : franchise
+      prevFranchises.map(f => 
+        f.id === franchiseId 
+          ? { ...f, status: f.status === 'active' ? 'inactive' : 'active' }
+          : f
       )
     );
     toast.success('Franchise status updated successfully');
@@ -184,6 +171,16 @@ export default function FranchisesPage() {
 
   if (!user) return null;
 
+  if (isLoading2) {
+    return (
+      <DashboardLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4AA8FF]"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -194,7 +191,7 @@ export default function FranchisesPage() {
             <p className="text-gray-600">Manage franchise operations and locations</p>
           </div>
           <Badge className="bg-[#FF7A00] text-white animate-pulse">
-            {mockStats.pendingApplications} Pending Applications
+            {stats.pendingApplications} Pending Applications
           </Badge>
         </div>
 
@@ -206,7 +203,7 @@ export default function FranchisesPage() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.totalFranchises.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{stats.totalFranchises.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">All registered</p>
             </CardContent>
           </Card>
@@ -217,7 +214,7 @@ export default function FranchisesPage() {
               <Building2 className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{mockStats.activeFranchises.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-green-600">{stats.activeFranchises.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">Currently operating</p>
             </CardContent>
           </Card>
@@ -228,7 +225,7 @@ export default function FranchisesPage() {
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.totalLocations.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{stats.totalLocations.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">Across all franchises</p>
             </CardContent>
           </Card>
@@ -239,7 +236,7 @@ export default function FranchisesPage() {
               <Store className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{mockStats.pendingApplications.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-yellow-600">{stats.pendingApplications.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">Awaiting review</p>
             </CardContent>
           </Card>
